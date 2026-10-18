@@ -12,7 +12,7 @@ the traps that cost real time.
 
 | | |
 |---|---|
-| Version | 2.3.0 (root, app, Android and Wear agree; Windows reads it from `auramind-gemini/package.json`). 2.3.0 carries the rename, the Windows layout (#180) and its paper-and-ink look (#181); it is the first BonaMind Windows release (tag `desktop-v2.3.0`). The `desktop-v2.1.0` (old layout) and `desktop-v2.2.0` (first layout, generic look) drafts were never published and can be deleted. Play's versionCode 14 still says 2.0.0 |
+| Version | 2.3.1 (root, app, Android and Wear agree; Windows reads it from `auramind-gemini/package.json`). 2.3.1 carries the rename, the Windows layout (#180), its paper-and-ink look (#181) and the light-mode fixes from the 2.3.0 hand test; it is the first BonaMind Windows release (tag `desktop-v2.3.1`). The `desktop-v2.1.0`, `desktop-v2.2.0` and `desktop-v2.3.0` drafts were never published and can be deleted. Play's versionCode 14 still says 2.0.0 |
 | Play | versionCode 14 (the BonaMind rename, built after #172 and #176), closed testing (Alpha), **rolled out and sent for review 2026-10-16** together with the BonaMind listing |
 | Branch | `main` at `03d102ed` (2026-10-18, through #181: the Windows app's own layout (#180) and its paper-and-ink look; the BonaMind rename finished in #177; #176 the Gradle heap fix). Repo renamed to `shipking-ai/BonaMind` 2026-10-13 |
 | CI | Node **22 + 24** (20 dropped, EOL); required checks are `build-and-test (22.x)` and `(24.x)` |
@@ -118,11 +118,11 @@ the traps that cost real time.
       crashes inside those libraries. `ndk { debugSymbolLevel 'SYMBOL_TABLE' }`
       in the release build type would clear it on the next build.
     - **Windows:** ~~add `TAURI_SIGNING_PRIVATE_KEY`~~ (added 2026-10-16)
-      and ~~bump the version~~ (2.3.0, with the Windows layout and look).
-      Next: once the 2.3.0 release PR is on `main`, push the tag
-      `desktop-v2.3.0`; `Desktop Windows` builds, signs and drafts the
-      release. Review the draft, run
-      `docs/windows-app-checklist.md` on a real PC, then publish. It is the
+      and ~~bump the version~~ (2.3.1, with the Windows layout, look and
+      the hand-test fixes). Next: once the 2.3.1 PR is on `main`, push the
+      tag `desktop-v2.3.1`; `Desktop Windows` builds, signs and drafts the
+      release. Install the draft, run the checks the 2.3.0 hand test left
+      open (see "2026-10-18 - Windows 2.3.0 hand test"), then publish. It is the
       first BonaMind Windows release (the only earlier one is the retired
       June AuraMind build). <!-- legacy-name: ok -->
 
@@ -733,6 +733,40 @@ app plus its extension burn two per sideload.
   checkouts predate this and still carry the old names.
 - **Community tab** (#137) — browse and fork published decks, migration
   `20260930_marketplace_fork_and_listing.sql`.
+
+---
+
+## 2026-10-18 - Windows 2.3.0 hand test
+
+The `desktop-v2.3.0` draft, installed on the owner's Windows 11 PC and
+driven by computer use against `docs/windows-app-checklist.md`.
+
+Passed: no admin prompt (installed per user), dark title bar (warm grey,
+violet border), light title bar (Windows' own), Today (due count, minutes,
+course table, streak and "remembered this week"), sidebar and Ctrl+B,
+collapse below ~900px and restore, Library search, Sort and right-click
+menu, a study session inside the window (Space shows the handwritten
+answer, 1–4 show intervals, Esc ends), Settings and Ctrl+,, Ctrl+N, the
+Light / System switch, New course and Linnea in light, no browser menu on
+empty space, the taskbar badge ("9+"), and `bonamind://app/study`.
+
+Found and fixed (2.3.1):
+- Light mode, Settings → Windows: the Change button (white text), the
+  shortcut chip and the off Start with Windows switch were near invisible;
+  the divider under the shortcut row was dark.
+- Light mode, Linnea: the selected Study Coach / Companion pill had pale
+  violet text on paper.
+- Library status bar said "1 cards due".
+- The window title said "Home · BonaMind" on Today.
+
+Not checked by the agent, for the owner: Delete's confirm (the permission
+classifier blocks clicking Delete on real data), Quick Review (the global
+shortcut is registered, but synthetic key presses don't reach global
+hotkeys and the tray menu was behind the Claude window), tray menu and
+notifications, Start with Windows across a sign-out, two monitors, drop and
+Explorer "Make a course with BonaMind", About → Check for updates, and
+Google sign-in. Grading was skipped so the owner's review schedule did not
+change.
 
 ---
 

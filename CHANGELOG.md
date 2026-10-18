@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-10-18
+
+### Fixed
+- **Windows app, light mode** - the Quick Review shortcut, its Change
+  button and the Start with Windows switch in Settings, and the selected
+  Study Coach / Companion pill in Prof. Linnea, were nearly invisible
+- **Windows app** - the Library says "1 card due", and the window title on
+  Today says "Today"
+
 ## [2.3.0] - 2026-10-18
 
 ### Changed
