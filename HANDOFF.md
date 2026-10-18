@@ -12,7 +12,7 @@ the traps that cost real time.
 
 | | |
 |---|---|
-| Version | 2.3.4 (root, app, Android and Wear agree; Windows reads it from `auramind-gemini/package.json`). 2.3.4 carries the rename, the Windows layout (#180), its paper-and-ink look (#181), and the fixes from four hand tests (#185, #186, #187 and the Quick Review refresh in 2.3.4); it is the first BonaMind Windows release (tag `desktop-v2.3.4`). The `desktop-v2.1.0` to `desktop-v2.3.3` drafts were never published and can be deleted. Play's versionCode 14 still says 2.0.0 |
+| Version | 2.3.4 (root, app, Android and Wear agree; Windows reads it from `auramind-gemini/package.json`). **Windows 2.3.4 published 2026-10-18** (`desktop-v2.3.4`, marked latest; `releases/latest/download/latest.json` serves 2.3.4): the first BonaMind Windows release, with the rename, the Windows layout (#180), its paper-and-ink look (#181) and the fixes from four hand tests (#185-#188). The unpublished drafts 2.1.0-2.3.3 were deleted (their git tags remain). Play's versionCode 14 still says 2.0.0 |
 | Play | versionCode 14 (the BonaMind rename, built after #172 and #176), closed testing (Alpha), **rolled out and sent for review 2026-10-16** together with the BonaMind listing |
 | Branch | `main` at `03d102ed` (2026-10-18, through #181: the Windows app's own layout (#180) and its paper-and-ink look; the BonaMind rename finished in #177; #176 the Gradle heap fix). Repo renamed to `shipking-ai/BonaMind` 2026-10-13 |
 | CI | Node **22 + 24** (20 dropped, EOL); required checks are `build-and-test (22.x)` and `(24.x)` |
@@ -117,14 +117,15 @@ the traps that cost real time.
       `libandroidx.graphics.path.so`), not ours, so it only affects reading
       crashes inside those libraries. `ndk { debugSymbolLevel 'SYMBOL_TABLE' }`
       in the release build type would clear it on the next build.
-    - **Windows:** ~~add `TAURI_SIGNING_PRIVATE_KEY`~~ (added 2026-10-16)
-      and ~~bump the version~~ (2.3.4, with the Windows layout, look and
-      the hand-test fixes). Next: once the 2.3.4 PR is on `main`, push the
-      tag `desktop-v2.3.4`; `Desktop Windows` builds, signs and drafts the
-      release. Install the draft, run the checks the 2.3.0 hand test left
-      open (see "2026-10-18 - Windows 2.3.0 hand test"), then publish. It is the
-      first BonaMind Windows release (the only earlier one is the retired
-      June AuraMind build). <!-- legacy-name: ok -->
+    - ~~**Windows:** first BonaMind release~~ — **2.3.4 published
+      2026-10-18** after four hand tests on the owner's PC (see the
+      "Windows 2.3.x hand test" entries). Installed copies update from
+      `latest.json` on the next check. Not yet hand-tested: tray menu and
+      notifications, Start with Windows across a sign-out, drop and the
+      Explorer "Make a course" entry. About → Check for updates can't be
+      reached in the Windows app (no link to `/about` from either settings
+      page, and `bonamind://app/about` is ignored); the update banner
+      (`DesktopUpdateBanner`) is the only path today.
 
 After the first publish, `status=completed` in the release workflow makes a
 dispatch go live without a console visit.
