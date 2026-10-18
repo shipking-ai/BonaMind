@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.2] - 2026-10-18
+
+### Fixed
+- **Windows app** - when another app already owns the Quick Review
+  shortcut (Ctrl+Alt+Space), Settings now says so and asks for another,
+  instead of showing a shortcut that does nothing
+- **Windows app** - the window title on launch says "Today · BonaMind"
+  rather than "BonaMind"
+
 ## [2.3.1] - 2026-10-18
 
 ### Fixed
