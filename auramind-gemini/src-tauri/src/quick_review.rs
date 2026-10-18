@@ -10,6 +10,10 @@ use tauri_plugin_opener::OpenerExt;
 
 pub const LABEL: &str = "quick-review";
 pub const DEFAULT_SHORTCUT: &str = "CommandOrControl+Alt+Space";
+/// Same as the main window's `useHttpsScheme` in tauri.conf.json, so the panel
+/// shares its origin (https://tauri.localhost): its sign-in, and no stale
+/// service worker from the old http origin.
+pub const USE_HTTPS_SCHEME: bool = true;
 const WIDTH: f64 = 380.0;
 const HEIGHT: f64 = 300.0;
 const MARGIN: f64 = 12.0;
@@ -48,6 +52,7 @@ fn build(app: &AppHandle) -> tauri::Result<WebviewWindow> {
     let handle = app.clone();
     let window = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("quick-review".into()))
         .title("Quick review")
+        .use_https_scheme(USE_HTTPS_SCHEME)
         .inner_size(WIDTH, HEIGHT)
         .decorations(false)
         .transparent(true)
@@ -70,7 +75,17 @@ fn build(app: &AppHandle) -> tauri::Result<WebviewWindow> {
     Ok(window)
 }
 
+/// Opens the panel. Called from the shortcut, tray and notification
+/// handlers, which run on the main thread: building a webview there waits
+/// for WebView2, which needs that same thread, and the whole app froze on
+/// the first Quick Review. So the work runs on its own thread; Tauri sends
+/// each window call back to the main thread, which stays free to pump.
 pub fn show(app: &AppHandle) {
+    let app = app.clone();
+    std::thread::spawn(move || show_now(&app));
+}
+
+fn show_now(app: &AppHandle) {
     let window = match app.get_webview_window(LABEL) {
         Some(w) => w,
         None => match build(app) {
@@ -96,15 +111,18 @@ pub fn hide(app: &AppHandle) {
 }
 
 pub fn toggle(app: &AppHandle) {
-    let open = app
-        .get_webview_window(LABEL)
-        .and_then(|w| w.is_visible().ok())
-        .unwrap_or(false);
-    if open {
-        hide(app)
-    } else {
-        show(app)
-    }
+    let app = app.clone();
+    std::thread::spawn(move || {
+        let open = app
+            .get_webview_window(LABEL)
+            .and_then(|w| w.is_visible().ok())
+            .unwrap_or(false);
+        if open {
+            hide(&app)
+        } else {
+            show_now(&app)
+        }
+    });
 }
 
 #[cfg(test)]
@@ -112,6 +130,16 @@ mod tests {
     use super::*;
 
     const PRIMARY: Rect = Rect { x: 0, y: 0, width: 1920, height: 1040 };
+
+    #[test]
+    fn loads_from_the_same_origin_as_the_main_window() {
+        // http://tauri.localhost and https://tauri.localhost are different
+        // origins: a mismatch loses the sign-in and lets an old service
+        // worker serve a stale app (the panel showed a 404 from June).
+        let conf: serde_json::Value = serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        let main = conf["app"]["windows"].as_array().unwrap().iter().find(|w| w["label"] == "main").unwrap();
+        assert_eq!(main["useHttpsScheme"].as_bool(), Some(USE_HTTPS_SCHEME));
+    }
 
     #[test]
     fn sits_above_the_taskbar_bottom_right() {

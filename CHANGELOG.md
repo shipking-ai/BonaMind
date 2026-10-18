@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.3] - 2026-10-18
+
+### Fixed
+- **Windows app: Quick Review** - opening it froze the whole app (the
+  panel was built on the thread WebView2 needs to finish it), and once
+  that was fixed it showed an old "Page not found": the panel loaded from
+  http://tauri.localhost instead of the main window's https origin, so it
+  had no sign-in and an old service worker served a stale app
+
 ## [2.3.2] - 2026-10-18
 
 ### Fixed
