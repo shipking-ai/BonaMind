@@ -12,7 +12,7 @@ the traps that cost real time.
 
 | | |
 |---|---|
-| Version | 2.3.2 (root, app, Android and Wear agree; Windows reads it from `auramind-gemini/package.json`). 2.3.2 carries the rename, the Windows layout (#180), its paper-and-ink look (#181), the light-mode fixes from the 2.3.0 hand test (#185) and the 2.3.1 hand-test fixes (shortcut warning, launch title); it is the first BonaMind Windows release (tag `desktop-v2.3.2`). The `desktop-v2.1.0` to `desktop-v2.3.1` drafts were never published and can be deleted. Play's versionCode 14 still says 2.0.0 |
+| Version | 2.3.3 (root, app, Android and Wear agree; Windows reads it from `auramind-gemini/package.json`). 2.3.3 carries the rename, the Windows layout (#180), its paper-and-ink look (#181), and the fixes from three hand tests (#185, #186, and Quick Review in 2.3.3); it is the first BonaMind Windows release (tag `desktop-v2.3.3`). The `desktop-v2.1.0` to `desktop-v2.3.2` drafts were never published and can be deleted. Play's versionCode 14 still says 2.0.0 |
 | Play | versionCode 14 (the BonaMind rename, built after #172 and #176), closed testing (Alpha), **rolled out and sent for review 2026-10-16** together with the BonaMind listing |
 | Branch | `main` at `03d102ed` (2026-10-18, through #181: the Windows app's own layout (#180) and its paper-and-ink look; the BonaMind rename finished in #177; #176 the Gradle heap fix). Repo renamed to `shipking-ai/BonaMind` 2026-10-13 |
 | CI | Node **22 + 24** (20 dropped, EOL); required checks are `build-and-test (22.x)` and `(24.x)` |
@@ -118,9 +118,9 @@ the traps that cost real time.
       crashes inside those libraries. `ndk { debugSymbolLevel 'SYMBOL_TABLE' }`
       in the release build type would clear it on the next build.
     - **Windows:** ~~add `TAURI_SIGNING_PRIVATE_KEY`~~ (added 2026-10-16)
-      and ~~bump the version~~ (2.3.2, with the Windows layout, look and
-      the hand-test fixes). Next: once the 2.3.2 PR is on `main`, push the
-      tag `desktop-v2.3.2`; `Desktop Windows` builds, signs and drafts the
+      and ~~bump the version~~ (2.3.3, with the Windows layout, look and
+      the hand-test fixes). Next: once the 2.3.3 PR is on `main`, push the
+      tag `desktop-v2.3.3`; `Desktop Windows` builds, signs and drafts the
       release. Install the draft, run the checks the 2.3.0 hand test left
       open (see "2026-10-18 - Windows 2.3.0 hand test"), then publish. It is the
       first BonaMind Windows release (the only earlier one is the retired
@@ -733,6 +733,38 @@ app plus its extension burn two per sideload.
   checkouts predate this and still carry the old names.
 - **Community tab** (#137) — browse and fork published decks, migration
   `20260930_marketplace_fork_and_listing.sql`.
+
+---
+
+## 2026-10-18 - Windows 2.3.2 hand test: Quick Review
+
+2.3.2's fixes hold: the launch title is "Today · BonaMind", and Settings
+warns that another app owns Ctrl+Alt+Space. With the shortcut changed to
+Ctrl+Shift+F8 (Ctrl+Alt+Q is taken on this PC too), Quick Review was
+broken twice over:
+
+- **It froze the app.** The first press created the panel's window and
+  then the process stopped responding (Windows showed a `dwm` ghost
+  window). `quick_review::show` / `toggle` ran in the shortcut, tray and
+  notification handlers on the main thread, and building a webview there
+  waits on WebView2, which needs that same thread. They now run on their
+  own thread; Tauri sends each window call back to the main thread.
+- **It showed an old 404.** The panel's builder lacked
+  `use_https_scheme(true)`, so it loaded `http://tauri.localhost` while the
+  main window is `https://` (`useHttpsScheme` in tauri.conf.json): no
+  sign-in, and the June build's service worker, still registered on the
+  http origin, served a stale app. `quick_review::USE_HTTPS_SCHEME`, with a
+  test that it matches the main window's config.
+
+Verified on a local `tauri build --no-bundle`: the panel opens bottom-right
+above the taskbar, signed in, with due cards; Space flips, Esc hides, the
+shortcut reopens it, and the app stays responsive. Grading was skipped.
+
+Still for the owner: rating in Quick Review (the tray count should drop),
+Delete's confirm, tray and notifications (their "Quick review" now goes
+through the same fixed path), Start with Windows, drop and the Explorer
+menu, Check for updates. The panel still uses the old navy look, and the
+tray menu always labels Quick review "Ctrl+Alt+Space" even after a change.
 
 ---
 
