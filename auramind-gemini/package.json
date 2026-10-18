@@ -1,7 +1,7 @@
 {
   "name": "bonamind",
   "private": true,
-  "version": "2.3.0",
+  "version": "2.3.1",
   "engines": {
     "node": ">=22.22.2"
   },

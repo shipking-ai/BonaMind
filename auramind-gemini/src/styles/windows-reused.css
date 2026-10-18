@@ -40,6 +40,28 @@ html.platform-desktop .win-content :is(
   color: var(--win-text-muted);
 }
 
+html.platform-desktop .win-content :is(.text-zinc-100, .text-zinc-200) {
+  color: var(--win-text);
+}
+
+/* Pale violet and pink text (selected chat mode, icons, links) is unreadable
+   on paper; it takes the accent, which is pale enough in dark. */
+html.platform-desktop .win-content :is(
+  .text-\[\#C4B5FD\], .text-\[\#A78BFA\], .text-\[\#F0ABFC\],
+  .text-violet-200, .text-violet-300, .text-violet-400
+) {
+  color: var(--win-accent);
+}
+
+/* Shortcut keys and the off state of switches (DesktopSettingsSection). */
+html.platform-desktop .win-content kbd.bg-black\/30 {
+  background-color: var(--win-surface-hover);
+}
+
+html.platform-desktop .win-content [role="switch"].bg-\[\#2A2A3A\] {
+  background-color: var(--win-text-muted);
+}
+
 html.platform-desktop .win-content :is(.placeholder-\[\#7A7A96\], .placeholder-zinc-500)::placeholder {
   color: var(--win-text-muted);
 }
@@ -53,7 +75,7 @@ html.platform-desktop .win-content :is(.bg-gradient-to-br, .bg-gradient-to-r) .t
 
 /* Borders. */
 html.platform-desktop .win-content :is(
-  .border-\[\#2A2A3A\], .border-\[\#3A3A4F\],
+  .border-\[\#2A2A3A\], .border-\[\#2A2A3A\]\/30, .border-\[\#3A3A4F\],
   .border-white\/\[0\.06\], .border-white\/\[0\.08\], .border-white\/\[0\.1\], .border-white\/\[0\.12\],
   .border-white\/10, .border-white\/15, .border-white\/30
 ) {

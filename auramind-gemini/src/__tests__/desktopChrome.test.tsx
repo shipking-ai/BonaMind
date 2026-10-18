@@ -17,7 +17,7 @@ afterEach(() => { delete (window as W).__TAURI_INTERNALS__; document.documentEle
 
 describe('windowTitleFor', () => {
   it('names the page, then the app', () => {
-    expect(windowTitleFor('/dashboard')).toBe('Home · BonaMind');
+    expect(windowTitleFor('/dashboard')).toBe('Today · BonaMind');
     expect(windowTitleFor('/dashboard/decks')).toBe('Library · BonaMind');
     expect(windowTitleFor('/dashboard/study/abc')).toBe('Study · BonaMind');
     expect(windowTitleFor('/somewhere-else')).toBe('BonaMind');
