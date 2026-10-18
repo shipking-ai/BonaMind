@@ -12,7 +12,7 @@ the traps that cost real time.
 
 | | |
 |---|---|
-| Version | 2.3.3 (root, app, Android and Wear agree; Windows reads it from `auramind-gemini/package.json`). 2.3.3 carries the rename, the Windows layout (#180), its paper-and-ink look (#181), and the fixes from three hand tests (#185, #186, and Quick Review in 2.3.3); it is the first BonaMind Windows release (tag `desktop-v2.3.3`). The `desktop-v2.1.0` to `desktop-v2.3.2` drafts were never published and can be deleted. Play's versionCode 14 still says 2.0.0 |
+| Version | 2.3.4 (root, app, Android and Wear agree; Windows reads it from `auramind-gemini/package.json`). 2.3.4 carries the rename, the Windows layout (#180), its paper-and-ink look (#181), and the fixes from four hand tests (#185, #186, #187 and the Quick Review refresh in 2.3.4); it is the first BonaMind Windows release (tag `desktop-v2.3.4`). The `desktop-v2.1.0` to `desktop-v2.3.3` drafts were never published and can be deleted. Play's versionCode 14 still says 2.0.0 |
 | Play | versionCode 14 (the BonaMind rename, built after #172 and #176), closed testing (Alpha), **rolled out and sent for review 2026-10-16** together with the BonaMind listing |
 | Branch | `main` at `03d102ed` (2026-10-18, through #181: the Windows app's own layout (#180) and its paper-and-ink look; the BonaMind rename finished in #177; #176 the Gradle heap fix). Repo renamed to `shipking-ai/BonaMind` 2026-10-13 |
 | CI | Node **22 + 24** (20 dropped, EOL); required checks are `build-and-test (22.x)` and `(24.x)` |
@@ -118,9 +118,9 @@ the traps that cost real time.
       crashes inside those libraries. `ndk { debugSymbolLevel 'SYMBOL_TABLE' }`
       in the release build type would clear it on the next build.
     - **Windows:** ~~add `TAURI_SIGNING_PRIVATE_KEY`~~ (added 2026-10-16)
-      and ~~bump the version~~ (2.3.3, with the Windows layout, look and
-      the hand-test fixes). Next: once the 2.3.3 PR is on `main`, push the
-      tag `desktop-v2.3.3`; `Desktop Windows` builds, signs and drafts the
+      and ~~bump the version~~ (2.3.4, with the Windows layout, look and
+      the hand-test fixes). Next: once the 2.3.4 PR is on `main`, push the
+      tag `desktop-v2.3.4`; `Desktop Windows` builds, signs and drafts the
       release. Install the draft, run the checks the 2.3.0 hand test left
       open (see "2026-10-18 - Windows 2.3.0 hand test"), then publish. It is the
       first BonaMind Windows release (the only earlier one is the retired
@@ -733,6 +733,30 @@ app plus its extension burn two per sideload.
   checkouts predate this and still carry the old names.
 - **Community tab** (#137) — browse and fork published decks, migration
   `20260930_marketplace_fork_and_listing.sql`.
+
+---
+
+## 2026-10-18 - Windows 2.3.3 hand test
+
+The release build of 2.3.3: Quick Review opens signed in with due cards,
+Esc hides it, the app stays responsive. The owner said the account's
+cards are test data, so this run graded and tried Delete:
+
+- **Library → Delete** asks first ("Its cards are deleted too. This can't
+  be undone."); Cancel keeps the course.
+- **Rating in Quick Review saved but the main window didn't move** (Today
+  stayed at 30 until a restart showed 29). `cards-changed` did arrive (a
+  `bonamind://` deep link proved the event path), but the reload went
+  through `cardService.fetchCards`, which returns its in-memory cache; the
+  rating was written from the panel's own window, so the main window's
+  cache was stale. The `cards-changed` handler now calls
+  `dbService.clearCache()` before `refreshWorkspace()` (test asserts the
+  order). Verified on a local build: one rating took Today from 29 to 28
+  and SQL from 10 to 9 due without a restart.
+
+Still for the owner: tray menu and notifications, Start with Windows,
+drop and the Explorer menu, Check for updates (needs a published
+release).
 
 ---
 

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.4] - 2026-10-18
+
+### Fixed
+- **Windows app: Quick Review** - cards rated in the panel now update
+  Today, the Library and the tray count straight away, instead of after a
+  restart
+
 ## [2.3.3] - 2026-10-18
 
 ### Fixed
