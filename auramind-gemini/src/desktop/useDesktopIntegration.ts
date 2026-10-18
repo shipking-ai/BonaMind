@@ -17,6 +17,7 @@ import { refreshWorkspace } from '../lib/workspaceRefresh';
 import { useStudyStats } from '../hooks/useStudyStats';
 import { useAppPreference } from '../lib/appPreferences';
 import { supabase } from '../services/database/supabase';
+import { dbService } from '../services/database/dbService';
 
 export const QUICK_REVIEW_SHORTCUT_PREF = 'bonamind_quickReviewShortcut';
 export const DEFAULT_QUICK_REVIEW_SHORTCUT = 'CommandOrControl+Alt+Space';
@@ -102,7 +103,9 @@ export function useDesktopIntegration(input: {
       desktop.on('open-route', ({ path }) => {
         if (path.startsWith('/') && !path.startsWith('//')) go(path);
       }),
-      desktop.on('cards-changed', () => { void refreshWorkspace(); }),
+      // Quick Review rated in its own window, so this window's card cache is
+      // stale: drop it, or the reload hands back the same counts.
+      desktop.on('cards-changed', () => { dbService.clearCache(); void refreshWorkspace(); }),
     ];
     return () => { offs.forEach((p) => void p.then((off) => off())); };
   }, [enabled]);

@@ -18,6 +18,9 @@ vi.mock('../desktop/bridge', () => ({
 }));
 const refresh = vi.hoisted(() => vi.fn(async () => true));
 vi.mock('../lib/workspaceRefresh', () => ({ refreshWorkspace: () => refresh() }));
+const order = vi.hoisted(() => [] as string[]);
+const clearCache = vi.hoisted(() => vi.fn(() => { order.push('clear'); }));
+vi.mock('../services/database/dbService', () => ({ dbService: { clearCache: () => clearCache() } }));
 vi.mock('../hooks/useStudyStats', () => ({ useStudyStats: () => ({ streak: 4 }) }));
 const offer = vi.hoisted(() => vi.fn());
 vi.mock('../lib/pendingGeneratorFile', () => ({ offerGeneratorFile: (f: File) => offer(f) }));
@@ -75,8 +78,11 @@ describe('useDesktopIntegration', () => {
   it('Quick Review ratings refresh the workspace; routes and links navigate', async () => {
     const { getByTestId } = render(tree([]));
     await act(async () => {});
+    refresh.mockImplementationOnce(async () => { order.push('refresh'); return true; });
     await act(async () => { bridge.handlers.get('cards-changed')!({}); });
-    expect(refresh).toHaveBeenCalled();
+    // The panel rated in its own window: the main window's card cache is
+    // stale, so it must be dropped before the reload or the counts don't move.
+    expect(order).toEqual(['clear', 'refresh']);
     await act(async () => { bridge.handlers.get('open-route')!({ path: '/dashboard/decks' }); });
     expect(getByTestId('where')).toHaveTextContent('/dashboard/decks');
     await act(async () => { bridge.handlers.get('deep-link')!({ url: 'auramind://app/study' }); }); // legacy-name: ok
