@@ -41,6 +41,19 @@ export function DesktopSettingsSection() {
     void desktop.notificationsEnabled().then(setNotifications);
   }, [active]);
 
+  // Registration at startup fails quietly when another app (Claude's quick
+  // entry, for one) already owns the keys; say so here instead.
+  useEffect(() => {
+    if (!active) return;
+    let live = true;
+    void desktop.shortcutRegistered(shortcut).then((held) => {
+      if (live && held === false) {
+        setShortcutError(`Another app already uses ${displayAccelerator(shortcut)}, so it won't open Quick Review. Choose another with Change.`);
+      }
+    });
+    return () => { live = false; };
+  }, [active, shortcut]);
+
   useEffect(() => {
     if (!recording) return;
     const onKey = async (e: KeyboardEvent) => {

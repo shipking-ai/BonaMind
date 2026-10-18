@@ -16,7 +16,7 @@ Build: ____________  Date: ____________  Tester: ____________
 - [ ] Switch Windows between light and dark (Settings → Personalization → Colors) with the app open: the app, its window and title bar follow without a restart.
 - [ ] Hovering maximize shows Snap Layouts.
 - [ ] Signed in, it opens to Today; signed out, to sign-in (never the marketing page).
-- [ ] The title follows the page ("Today · BonaMind", "Library · BonaMind").
+- [ ] The title follows the page, including right after launch ("Today · BonaMind", "Library · BonaMind").
 - [ ] Right-click on empty space shows no browser menu; in a text field it does.
 - [ ] Ctrl+N opens New course; Ctrl+, opens Settings.
 
@@ -49,6 +49,7 @@ Build: ____________  Date: ____________  Tester: ____________
 - [ ] After a rating, the tray count drops.
 - [ ] Finishing shows "All caught up · next card due in …" and hides after 2 seconds.
 - [ ] Change the shortcut in Settings; the new one works; a taken one shows the explanation.
+- [ ] If another app already owns Ctrl+Alt+Space when BonaMind starts (Claude's quick entry does), Settings says so under Quick Review shortcut.
 
 ## Drop to create
 - [ ] Dragging a PDF over the window shows the violet "Drop to make a course" glow; dropping opens the generator with it loaded.

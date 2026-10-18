@@ -6,6 +6,7 @@ const bridge = vi.hoisted(() => ({
   getAutostart: vi.fn(async () => false),
   setAutostart: vi.fn(async (on: boolean) => on),
   notificationsEnabled: vi.fn(async () => true as boolean | null),
+  shortcutRegistered: vi.fn(async (_acc: string) => true as boolean | null),
 }));
 vi.mock('../desktop/bridge', () => ({ desktop: bridge }));
 const open = vi.hoisted(() => vi.fn());
@@ -63,6 +64,21 @@ describe('DesktopSettingsSection', () => {
     await act(async () => { fireEvent.keyDown(window, { code: 'KeyQ', key: 'q', ctrlKey: true, altKey: true }); });
     expect(screen.getByText('Another app already uses that shortcut. Try a different one.')).toBeInTheDocument();
     expect(screen.getByText('Ctrl + Alt + Space')).toBeInTheDocument();
+  });
+
+  it('warns when another app already had the shortcut at startup', async () => {
+    bridge.shortcutRegistered.mockResolvedValueOnce(false);
+    render(<DesktopSettingsSection />);
+    expect(await screen.findByText(
+      "Another app already uses Ctrl + Alt + Space, so it won't open Quick Review. Choose another with Change.",
+    )).toBeInTheDocument();
+    expect(bridge.shortcutRegistered).toHaveBeenCalledWith('CommandOrControl+Alt+Space');
+  });
+
+  it("says nothing when the shortcut is registered, or when it can't tell", async () => {
+    bridge.shortcutRegistered.mockResolvedValueOnce(null);
+    render(<DesktopSettingsSection />);
+    expect(await screen.findByText('Opens a few due cards from anywhere in Windows.')).toBeInTheDocument();
   });
 
   it('toggles start with Windows from the real state', async () => {

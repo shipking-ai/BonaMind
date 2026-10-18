@@ -12,7 +12,7 @@ the traps that cost real time.
 
 | | |
 |---|---|
-| Version | 2.3.1 (root, app, Android and Wear agree; Windows reads it from `auramind-gemini/package.json`). 2.3.1 carries the rename, the Windows layout (#180), its paper-and-ink look (#181) and the light-mode fixes from the 2.3.0 hand test; it is the first BonaMind Windows release (tag `desktop-v2.3.1`). The `desktop-v2.1.0`, `desktop-v2.2.0` and `desktop-v2.3.0` drafts were never published and can be deleted. Play's versionCode 14 still says 2.0.0 |
+| Version | 2.3.2 (root, app, Android and Wear agree; Windows reads it from `auramind-gemini/package.json`). 2.3.2 carries the rename, the Windows layout (#180), its paper-and-ink look (#181), the light-mode fixes from the 2.3.0 hand test (#185) and the 2.3.1 hand-test fixes (shortcut warning, launch title); it is the first BonaMind Windows release (tag `desktop-v2.3.2`). The `desktop-v2.1.0` to `desktop-v2.3.1` drafts were never published and can be deleted. Play's versionCode 14 still says 2.0.0 |
 | Play | versionCode 14 (the BonaMind rename, built after #172 and #176), closed testing (Alpha), **rolled out and sent for review 2026-10-16** together with the BonaMind listing |
 | Branch | `main` at `03d102ed` (2026-10-18, through #181: the Windows app's own layout (#180) and its paper-and-ink look; the BonaMind rename finished in #177; #176 the Gradle heap fix). Repo renamed to `shipking-ai/BonaMind` 2026-10-13 |
 | CI | Node **22 + 24** (20 dropped, EOL); required checks are `build-and-test (22.x)` and `(24.x)` |
@@ -118,9 +118,9 @@ the traps that cost real time.
       crashes inside those libraries. `ndk { debugSymbolLevel 'SYMBOL_TABLE' }`
       in the release build type would clear it on the next build.
     - **Windows:** ~~add `TAURI_SIGNING_PRIVATE_KEY`~~ (added 2026-10-16)
-      and ~~bump the version~~ (2.3.1, with the Windows layout, look and
-      the hand-test fixes). Next: once the 2.3.1 PR is on `main`, push the
-      tag `desktop-v2.3.1`; `Desktop Windows` builds, signs and drafts the
+      and ~~bump the version~~ (2.3.2, with the Windows layout, look and
+      the hand-test fixes). Next: once the 2.3.2 PR is on `main`, push the
+      tag `desktop-v2.3.2`; `Desktop Windows` builds, signs and drafts the
       release. Install the draft, run the checks the 2.3.0 hand test left
       open (see "2026-10-18 - Windows 2.3.0 hand test"), then publish. It is the
       first BonaMind Windows release (the only earlier one is the retired
@@ -733,6 +733,33 @@ app plus its extension burn two per sideload.
   checkouts predate this and still carry the old names.
 - **Community tab** (#137) — browse and fork published decks, migration
   `20260930_marketplace_fork_and_listing.sql`.
+
+---
+
+## 2026-10-18 - Windows 2.3.1 hand test
+
+The `desktop-v2.3.1` draft, installed silently (`/S`) over 2.3.0 on the
+owner's PC. The 2.3.0 fixes hold: the Windows settings rows, the Study
+Coach pill and the Library count are readable in light mode.
+
+Found and fixed (2.3.2):
+- **Quick Review never opened on this PC.** Another app already owns
+  Ctrl+Alt+Space (still taken with BonaMind closed; Claude's desktop quick
+  entry uses it), so startup registration failed quietly and Settings
+  showed a shortcut that did nothing. New command `shortcut_registered`
+  (the plugin's `is_registered`, false when `register` failed); Settings
+  warns under Quick Review shortcut. Synthetic key presses do reach global
+  hotkeys (a test hotkey registered from PowerShell fired), so this was
+  not the test harness.
+- **Launch title said "BonaMind".** The app lands on "/" and redirects to
+  "/dashboard"; the two `setTitle` calls went out together and the stale
+  one won. `desktop.setTitle` now sends titles one at a time.
+
+Still for the owner: Quick Review itself (choose another shortcut in
+Settings, or use the tray), Delete's confirm, tray and notifications,
+Start with Windows, drop and the Explorer menu, Check for updates. The
+launch splash is still the old near-black loader with a violet glow
+(index.html), which flashes before the paper look in light mode.
 
 ---
 

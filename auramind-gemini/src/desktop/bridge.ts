@@ -31,6 +31,8 @@ async function call<T>(command: string, args?: Record<string, unknown>, fallback
   }
 }
 
+let titleQueue: Promise<void> = Promise.resolve();
+
 export const desktop = {
   appReady: () => call<void>('app_ready'),
   showMain: (path?: string) => call<void>('show_main', { path }),
@@ -40,6 +42,9 @@ export const desktop = {
   cardsChanged: () => call<void>('cards_changed'),
   setShortcut: (accelerator: string) =>
     call<ShortcutResult>('set_shortcut', { accelerator }, { ok: false, reason: 'invalid' }),
+  /** Whether this app holds the shortcut; false when another app took it first. null = can't tell. */
+  shortcutRegistered: (accelerator: string) =>
+    call<boolean | null>('shortcut_registered', { accelerator }, null),
   getAutostart: () => call<boolean>('get_autostart', undefined, false),
   setAutostart: (enabled: boolean) => call<boolean>('set_autostart', { enabled }, false),
   /** null = can't tell (not the Windows app, or no installed shortcut yet). */
@@ -62,14 +67,21 @@ export const desktop = {
     }
     await call<void>('set_title_bar_theme', { dark: theme === 'dark' });
   },
-  async setTitle(title: string): Promise<void> {
-    if (!isDesktopApp()) return;
-    try {
-      const { getCurrentWindow } = await import('@tauri-apps/api/window');
-      await getCurrentWindow().setTitle(title);
-    } catch {
-      /* title is cosmetic */
-    }
+  /**
+   * One at a time: at launch "/" redirects straight to "/dashboard", and two
+   * titles sent together can be applied out of order, leaving the stale one.
+   */
+  setTitle(title: string): Promise<void> {
+    if (!isDesktopApp()) return Promise.resolve();
+    titleQueue = titleQueue.then(async () => {
+      try {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window');
+        await getCurrentWindow().setTitle(title);
+      } catch {
+        /* title is cosmetic */
+      }
+    });
+    return titleQueue;
   },
   async on<K extends keyof DesktopEvents>(
     event: K,

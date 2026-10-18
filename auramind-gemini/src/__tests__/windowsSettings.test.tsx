@@ -12,6 +12,7 @@ const bridge = vi.hoisted(() => ({
   getAutostart: vi.fn(async () => false),
   setAutostart: vi.fn(async (on: boolean) => on),
   notificationsEnabled: vi.fn(async () => true),
+  shortcutRegistered: vi.fn(async () => true),
 }));
 vi.mock('../desktop/bridge', () => ({ desktop: bridge }));
 vi.mock('../services/database/modules/sessionService', () => ({

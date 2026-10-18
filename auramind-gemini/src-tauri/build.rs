@@ -10,6 +10,7 @@ fn main() {
                 "quick_review_done",
                 "cards_changed",
                 "set_shortcut",
+                "shortcut_registered",
                 "set_due_state",
                 "schedule_nudges",
                 "get_autostart",
