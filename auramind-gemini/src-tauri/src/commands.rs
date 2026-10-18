@@ -114,6 +114,14 @@ pub fn set_shortcut(app: AppHandle, accelerator: String) -> ShortcutResult {
     }
 }
 
+/// Whether this app holds `accelerator`. Registration at startup fails
+/// quietly when another app already owns the keys; Settings asks here so it
+/// can say so.
+#[tauri::command]
+pub fn shortcut_registered(app: AppHandle, accelerator: String) -> bool {
+    app.global_shortcut().is_registered(accelerator.as_str())
+}
+
 /// The app's light/dark theme changed (or was first resolved): recolour the
 /// main window's title bar to match.
 #[tauri::command]

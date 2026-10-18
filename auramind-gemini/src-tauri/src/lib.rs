@@ -70,6 +70,7 @@ pub fn run() {
             commands::quick_review_done,
             commands::cards_changed,
             commands::set_shortcut,
+            commands::shortcut_registered,
             commands::set_due_state,
             commands::schedule_nudges,
             commands::get_autostart,

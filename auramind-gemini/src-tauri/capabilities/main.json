@@ -22,6 +22,7 @@
     "allow-app-ready",
     "allow-show-main",
     "allow-set-shortcut",
+    "allow-shortcut-registered",
     "allow-set-due-state",
     "allow-schedule-nudges",
     "allow-get-autostart",
