@@ -12,23 +12,23 @@ Build: ____________  Date: ____________  Tester: ____________
 
 ## Window
 - [ ] Launch: no white flash; the window appears once the app has drawn.
-- [ ] In Windows dark mode the title bar is navy with light text and a violet border; in light mode it's Windows' own light title bar (violet border kept).
+- [ ] In Windows dark mode the title bar is warm dark grey with light text and a violet border; in light mode it's Windows' own light title bar (violet border kept).
 - [ ] Switch Windows between light and dark (Settings → Personalization → Colors) with the app open: the app, its window and title bar follow without a restart.
 - [ ] Hovering maximize shows Snap Layouts.
-- [ ] Signed in, it opens to the dashboard; signed out, to sign-in (never the marketing page).
-- [ ] The title follows the page ("Library · BonaMind").
+- [ ] Signed in, it opens to Today; signed out, to sign-in (never the marketing page).
+- [ ] The title follows the page ("Today · BonaMind", "Library · BonaMind").
 - [ ] Right-click on empty space shows no browser menu; in a text field it does.
-- [ ] Ctrl+N opens the generator; Ctrl+, opens Settings.
+- [ ] Ctrl+N opens New course; Ctrl+, opens Settings.
 
 ## Layout (Windows 11 style)
-- [ ] The sidebar shows Today, Library, Create, Linnea and Settings (Classes too, only for an account in a class); the current place has a violet bar.
+- [ ] The sidebar shows Today, Library, New course, Linnea and Settings (Classes too, only for an account in a class); the current place has a violet bar.
 - [ ] ☰ and Ctrl+B collapse the sidebar to icons and back; the choice survives a restart; Ctrl+B does nothing while typing.
 - [ ] Narrowing the window below ~900px collapses the sidebar; widening restores your choice.
-- [ ] Today: the due count, "about N min", Start review, streak, "remembered this week" (after 10 reviews this week) and up to 5 courses with cards due; "You're all caught up" when nothing is due.
-- [ ] Library: search, the Sort menu, click to study, right-click → Study / Open / Delete (Delete asks first).
+- [ ] Today: the due count, "about N min", Start review, streak, "remembered this week" (after 10 reviews this week) and up to 5 courses with cards due; "All caught up" when nothing is due.
+- [ ] Library: search, the Sort menu, click to study, right-click → Study / Open / Delete (Delete asks first); the status bar counts courses and cards due ("1 card due").
 - [ ] A session opens inside the window with the sidebar unchanged: Space shows the answer, 1–4 grade (each shows its next interval), Esc ends (asks once a card is graded); the summary offers Back to Today and Study again.
-- [ ] Create and Linnea are readable in both light and dark (no dark panels in light mode, no glows).
-- [ ] Settings: Light / Dark / System, the Windows section, daily goal, Reminders and More settings links, Admin only for admins, Sign out.
+- [ ] New course and Linnea are readable in both light and dark (no dark panels in light mode, no glows; the selected Study Coach / Companion pill is readable).
+- [ ] Settings: Light / Dark / System, the Windows section (shortcut, Change button and Start with Windows switch readable in light and dark), daily goal, Reminders and More settings links, Admin only for admins, Sign out.
 - [ ] The normal Windows mouse pointer is used (no custom dot-and-ring cursor).
 
 ## Tray, badge, notifications
@@ -58,7 +58,7 @@ Build: ____________  Date: ____________  Tester: ____________
 - [ ] Tray → "New course from file…" opens a picker filtered to documents and audio.
 
 ## Links and sign-in
-- [ ] Win+R → `bonamind://app/study` focuses BonaMind on Study.
+- [ ] Win+R → `bonamind://app/study` focuses BonaMind on Today (on Windows, study starts from Today).
 - [ ] `bonamind://app/admin` is ignored.
 - [ ] (With `VITE_DESKTOP_OAUTH=true` and the Supabase redirect added) Continue with Google opens the browser and returns signed in.
 

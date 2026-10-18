@@ -24,6 +24,7 @@ export function WindowsLibrary() {
   const menuRef = useRef<HTMLDivElement>(null);
   const now = Date.now();
   const rows = libraryRows(ws.decks, ws.cards, now, query, sort);
+  const dueTotal = rows.reduce((n, r) => n + r.due, 0);
 
   useEffect(() => {
     if (!menu) return;
@@ -99,7 +100,7 @@ export function WindowsLibrary() {
       </div>
 
       <div className="win-status">
-        {ws.decks.length} {ws.decks.length === 1 ? 'course' : 'courses'} · {rows.reduce((n, r) => n + r.due, 0)} cards due
+        {ws.decks.length} {ws.decks.length === 1 ? 'course' : 'courses'} · {dueTotal} {dueTotal === 1 ? 'card' : 'cards'} due
       </div>
 
       {menu && (

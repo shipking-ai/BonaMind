@@ -71,6 +71,14 @@ describe('WindowsLibrary', () => {
     expect(row(/Spanish A2/)).toBeVisible();
   });
 
+  it('says "1 card due", not "1 cards due"', () => {
+    renderWithWorkspace(<WindowsLibrary />, {
+      path: '/dashboard/decks',
+      fixture: { decks: [bio], cards: cardsFor('d-bio', 1, 3, NOW - DAY), deleteDeck: vi.fn() },
+    });
+    expect(screen.getByText(/1 course · 1 card due$/)).toBeVisible();
+  });
+
   it('studies a course on click', () => {
     mount();
     fireEvent.click(row(/Biology 101/));
