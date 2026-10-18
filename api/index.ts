@@ -1034,7 +1034,10 @@ async function handleSubscription(req: VercelRequest, res: VercelResponse, actio
   // Entitlement comes from app_metadata, which only the service-role key can
   // write. user_metadata is client-writable — reading status from there let
   // any user grant themselves a subscription with a single updateUser call.
-  // Display fields (plan, trial_end, failure counts) stay in user_metadata.
+  // Display fields (trial_end, failure counts) stay in user_metadata. The plan
+  // name does not: it is derived from the status, so it cannot say "Pro" for
+  // an account billing does not know about (the client's resolvePlan in
+  // src/lib/subscriptionPlan.ts applies the same rule).
   const rawStatus = readSubscriptionStatus(userData.user);
 
   // Grace-period enforcement: a past_due user keeps access during the dunning
@@ -1043,15 +1046,16 @@ async function handleSubscription(req: VercelRequest, res: VercelResponse, actio
     return json(res, 200, {
       subscribed: false,
       status: 'expired',
-      plan: metadata.plan || 'Starter',
+      plan: 'Starter',
       graceEndedAt: metadata.last_payment_failure_at || null,
     });
   }
 
+  const subscribed = rawStatus === 'active' || rawStatus === 'trialing' || rawStatus === 'past_due';
   return json(res, 200, {
-    subscribed: rawStatus === 'active' || rawStatus === 'trialing' || rawStatus === 'past_due',
+    subscribed,
     status: rawStatus,
-    plan: metadata.plan || 'Starter'
+    plan: subscribed ? 'Pro' : 'Starter',
   });
 }
 

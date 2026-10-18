@@ -17,6 +17,7 @@ import {
   isOnline,
 } from "./services/offline/offlineStudyService";
 import { storeSubscriptionStatus, subscriptionFallback } from "./lib/offlineSubscriptionStatus";
+import { resolvePlan } from "./lib/subscriptionPlan";
 import { loadOfflineAwareData } from "./lib/offlineAwareData";
 import { getAppPreference } from "./lib/appPreferences";
 import { resetUserData } from "./services/gamification/gamificationService";
@@ -461,7 +462,9 @@ const AppContent = ({ onUserRoleChange }: { onUserRoleChange: (role: UserRole) =
         name: metadata.full_name || authUser.email?.split("@")[0] || "User",
         email: authUser.email || "",
         avatar: metadata.avatar_url,
-        plan: metadata.plan || "Starter",
+        // Plan: app_metadata ONLY, for the same reason as the role above.
+        // user_metadata.plan is self-set and never shown.
+        plan: resolvePlan(authUser),
         streak: typeof metadata.streak === "number" ? metadata.streak : 0,
         streakFreezes: typeof metadata.streak_freezes === "number" ? metadata.streak_freezes : 2,
         joinedDate: metadata.joined_date ? Number(metadata.joined_date) : Date.now(),
@@ -685,7 +688,8 @@ const AppContent = ({ onUserRoleChange }: { onUserRoleChange: (role: UserRole) =
         data: {
           full_name: nextProfile.name,
           avatar_url: nextProfile.avatar,
-          plan: nextProfile.plan,
+          // plan is NOT written: it is derived from app_metadata by
+          // resolvePlan, and a copy here would only be a stale label.
           role: nextProfile.role,
           streak: nextProfile.streak,
           streak_freezes: nextProfile.streakFreezes,
