@@ -13,6 +13,14 @@ export function extensionOf(name: string): string {
   return dot > 0 ? name.slice(dot + 1).toLowerCase() : '';
 }
 
+/** "water-cycle.pdf" -> "Water cycle": a course name, not a file name. */
+export function courseTitleFromFileName(name: string): string {
+  const ext = extensionOf(name);
+  const base = ext ? name.slice(0, -(ext.length + 1)) : name;
+  const words = base.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 export function courseFileKind(name: string): CourseFileKind | null {
   const ext = extensionOf(name);
   if ((DOC_EXTS as readonly string[]).includes(ext)) return 'document';
