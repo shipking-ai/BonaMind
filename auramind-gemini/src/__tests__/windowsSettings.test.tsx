@@ -4,7 +4,7 @@
  * admins) the admin pages, and Sign out.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, act } from '@testing-library/react';
 
 const bridge = vi.hoisted(() => ({
   applyTheme: vi.fn(async () => undefined),
@@ -15,6 +15,12 @@ const bridge = vi.hoisted(() => ({
   shortcutRegistered: vi.fn(async () => true),
 }));
 vi.mock('../desktop/bridge', () => ({ desktop: bridge }));
+const updater = vi.hoisted(() => ({
+  checkForDesktopUpdate: vi.fn(async () => null as null | { version: string; body?: string }),
+  installDesktopUpdate: vi.fn(async () => undefined),
+  desktopAppVersion: vi.fn(async () => '2.3.5' as string | null),
+}));
+vi.mock('../lib/desktopUpdater', () => updater);
 vi.mock('../services/database/modules/sessionService', () => ({
   sessionService: { fetchStudySessions: vi.fn(async () => []) },
 }));
@@ -79,5 +85,30 @@ describe('WindowsSettings', () => {
     const onLogout = mount();
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' }));
     expect(onLogout).toHaveBeenCalled();
+  });
+
+  it('shows the version and checks for updates', async () => {
+    // About → Check for updates had no way in from the Windows app.
+    mount();
+    expect(await screen.findByText('Version 2.3.5')).toBeVisible();
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Check for updates' })); });
+    expect(updater.checkForDesktopUpdate).toHaveBeenCalled();
+    expect(screen.getByText("You're on the latest version.")).toBeVisible();
+  });
+
+  it('offers to install a newer version', async () => {
+    updater.checkForDesktopUpdate.mockResolvedValueOnce({ version: '2.4.0' });
+    mount();
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Check for updates' })); });
+    expect(screen.getByText('Version 2.4.0 is available.')).toBeVisible();
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Restart and update' })); });
+    expect(updater.installDesktopUpdate).toHaveBeenCalled();
+  });
+
+  it('says so when the update server cannot be reached', async () => {
+    updater.checkForDesktopUpdate.mockRejectedValueOnce(new Error('offline'));
+    mount();
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Check for updates' })); });
+    expect(screen.getByRole('alert')).toHaveTextContent("Couldn't reach the update server.");
   });
 });

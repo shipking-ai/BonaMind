@@ -14,6 +14,7 @@ const TRAY_ID: &str = "main";
 pub struct TrayHandles {
     header: MenuItem<Wry>,
     autostart: CheckMenuItem<Wry>,
+    quick_review: MenuItem<Wry>,
 }
 
 fn cards(n: u32) -> String {
@@ -33,12 +34,14 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
     let header_item = MenuItem::with_id(app, "header", header(0, 0), false, None::<&str>)?;
     let autostart_on = app.autolaunch().is_enabled().unwrap_or(false);
     let autostart = CheckMenuItem::with_id(app, "autostart", "Start with Windows", true, autostart_on, None::<&str>)?;
+    let quick_review_item =
+        MenuItem::with_id(app, "quick-review", "Quick review", true, Some(quick_review::DEFAULT_SHORTCUT))?;
     let menu = Menu::with_items(
         app,
         &[
             &header_item,
             &PredefinedMenuItem::separator(app)?,
-            &MenuItem::with_id(app, "quick-review", "Quick review", true, Some("CommandOrControl+Alt+Space"))?,
+            &quick_review_item,
             &MenuItem::with_id(app, "open", "Open BonaMind", true, None::<&str>)?,
             &MenuItem::with_id(app, "new-course", "New course from file…", true, None::<&str>)?,
             &PredefinedMenuItem::separator(app)?,
@@ -71,7 +74,7 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
             }
         })
         .build(app)?;
-    app.manage(TrayHandles { header: header_item, autostart });
+    app.manage(TrayHandles { header: header_item, autostart, quick_review: quick_review_item });
     Ok(())
 }
 
@@ -89,6 +92,14 @@ pub fn update(app: &AppHandle, state: &DueState) {
         let _ = handles.header.set_text(header(state.due, state.streak));
     }
     badge::apply(app, state.due);
+}
+
+/// The menu shows the Quick Review shortcut next to its item; keep it in
+/// step when Settings changes it (it used to say Ctrl+Alt+Space forever).
+pub fn set_quick_review_shortcut(app: &AppHandle, accelerator: &str) {
+    if let Some(handles) = app.try_state::<TrayHandles>() {
+        let _ = handles.quick_review.set_accelerator(Some(accelerator));
+    }
 }
 
 pub fn set_autostart_checked(app: &AppHandle, on: bool) {

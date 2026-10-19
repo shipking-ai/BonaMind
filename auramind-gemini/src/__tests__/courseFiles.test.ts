@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
-  AUDIO_EXTS, DOC_EXTS, courseFileKind, extensionOf, fileFromHandoff, unsupportedMessage,
+  AUDIO_EXTS, DOC_EXTS, courseFileKind, courseTitleFromFileName, extensionOf, fileFromHandoff, unsupportedMessage,
 } from '../lib/courseFiles';
 
 const root = path.resolve(__dirname, '../..');
@@ -17,6 +17,15 @@ describe('course files', () => {
     expect(courseFileKind('evil.pdf.exe')).toBeNull();
     expect(courseFileKind('no-extension')).toBeNull();
     expect(extensionOf('a.b.DocX')).toBe('docx');
+  });
+
+  it('names a course after the file, without its extension', () => {
+    // A course made from water-cycle.pdf was saved as "water-cycle.pdf Flashcards".
+    expect(courseTitleFromFileName('water-cycle.pdf')).toBe('Water cycle');
+    expect(courseTitleFromFileName('Lecture_03 Notes.DOCX')).toBe('Lecture 03 Notes');
+    expect(courseTitleFromFileName('Bio.101.final.pptx')).toBe('Bio.101.final');
+    expect(courseTitleFromFileName('no-extension')).toBe('No extension');
+    expect(courseTitleFromFileName('.pdf')).toBe('.pdf');
   });
 
   it('matches the Rust handoff lists', () => {

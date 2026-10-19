@@ -41,7 +41,6 @@ url = "2"
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Dwm", "UI_Notifications", "Foundation"] }
-window-vibrancy = "0.6"
 tauri-winrt-notification = "0.7"
 
 [profile.release]

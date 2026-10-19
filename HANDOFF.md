@@ -12,7 +12,7 @@ the traps that cost real time.
 
 | | |
 |---|---|
-| Version | 2.3.5 (root, app, Android and Wear agree; Windows reads it from `auramind-gemini/package.json`). **Windows 2.3.4 published 2026-10-18** (`desktop-v2.3.4`, marked latest): the first BonaMind Windows release. 2.3.5 (tag `desktop-v2.3.5` once its PR merges) fixes course generation and PDF import in it, and the hidden autostart; installed 2.3.4 copies pick it up through the updater. The unpublished drafts 2.1.0-2.3.3 were deleted (their git tags remain). Play's versionCode 14 still says 2.0.0 |
+| Version | 2.3.6 (root, app, Android and Wear agree; Windows reads it from `auramind-gemini/package.json`). **Windows 2.3.5 published 2026-10-19** (`desktop-v2.3.5`, marked latest). 2.3.6 (tag `desktop-v2.3.6` once its PR merges) clears the 2.3.5 leftovers: Updates in Settings, the paper Quick Review card and drop overlay, file-named courses, the tray shortcut label, and Quick Review's stale cache. Play's versionCode 14 still says 2.0.0 |
 | Play | versionCode 14 (the BonaMind rename, built after #172 and #176), closed testing (Alpha), **rolled out and sent for review 2026-10-16** together with the BonaMind listing |
 | Branch | `main` at `03d102ed` (2026-10-18, through #181: the Windows app's own layout (#180) and its paper-and-ink look; the BonaMind rename finished in #177; #176 the Gradle heap fix). Repo renamed to `shipking-ai/BonaMind` 2026-10-13 |
 | CI | Node **22 + 24** (20 dropped, EOL); required checks are `build-and-test (22.x)` and `(24.x)` |
@@ -734,6 +734,44 @@ app plus its extension burn two per sideload.
   checkouts predate this and still carry the old names.
 - **Community tab** (#137) — browse and fork published decks, migration
   `20260930_marketplace_fork_and_listing.sql`.
+
+---
+
+## 2026-10-19 - Windows 2.3.6: the 2.3.5 leftovers
+
+- **Course names from files:** `courseTitleFromFileName` ("water-cycle.pdf"
+  → "Water cycle"), used for documents and recordings.
+- **Generator type switch** clears only the generated result
+  (`clearGenerated`), not the topic or a handed-in file. Checked headless
+  against `/__e2e/windows?screen=create`.
+- **Tray label:** `TrayHandles.quick_review`; `set_shortcut` updates the
+  item's accelerator (and resets it to the default when a change fails).
+  Not hand-checked (the agent can't open the tray menu).
+- **Updates in Settings** (`WindowsUpdates.tsx`, on `lib/desktopUpdater`):
+  version, Check for updates, Restart and update, an error alert.
+- **Quick Review panel:** paper index card (`.qr-*` in windows.css); the
+  page adds `platform-desktop` to its own `<html>` (DesktopChrome doesn't
+  run there); the window no longer applies acrylic, and `window-vibrancy`
+  is gone. It also **clears the card cache before each load**: like the
+  main-window bug fixed in 2.3.4, cards studied in the main window came
+  back in the panel from its own cache.
+- **Drop overlay:** `.drop-overlay*` hooks restyled under
+  `html.platform-desktop` only; the website keeps its look.
+
+---
+
+## 2026-10-19 - Windows 2.3.5 verified and published
+
+On the installed 2.3.5 release build: Explorer's "Make a course" loaded
+`water-cycle.pdf`, Flashcards generated five cards grounded in it, and
+"Save as Deck" created the course; dragging the PDF onto the window shows
+"Drop to make a course" and loads it (a small drag-source helper stood in
+for Explorer, which the test harness can only click); ✕ hides to the tray;
+`--hidden` stays hidden. The API's new CORS headers are live.
+
+Not tested by the agent: the tray menu (right-click on the taskbar is
+blocked for it) and notifications. The small leftovers listed at the time
+were fixed in 2.3.6 (next entry up).
 
 ---
 

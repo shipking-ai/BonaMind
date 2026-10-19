@@ -104,10 +104,14 @@ pub fn set_shortcut(app: AppHandle, accelerator: String) -> ShortcutResult {
     let shortcuts = app.global_shortcut();
     let _ = shortcuts.unregister_all();
     match shortcuts.register(accelerator.as_str()) {
-        Ok(()) => ShortcutResult { ok: true, reason: None },
+        Ok(()) => {
+            tray::set_quick_review_shortcut(&app, &accelerator);
+            ShortcutResult { ok: true, reason: None }
+        }
         Err(err) => {
             // Put the previous default back so the feature isn't left dead.
             let _ = shortcuts.register(quick_review::DEFAULT_SHORTCUT);
+            tray::set_quick_review_shortcut(&app, quick_review::DEFAULT_SHORTCUT);
             let reason = if err.to_string().to_lowercase().contains("already") { "taken" } else { "invalid" };
             ShortcutResult { ok: false, reason: Some(reason) }
         }

@@ -5,8 +5,13 @@ import type { Card } from '../types';
 const userId = vi.hoisted(() => ({ value: 'u1' as string | null | undefined }));
 vi.mock('../hooks/useCurrentUserId', () => ({ useCurrentUserId: () => userId.value }));
 const fetchCards = vi.hoisted(() => vi.fn());
+const calls = vi.hoisted(() => [] as string[]);
 vi.mock('../services/database/dbService', () => ({
-  dbService: { fetchCards: (...a: unknown[]) => fetchCards(...a), fetchDecks: async () => [{ id: 'd', title: 'Spanish A1' }] },
+  dbService: {
+    fetchCards: (...a: unknown[]) => { calls.push('fetch'); return fetchCards(...a); },
+    fetchDecks: async () => [{ id: 'd', title: 'Spanish A1' }],
+    clearCache: () => { calls.push('clear'); },
+  },
 }));
 const rateCard = vi.hoisted(() => vi.fn(async (..._args: unknown[]) => ({})));
 vi.mock('../services/study/rateCard', () => ({ rateCard: (...a: unknown[]) => rateCard(...a) }));
@@ -22,6 +27,7 @@ const card = (id: string, nextReview: number): Card =>
 beforeEach(() => {
   userId.value = 'u1';
   fetchCards.mockReset();
+  calls.length = 0;
   rateCard.mockClear();
   Object.values(bridge).forEach((f) => f.mockClear());
 });
@@ -110,6 +116,25 @@ describe('QuickReviewPage', () => {
     await screen.findByText('front a');
     fireEvent.keyDown(window, { key: 'Escape', code: 'Escape' });
     expect(bridge.quickReviewDone).toHaveBeenCalled();
+  });
+
+  it('takes the Windows look (paper index card)', async () => {
+    fetchCards.mockResolvedValue([card('a', NOW - 10)]);
+    const { container } = render(<QuickReviewPage />);
+    expect(await screen.findByText('front a')).toBeInTheDocument();
+    expect(document.documentElement).toHaveClass('platform-desktop');
+    expect(container.firstElementChild).toHaveClass('qr-card');
+  });
+
+  it('reloads fresh cards each time it is shown', async () => {
+    // The panel lives on between uses; cards studied in the main window
+    // were still offered because fetchCards answered from its cache.
+    fetchCards.mockResolvedValue([card('a', NOW - 10)]);
+    render(<QuickReviewPage />);
+    expect(await screen.findByText('front a')).toBeInTheDocument();
+    calls.length = 0;
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
+    expect(calls).toEqual(['clear', 'fetch']);
   });
 
   it('signed out: offers sign-in in the main window', async () => {

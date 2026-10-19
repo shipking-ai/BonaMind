@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.6] - 2026-10-19
+
+### Added
+- **Windows app: Updates in Settings** - the installed version, Check for
+  updates and Restart and update (About was unreachable in the app)
+
+### Changed
+- **Windows app** - Quick Review is a small paper index card (handwritten
+  answer, ink buttons) and "Drop to make a course" is paper and ink,
+  matching the rest of the Windows look
+
+### Fixed
+- **Courses made from a file** are named after it without the extension
+  ("Water cycle Flashcards", not "water-cycle.pdf Flashcards")
+- **Generator** - switching Quiz to Flashcards no longer drops the topic or
+  a file handed in from Explorer or a drop
+- **Windows app** - the tray's Quick review item shows the current
+  shortcut; Quick Review no longer offers cards already studied in the
+  main window
+
 ## [2.3.5] - 2026-10-18
 
 ### Fixed

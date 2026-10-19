@@ -48,13 +48,18 @@ export default function QuickReviewPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    document.documentElement.classList.add('quick-review-window');
-    return () => document.documentElement.classList.remove('quick-review-window');
+    // platform-desktop brings in the Windows look (windows.css); the main
+    // window gets it from DesktopChrome, which this window doesn't render.
+    document.documentElement.classList.add('quick-review-window', 'platform-desktop');
+    return () => document.documentElement.classList.remove('quick-review-window', 'platform-desktop');
   }, []);
 
   const load = useCallback(async () => {
     if (typeof userId !== 'string') return;
     setLoading(true);
+    // This window lives on between uses, and fetchCards answers from a cache:
+    // without clearing it, cards studied in the main window came back here.
+    dbService.clearCache();
     const [cards, decks] = await Promise.all([dbService.fetchCards(userId), dbService.fetchDecks(userId)]);
     const now = Date.now();
     setQueue(pickDueCards(cards, now));
@@ -104,16 +109,16 @@ export default function QuickReviewPage() {
     return () => window.removeEventListener('keydown', onKey);
   }, [card, rate]);
 
-  const shell = 'flex h-screen w-screen flex-col rounded-[14px] border border-violet-400/30 bg-[#0b1022]/80 p-4 text-[#eceaff] select-none';
+  const shell = 'qr-card flex h-screen w-screen flex-col select-none';
 
   if (userId === null) {
     return (
       <div className={`${shell} items-center justify-center gap-3 text-center`}>
-        <p className="text-sm text-zinc-300">Sign in to review your cards.</p>
+        <p className="qr-muted">Sign in to review your cards.</p>
         <button
           type="button"
           onClick={() => { void desktop.showMain('/auth'); void desktop.quickReviewDone(); }}
-          className="rounded-lg bg-violet-500 px-4 py-2 text-xs font-semibold text-white hover:bg-violet-400"
+          className="qr-button qr-button-primary"
         >
           Sign in to BonaMind
         </button>
@@ -124,50 +129,50 @@ export default function QuickReviewPage() {
   if (done) {
     return (
       <div className={`${shell} items-center justify-center text-center transition-opacity`}>
-        <p className="text-lg font-semibold">All caught up</p>
-        <p className="mt-1 text-xs text-zinc-400">{formatNextDue(nextDue, Date.now())}</p>
+        <p className="qr-question">All caught up</p>
+        <p className="qr-muted">{formatNextDue(nextDue, Date.now())}</p>
       </div>
     );
   }
 
   return (
     <div className={shell}>
-      <div className="flex items-center justify-between text-[11px] text-zinc-400">
+      <div className="qr-meta flex items-center justify-between">
         <span className="truncate">Quick review{card ? ` · ${deckTitles[card.deckId] ?? ''}` : ''}</span>
         <span className="flex items-center gap-3">
           {queue.length > 0 && <span>{index + 1} / {queue.length}</span>}
-          <button type="button" aria-label="Close" onClick={() => void desktop.quickReviewDone()} className="rounded px-1 text-zinc-500 hover:text-zinc-200">✕</button>
+          <button type="button" aria-label="Close" onClick={() => void desktop.quickReviewDone()} className="qr-close">✕</button>
         </span>
       </div>
 
       {card && (
         <>
-          <p className="mt-4 text-lg font-semibold leading-snug">{card.front || card.question}</p>
+          <p className="qr-question">{card.front || card.question}</p>
           {revealed ? (
-            <p className="mt-3 border-t border-white/10 pt-3 text-sm text-zinc-300">{card.back || card.answer}</p>
+            <p className="qr-answer">{card.back || card.answer}</p>
           ) : (
-            <button type="button" onClick={() => setRevealed(true)} className="mt-4 self-start rounded-lg bg-white/[0.06] px-3 py-1.5 text-xs text-zinc-300 hover:bg-white/10">
+            <button type="button" onClick={() => setRevealed(true)} className="qr-button qr-show">
               Show answer
             </button>
           )}
           <div className="mt-auto">
-            <div className="grid grid-cols-4 gap-1.5" role="group" aria-label="Rate your recall">
+            <div className="qr-grades" role="group" aria-label="Rate your recall">
               {RATINGS.map(([label, rating], i) => (
                 <button
                   key={label}
                   type="button"
                   disabled={!revealed}
                   onClick={() => void rate(rating)}
-                  className={`rounded-lg py-1.5 text-[11px] font-semibold transition-colors disabled:opacity-40 ${label === 'Good' ? 'bg-violet-500/45 hover:bg-violet-500/60' : 'bg-white/[0.06] hover:bg-white/10'}`}
+                  className={`qr-button${label === 'Good' ? ' qr-button-primary' : ''}`}
                 >
                   {label} <span className="opacity-50">{i + 1}</span>
                 </button>
               ))}
             </div>
-            <div className="mt-2 h-[3px] overflow-hidden rounded bg-white/[0.08]">
-              <div className="h-full rounded bg-gradient-to-r from-[#72F4FF] via-[#8B5CF6] to-[#FF9ACD]" style={{ width: `${(index / Math.max(queue.length, 1)) * 100}%` }} />
+            <div className="qr-progress">
+              <div style={{ width: `${(index / Math.max(queue.length, 1)) * 100}%` }} />
             </div>
-            <p className="mt-2 text-center text-[10px] text-zinc-500">Space flip · 1–4 rate · Esc hide</p>
+            <p className="qr-hint">Space flip · 1–4 rate · Esc hide</p>
           </div>
         </>
       )}

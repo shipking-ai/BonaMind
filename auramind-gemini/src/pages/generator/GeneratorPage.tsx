@@ -31,7 +31,7 @@ import { supabase } from '../../services/database/supabase';
 import { Capacitor } from '../../lib/nativeShim';
 import { useAppPreference } from '../../lib/appPreferences';
 import { usesLocalAI as useLocalAIEnabled } from '../../lib/aiProvider';
-import { courseFileKind } from '../../lib/courseFiles';
+import { courseFileKind, courseTitleFromFileName } from '../../lib/courseFiles';
 import { onGeneratorFile, takePendingGeneratorFile } from '../../lib/pendingGeneratorFile';
 
 type GeneratorType = 'quiz' | 'flashcards' | 'presentation';
@@ -168,7 +168,7 @@ const GeneratorPage: React.FC = () => {
       }
       setExtractedContent(text);
       setExtractedTitle(file.name);
-      setTopic(file.name);
+      setTopic(courseTitleFromFileName(file.name));
       toast.success(`Extracted ${text.length.toLocaleString()} characters from ${file.name}`);
     } catch (e) {
       setFetchError(e instanceof Error ? e.message : 'Failed to extract file');
@@ -193,7 +193,7 @@ const GeneratorPage: React.FC = () => {
       }
       setExtractedContent(text);
       setExtractedTitle(file.name.replace(/\.[^.]+$/, ''));
-      setTopic(file.name.replace(/\.[^.]+$/, ''));
+      setTopic(courseTitleFromFileName(file.name));
       toast.success(`Transcribed ${file.name} (${text.length.toLocaleString()} characters)`);
     } catch (e) {
       setFetchError(e instanceof Error ? e.message : 'Failed to transcribe audio');
@@ -347,6 +347,15 @@ const GeneratorPage: React.FC = () => {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  /** Drops the generated result, keeping the source and settings. */
+  const clearGenerated = () => {
+    setGeneratedQuiz(null);
+    setGeneratedFlashcards(null);
+    setGeneratedPresentation(null);
+    setEditingIndex(null);
+    setEditForm({});
   };
 
   const handleReset = () => {
@@ -617,8 +626,10 @@ const GeneratorPage: React.FC = () => {
               <button
                 key={card.id}
                 onClick={() => {
+                  // Keep the source (a topic, or a file from Explorer or a
+                  // drop): switching Quiz to Flashcards used to drop it.
                   setGeneratorType(card.id as GeneratorType);
-                  handleReset();
+                  clearGenerated();
                 }}
                 className={`p-5 rounded-xl border text-left transition-all ${
                   isActive
