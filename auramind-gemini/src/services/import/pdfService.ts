@@ -1,10 +1,11 @@
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-// Set worker source
-// Note: In Vite, we often need to explicitly point to the worker file
-// For a simple implementation, we might try using the CDN or a local copy
-// This is a common pattern for client-side PDF.js in Vite
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+// The worker ships in the bundle and loads from the app's own origin. It used
+// to come from unpkg as `pdf.worker.min.js`, which pdf.js 4+ no longer
+// publishes (it's `.mjs`), so every PDF import failed; the Windows app's CSP
+// (`worker-src 'self' blob:`) would block a CDN worker anyway.
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
 export const extractTextFromPdf = async (file: File): Promise<string> => {
     try {
