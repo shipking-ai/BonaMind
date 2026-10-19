@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.5] - 2026-10-18
+
+### Fixed
+- **PDF import (every platform)** - every PDF failed with "Failed to
+  extract text from PDF": pdf.js's worker was loaded from unpkg under a
+  name pdf.js 4+ no longer publishes. The worker now ships in the app
+- **Windows app: generating a course** always failed ("check your
+  connection"): AI requests carried two extra headers the API's CORS rules
+  didn't allow from the app. The app stops sending them and the API accepts
+  them, so installed copies work again once the site deploys
+- **Windows app: Start with Windows** opened the window at sign-in instead
+  of starting quietly in the tray (the window-state plugin restored
+  "visible")
+
 ## [2.3.4] - 2026-10-18
 
 ### Fixed

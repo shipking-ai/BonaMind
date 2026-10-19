@@ -12,7 +12,7 @@ the traps that cost real time.
 
 | | |
 |---|---|
-| Version | 2.3.4 (root, app, Android and Wear agree; Windows reads it from `auramind-gemini/package.json`). 2.3.4 carries the rename, the Windows layout (#180), its paper-and-ink look (#181), and the fixes from four hand tests (#185, #186, #187 and the Quick Review refresh in 2.3.4); it is the first BonaMind Windows release (tag `desktop-v2.3.4`). The `desktop-v2.1.0` to `desktop-v2.3.3` drafts were never published and can be deleted. Play's versionCode 14 still says 2.0.0 |
+| Version | 2.3.5 (root, app, Android and Wear agree; Windows reads it from `auramind-gemini/package.json`). **Windows 2.3.4 published 2026-10-18** (`desktop-v2.3.4`, marked latest): the first BonaMind Windows release. 2.3.5 (tag `desktop-v2.3.5` once its PR merges) fixes course generation and PDF import in it, and the hidden autostart; installed 2.3.4 copies pick it up through the updater. The unpublished drafts 2.1.0-2.3.3 were deleted (their git tags remain). Play's versionCode 14 still says 2.0.0 |
 | Play | versionCode 14 (the BonaMind rename, built after #172 and #176), closed testing (Alpha), **rolled out and sent for review 2026-10-16** together with the BonaMind listing |
 | Branch | `main` at `03d102ed` (2026-10-18, through #181: the Windows app's own layout (#180) and its paper-and-ink look; the BonaMind rename finished in #177; #176 the Gradle heap fix). Repo renamed to `shipking-ai/BonaMind` 2026-10-13 |
 | CI | Node **22 + 24** (20 dropped, EOL); required checks are `build-and-test (22.x)` and `(24.x)` |
@@ -117,14 +117,15 @@ the traps that cost real time.
       `libandroidx.graphics.path.so`), not ours, so it only affects reading
       crashes inside those libraries. `ndk { debugSymbolLevel 'SYMBOL_TABLE' }`
       in the release build type would clear it on the next build.
-    - **Windows:** ~~add `TAURI_SIGNING_PRIVATE_KEY`~~ (added 2026-10-16)
-      and ~~bump the version~~ (2.3.4, with the Windows layout, look and
-      the hand-test fixes). Next: once the 2.3.4 PR is on `main`, push the
-      tag `desktop-v2.3.4`; `Desktop Windows` builds, signs and drafts the
-      release. Install the draft, run the checks the 2.3.0 hand test left
-      open (see "2026-10-18 - Windows 2.3.0 hand test"), then publish. It is the
-      first BonaMind Windows release (the only earlier one is the retired
-      June AuraMind build). <!-- legacy-name: ok -->
+    - ~~**Windows:** first BonaMind release~~ — **2.3.4 published
+      2026-10-18** after four hand tests on the owner's PC (see the
+      "Windows 2.3.x hand test" entries). Installed copies update from
+      `latest.json` on the next check. Not yet hand-tested: tray menu and
+      notifications, Start with Windows across a sign-out, drop and the
+      Explorer "Make a course" entry. About → Check for updates can't be
+      reached in the Windows app (no link to `/about` from either settings
+      page, and `bonamind://app/about` is ignored); the update banner
+      (`DesktopUpdateBanner`) is the only path today.
 
 After the first publish, `status=completed` in the release workflow makes a
 dispatch go live without a console visit.
@@ -733,6 +734,49 @@ app plus its extension burn two per sideload.
   checkouts predate this and still carry the old names.
 - **Community tab** (#137) — browse and fork published decks, migration
   `20260930_marketplace_fork_and_listing.sql`.
+
+---
+
+## 2026-10-18 - Windows 2.3.4: the rest of the checklist
+
+A test PDF (`Documents/BonaMind test/water-cycle.pdf`, two pages of notes)
+and the remaining checklist items, on the published 2.3.4 and a local
+build:
+
+- **Explorer verb** is registered for .pdf and the other types
+  (`--create "%1"`), and running it hands the file to New course, warm or
+  hidden. But **every PDF failed** ("Failed to extract text from PDF"):
+  `pdfService` loaded pdf.js's worker from unpkg as `pdf.worker.min.js`,
+  which pdf.js 4+ doesn't publish (404; it's `.mjs`), and the Windows CSP
+  (`worker-src 'self' blob:`) would block a CDN anyway. Broken on the web
+  and Android too. Fixed by bundling the worker (`?url` import);
+  `pdfWorker.test.ts`. Verified on a local build: the file loads.
+- **Generating anything failed** in the Windows app ("Failed to generate
+  content. Please check your connection"), a plain topic included. The AI
+  client sent `HTTP-Referer` and `X-Title` (OpenRouter attribution) to
+  `https://bonamind.app/api/ai/*`; from `https://tauri.localhost` that
+  needs a preflight, and `api/_middleware.ts` allowed only Content-Type,
+  Authorization and X-Requested-With, so the browser blocked it. The
+  website is same-origin and was unaffected; Android may be too if
+  Capacitor's native HTTP carries the request (unverified). Fixed both
+  ways: the client sends only Authorization and Content-Type
+  (`bonaAiService.test.ts`), and the API allows the two headers for
+  installed 2.3.4 copies (`api/tests/cors.test.ts`). **The API change
+  takes effect on the next Vercel deploy of `main`.** Not yet re-verified
+  end to end in the app.
+- **Start with Windows** writes `BonaMind = ...bonamind-desktop.exe
+  --hidden` to the Run key, but `--hidden` still showed the window:
+  `tauri_plugin_window_state` restored `"visible": true` from
+  `.window-state.json`. Now `chrome::window_state_flags()` (everything
+  but VISIBLE), with a test. Verified on a local build: started hidden,
+  the window stays hidden. (The test's Run entry was removed afterwards;
+  the owner had it off.)
+- **Library → Delete** asks first (checked on 2.3.3).
+- Still not done: dropping a file on the window (Explorer can't be dragged
+  by the test harness; a drag helper exists in the session scratchpad),
+  the tray menu (behind other windows), notifications.
+- Small, not fixed: switching Quiz → Flashcards in the generator clears a
+  file handed in from Explorer.
 
 ---
 

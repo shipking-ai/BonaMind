@@ -102,6 +102,17 @@ describe('bonaAiService', () => {
     expect(init.headers.Authorization).toMatch(/^Bearer .+/);
   });
 
+  it('sends only headers the API allows cross-origin', async () => {
+    // The Windows app (https://tauri.localhost) calls bonamind.app cross-origin,
+    // so any extra header triggers a CORS preflight. HTTP-Referer and X-Title
+    // (OpenRouter attribution, unused by our proxy and Groq) weren't allowed,
+    // the browser blocked the request, and every course failed to generate.
+    const fetchMock = mockFetchOnce(okBody('ok'));
+    await client.chatCompletion({ messages: [{ role: 'user', content: 'ping' }] }, false);
+    const [, init] = fetchMock.mock.calls[0];
+    expect(Object.keys(init.headers).sort()).toEqual(['Authorization', 'Content-Type']);
+  });
+
   it('chatCompletion surfaces a GroqUnavailableError on 401', async () => {
     mockFetchOnce({ error: { message: 'Invalid API Key' } }, 401);
 

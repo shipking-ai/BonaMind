@@ -60,6 +60,14 @@ pub fn brand_title_bar(window: &WebviewWindow, dark: bool) {
 #[cfg(not(windows))]
 pub fn brand_title_bar(_window: &WebviewWindow, _dark: bool) {}
 
+/// What the window-state plugin remembers between runs: size, position,
+/// maximized and so on, but never visibility. Restoring "visible" showed the
+/// window on an autostart (`--hidden`) and before React had painted;
+/// `app_ready` and the tray decide when the window appears.
+pub fn window_state_flags() -> tauri_plugin_window_state::StateFlags {
+    tauri_plugin_window_state::StateFlags::all() & !tauri_plugin_window_state::StateFlags::VISIBLE
+}
+
 /// Startup: match the system theme until React reports the app's own.
 pub fn initial_dark(window: &WebviewWindow) -> bool {
     window.theme().map_or(true, |t| t == tauri::Theme::Dark)
@@ -94,6 +102,17 @@ pub fn show_fallback(app: &AppHandle) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn window_state_never_restores_visibility() {
+        // Restoring "visible" showed the window on an autostart (--hidden)
+        // and before React painted; app_ready decides when to show it.
+        let flags = window_state_flags();
+        assert!(!flags.contains(tauri_plugin_window_state::StateFlags::VISIBLE));
+        assert!(flags.contains(tauri_plugin_window_state::StateFlags::SIZE));
+        assert!(flags.contains(tauri_plugin_window_state::StateFlags::POSITION));
+        assert!(flags.contains(tauri_plugin_window_state::StateFlags::MAXIMIZED));
+    }
 
     #[test]
     fn hex_becomes_bgr() {
