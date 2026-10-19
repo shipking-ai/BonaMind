@@ -1,12 +1,12 @@
 import { computeStreak } from '@bonamind/core';
-import { Alert, Linking, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { getOutbox } from '../data/app';
 import { signOut, useAuth } from '../data/auth';
 import { useDisplayName, useSessions } from '../data/hooks';
 import { useSync } from '../data/sync';
 import { PaperCard } from '../design/components/PaperCard';
 import { SecondaryButton } from '../design/components/SecondaryButton';
-import { useSettings } from '../design/settings';
+import { useSettings, RETENTION_OPTIONS } from '../design/settings';
 import { colors, fonts, radius, space } from '../design/tokens';
 import { env } from '../env';
 import { useNow } from '../hooks/useNow';
@@ -21,6 +21,8 @@ export function YouScreen() {
   const { flushNow } = useSync(userId);
   const hapticsEnabled = useSettings((s) => s.hapticsEnabled);
   const setHapticsEnabled = useSettings((s) => s.setHapticsEnabled);
+  const targetRetention = useSettings((s) => s.targetRetention);
+  const setTargetRetention = useSettings((s) => s.setTargetRetention);
 
   async function onSignOut() {
     await flushNow();
@@ -49,6 +51,18 @@ export function YouScreen() {
           trackColor={{ true: colors.violet, false: colors.raised }}
         />
       </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Target retention"
+        onPress={() => {
+          const i = RETENTION_OPTIONS.indexOf(targetRetention as (typeof RETENTION_OPTIONS)[number]);
+          setTargetRetention(RETENTION_OPTIONS[(i + 1) % RETENTION_OPTIONS.length]);
+        }}
+        style={styles.row}
+      >
+        <Text style={styles.rowLabel}>Target retention</Text>
+        <Text style={styles.rowValue}>{targetRetention}</Text>
+      </Pressable>
       <SecondaryButton label="Open BonaMind on the web" onPress={() => void Linking.openURL(env.apiBaseUrl)} />
       <SecondaryButton label="Sign out" onPress={() => void onSignOut()} />
     </ScrollView>
@@ -62,4 +76,5 @@ const styles = StyleSheet.create({
   streak: { color: colors.inkMuted, fontFamily: fonts.ui, fontSize: 14 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surface, borderRadius: radius.tile, paddingHorizontal: space.lg, paddingVertical: space.md },
   rowLabel: { color: colors.text, fontFamily: fonts.ui, fontSize: 16 },
+  rowValue: { color: colors.textMuted, fontFamily: fonts.ui, fontSize: 14 },
 });
