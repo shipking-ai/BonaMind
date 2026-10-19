@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { getOutbox } from '../data/app';
 import { serverNow } from '../data/serverTime';
 import { useAuth } from '../data/auth';
+import { syncProgressForDeck } from '../data/classroom';
 import { useCards, useDecks, useFsrsProfile, useSessions } from '../data/hooks';
 import { getSyncEngine, useSync } from '../data/sync';
 import { auroraWarmth } from '../design/components/AuroraBackground';
@@ -29,6 +30,17 @@ import { useCloseOnLeave } from './useCloseOnLeave';
 const FRESH_WAIT_MS = 6_000;
 
 const queued = async (p: Promise<void>) => { await p; getSyncEngine().notifyEnqueued(); };
+
+// Class-copy decks report live progress to teachers (the RPC reads the reviews
+// and sessions the outbox just pushed). Offline or non-class decks: no-op.
+async function reportClassProgress(userId: string, deckId: string) {
+  try {
+    await getOutbox().flush(userId);
+    await syncProgressForDeck(deckId);
+  } catch (e) {
+    console.warn('[study] class progress sync skipped', e);
+  }
+}
 
 export function StudyScreen() {
   const { deckId } = useLocalSearchParams<{ deckId: string }>();
@@ -128,6 +140,7 @@ function StudyRun({ deckId, deckTitle, userId, cards, sessions, schedule }: {
 
   async function close() {
     await session.close(serverNow());
+    void reportClassProgress(userId, deckId);
     router.back();
   }
 
@@ -148,7 +161,7 @@ function StudyRun({ deckId, deckTitle, userId, cards, sessions, schedule }: {
           fromStreak={streakBefore}
           toStreak={computeStreak([...sessions, finished], new Date(now))}
           line="Nice work. I'll bring these back right before you'd forget them."
-          onDone={() => router.back()}
+          onDone={() => void close()}
         />
       </SafeAreaView>
     );
