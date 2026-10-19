@@ -64,12 +64,12 @@ export function DropOverlay() {
       data-testid="drop-overlay"
       onDragOver={(e) => e.preventDefault()}
       onDrop={onDrop}
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-[#060a16]/70 backdrop-blur-sm"
+      className="drop-overlay fixed inset-0 z-[80] flex items-center justify-center bg-[#060a16]/70 backdrop-blur-sm"
     >
-      <div className="pointer-events-none absolute inset-4 rounded-3xl border-2 border-dashed border-violet-400/60 shadow-[inset_0_0_120px_rgba(139,92,246,0.35)]" />
+      <div className="drop-overlay-frame pointer-events-none absolute inset-4 rounded-3xl border-2 border-dashed border-violet-400/60 shadow-[inset_0_0_120px_rgba(139,92,246,0.35)]" />
       <div className="pointer-events-none text-center">
-        <p className="text-2xl font-semibold text-white">Drop to make a course</p>
-        <p className="mt-2 text-sm text-violet-200/80">PDF, slides, Word, text or a recording</p>
+        <p className="drop-overlay-title text-2xl font-semibold text-white">Drop to make a course</p>
+        <p className="drop-overlay-hint mt-2 text-sm text-violet-200/80">PDF, slides, Word, text or a recording</p>
       </div>
     </div>
   );

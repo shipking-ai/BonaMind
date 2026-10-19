@@ -593,3 +593,139 @@ html.platform-desktop .win-content .win-group > .rounded-xl {
 html.platform-desktop .win-content .win-group > .rounded-xl > .mb-2:first-child {
   display: none;
 }
+
+/*
+ * Drop to make a course (DropOverlay, shared with the website): paper and
+ * ink in the Windows app instead of a navy wash with a violet glow.
+ */
+html.platform-desktop .drop-overlay {
+  background: color-mix(in srgb, var(--win-bg) 88%, transparent);
+  backdrop-filter: none;
+}
+
+html.platform-desktop .drop-overlay-frame {
+  inset: 16px;
+  border-radius: 8px;
+  border: 2px dashed var(--win-ink);
+  box-shadow: none;
+}
+
+html.platform-desktop .drop-overlay-title {
+  font-family: var(--win-serif);
+  font-weight: 400;
+  font-size: 28px;
+  color: var(--win-text);
+}
+
+html.platform-desktop .drop-overlay-hint {
+  color: var(--win-text-muted);
+}
+
+/*
+ * Quick Review (its own small window): a pocket index card, paper in both
+ * themes like the study session, with the answer in handwriting.
+ */
+html.platform-desktop .qr-card {
+  padding: 0 16px 12px;
+  border-radius: 8px;
+  border-top: 4px solid var(--win-card-margin);
+  background: var(--win-card-paper);
+  color: var(--win-card-ink);
+  font-family: var(--win-font);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+}
+
+html.platform-desktop .qr-meta {
+  line-height: 34px;
+  font-size: 11px;
+  color: #8a8478;
+}
+
+html.platform-desktop .qr-close {
+  padding: 0 4px;
+  color: #8a8478;
+}
+
+html.platform-desktop .qr-close:hover {
+  color: var(--win-card-ink);
+}
+
+html.platform-desktop .qr-question {
+  margin-top: 6px;
+  font-family: var(--win-serif);
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+html.platform-desktop .qr-answer {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--win-card-rule);
+  font-family: var(--win-hand);
+  font-size: 17px;
+  line-height: 1.35;
+  color: var(--win-card-answer);
+}
+
+html.platform-desktop .qr-muted {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #8a8478;
+}
+
+html.platform-desktop .qr-button {
+  padding: 5px 8px;
+  border: 1px solid #d9d3c5;
+  border-radius: 4px;
+  background: #fffdf8;
+  color: var(--win-card-ink);
+  font-size: 12px;
+}
+
+html.platform-desktop .qr-button:hover {
+  background: #f1ece1;
+}
+
+html.platform-desktop .qr-button:disabled {
+  opacity: 0.45;
+}
+
+html.platform-desktop .qr-button-primary {
+  border-color: var(--win-card-ink);
+  background: var(--win-card-ink);
+  color: var(--win-card-paper);
+}
+
+html.platform-desktop .qr-button-primary:hover {
+  background: #3a3730;
+}
+
+html.platform-desktop .qr-show {
+  margin-top: 14px;
+  align-self: flex-start;
+}
+
+html.platform-desktop .qr-grades {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+html.platform-desktop .qr-progress {
+  margin-top: 8px;
+  height: 2px;
+  background: #e6e0d3;
+}
+
+html.platform-desktop .qr-progress > div {
+  height: 100%;
+  background: var(--win-card-ink);
+}
+
+html.platform-desktop .qr-hint {
+  margin-top: 6px;
+  text-align: center;
+  font-size: 10px;
+  color: #8a8478;
+}
+
