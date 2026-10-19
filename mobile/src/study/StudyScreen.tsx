@@ -1,4 +1,4 @@
-import { computeStreak, DEFAULT_TARGET_RETENTION, dueCards, Rating, type Card, type ScheduleOptions, type StudySession as SessionRow } from '@bonamind/core';
+import { computeStreak, composeSessionQueue, dueCards, Rating, retentionFromSetting, type Card, type ScheduleOptions, type StudySession as SessionRow } from '@bonamind/core';
 import * as Sentry from '@sentry/react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
@@ -8,6 +8,7 @@ import { AppState, StyleSheet, Text, useWindowDimensions, View } from 'react-nat
 import { withTiming } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getOutbox } from '../data/app';
+import { serverNow } from '../data/serverTime';
 import { useAuth } from '../data/auth';
 import { useCards, useDecks, useFsrsProfile, useSessions } from '../data/hooks';
 import { getSyncEngine, useSync } from '../data/sync';
@@ -19,6 +20,7 @@ import { PaperCard } from '../design/components/PaperCard';
 import { PrimaryButton } from '../design/components/PrimaryButton';
 import { ProgressBar } from '../design/components/ProgressBar';
 import { colors, fonts, space } from '../design/tokens';
+import { useSettings } from '../design/settings';
 import { CardStack } from './CardStack';
 import { Celebration } from './Celebration';
 import { createStudySession } from './session';
@@ -31,6 +33,7 @@ const queued = async (p: Promise<void>) => { await p; getSyncEngine().notifyEnqu
 export function StudyScreen() {
   const { deckId } = useLocalSearchParams<{ deckId: string }>();
   const { userId } = useAuth();
+  const targetRetention = useSettings((s) => s.targetRetention);
   // 'always': Today fetched these moments ago, and inside staleTime a plain
   // mount never refetches, so isFetchedAfterMount stayed false forever.
   const cardsQuery = useCards(userId, { refetchOnMount: 'always' });
@@ -56,7 +59,7 @@ export function StudyScreen() {
   return (
     <StudyRun
       deckId={deckId} deckTitle={deck?.title} userId={userId} cards={cards} sessions={sessions}
-      schedule={{ weightsOverride: fsrs.data?.weights, profileLabel: fsrs.data?.profileLabel ?? null, retention: DEFAULT_TARGET_RETENTION }}
+      schedule={{ weightsOverride: fsrs.data?.weights, profileLabel: fsrs.data?.profileLabel ?? null, retention: retentionFromSetting(targetRetention) }}
     />
   );
 }
@@ -68,13 +71,14 @@ function StudyRun({ deckId, deckTitle, userId, cards, sessions, schedule }: {
   const { width } = useWindowDimensions();
   // The queue is fixed when the session starts; later cache refreshes don't reshuffle it.
   const [start] = useState(() => {
-    const now = Date.now();
+    const now = serverNow();
     const due = dueCards(cards.filter((c) => c.deckId === deckId), now);
+    const { queue } = composeSessionQueue(due, cards, { now, currentDeckId: deckId });
     return {
-      total: due.length,
+      total: queue.length,
       streakBefore: computeStreak(sessions, new Date(now)),
       session: createStudySession({
-        userId, deckId, cards: due, startedAt: now, schedule,
+        userId, deckId, cards: queue, startedAt: now, schedule,
         deps: {
           enqueueReview: (u, r, p) => queued(getOutbox().enqueueReview(u, r, p)),
           enqueueSession: (u, s) => queued(getOutbox().enqueueSession(u, s)),
@@ -92,8 +96,8 @@ function StudyRun({ deckId, deckTitle, userId, cards, sessions, schedule }: {
   // Killed or backgrounded mid-deck: the studied part is saved as its own session.
   useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'background') void session.background(Date.now());
-      if (s === 'active') session.resume(Date.now());
+      if (s === 'background') void session.background(serverNow());
+      if (s === 'active') session.resume(serverNow());
     });
     return () => sub.remove();
   }, [session]);
@@ -102,7 +106,7 @@ function StudyRun({ deckId, deckTitle, userId, cards, sessions, schedule }: {
 
   async function rate(rating: Rating) {
     const card = session.current();
-    const at = Date.now();
+    const at = serverNow();
     // session.rate advances the queue synchronously, then saves to the outbox.
     // Show the next card now: waiting on the device write made a slow or
     // failing save look like a swipe that did nothing.
@@ -123,7 +127,7 @@ function StudyRun({ deckId, deckTitle, userId, cards, sessions, schedule }: {
   }
 
   async function close() {
-    await session.close(Date.now());
+    await session.close(serverNow());
     router.back();
   }
 
