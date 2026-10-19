@@ -70,8 +70,8 @@ fn build(app: &AppHandle) -> tauri::Result<WebviewWindow> {
             false
         })
         .build()?;
-    #[cfg(windows)]
-    let _ = window_vibrancy::apply_acrylic(&window, Some((11, 16, 34, 170)));
+    // No acrylic: the panel is an opaque paper card (windows.css .qr-card),
+    // and a navy blur showed at its rounded corners.
     Ok(window)
 }
 
