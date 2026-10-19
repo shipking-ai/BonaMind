@@ -282,13 +282,14 @@ export class BonaAiClient {
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
+        // Only headers the API allows cross-origin: the Windows app calls
+        // bonamind.app from https://tauri.localhost, and anything else (the
+        // old OpenRouter HTTP-Referer/X-Title) failed the CORS preflight.
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${authValue}`,
             'Content-Type': 'application/json',
-            'HTTP-Referer': typeof window !== 'undefined' ? window.location.href : 'https://bonamind.app',
-            'X-Title': typeof document !== 'undefined' ? (document.title || 'BonaMind') : 'BonaMind App',
           },
           body: JSON.stringify({
             model,
@@ -538,8 +539,6 @@ export class BonaAiClient {
         headers: {
           'Authorization': `Bearer ${authValue}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': typeof window !== 'undefined' ? window.location.href : 'https://bonamind.app',
-          'X-Title': typeof window !== 'undefined' ? (document.title || 'BonaMind') : 'BonaMind App',
         },
         body: JSON.stringify({
           model,
