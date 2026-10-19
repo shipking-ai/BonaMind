@@ -9,6 +9,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useAppPreference } from '../../lib/appPreferences';
 import { isAdminOrHigher } from '../../utils/permissions';
 import { DesktopSettingsSection } from '../../desktop/DesktopSettingsSection';
+import { WindowsUpdates } from './WindowsUpdates';
 
 const THEMES: Array<{ value: 'light' | 'dark' | 'system'; label: string }> = [
   { value: 'light', label: 'Light' },
@@ -57,6 +58,9 @@ export function WindowsSettings() {
         <div className="win-group" style={{ paddingTop: 8 }}>
           <DesktopSettingsSection />
         </div>
+
+        <h2 className="win-section-label">Updates</h2>
+        <WindowsUpdates />
 
         <h2 className="win-section-label">Study</h2>
         <div className="win-group">
