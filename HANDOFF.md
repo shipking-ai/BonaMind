@@ -12,7 +12,7 @@ the traps that cost real time.
 
 | | |
 |---|---|
-| Version | 2.3.5 (root, app, Android and Wear agree; Windows reads it from `auramind-gemini/package.json`). **Windows 2.3.4 published 2026-10-18** (`desktop-v2.3.4`, marked latest): the first BonaMind Windows release. 2.3.5 (tag `desktop-v2.3.5` once its PR merges) fixes course generation and PDF import in it, and the hidden autostart; installed 2.3.4 copies pick it up through the updater. The unpublished drafts 2.1.0-2.3.3 were deleted (their git tags remain). Play's versionCode 14 still says 2.0.0 |
+| Version | 2.3.5 (root, app, Android and Wear agree; Windows reads it from `auramind-gemini/package.json`). **Windows 2.3.5 published 2026-10-19** (`desktop-v2.3.5`, marked latest; `latest.json` serves 2.3.5), replacing 2.3.4 (published 2026-10-18, kept as history). The API side of the generation fix (CORS allows HTTP-Referer and X-Title) is live. The unpublished drafts 2.1.0-2.3.3 were deleted (their git tags remain). Play's versionCode 14 still says 2.0.0 |
 | Play | versionCode 14 (the BonaMind rename, built after #172 and #176), closed testing (Alpha), **rolled out and sent for review 2026-10-16** together with the BonaMind listing |
 | Branch | `main` at `03d102ed` (2026-10-18, through #181: the Windows app's own layout (#180) and its paper-and-ink look; the BonaMind rename finished in #177; #176 the Gradle heap fix). Repo renamed to `shipking-ai/BonaMind` 2026-10-13 |
 | CI | Node **22 + 24** (20 dropped, EOL); required checks are `build-and-test (22.x)` and `(24.x)` |
@@ -734,6 +734,25 @@ app plus its extension burn two per sideload.
   checkouts predate this and still carry the old names.
 - **Community tab** (#137) — browse and fork published decks, migration
   `20260930_marketplace_fork_and_listing.sql`.
+
+---
+
+## 2026-10-19 - Windows 2.3.5 verified and published
+
+On the installed 2.3.5 release build: Explorer's "Make a course" loaded
+`water-cycle.pdf`, Flashcards generated five cards grounded in it, and
+"Save as Deck" created the course; dragging the PDF onto the window shows
+"Drop to make a course" and loads it (a small drag-source helper stood in
+for Explorer, which the test harness can only click); ✕ hides to the tray;
+`--hidden` stays hidden. The API's new CORS headers are live.
+
+Not tested by the agent: the tray menu (right-click on the taskbar is
+blocked for it) and notifications. Small leftovers: the saved course is
+named "water-cycle.pdf Flashcards" (extension kept), the drop overlay and
+Quick Review panel still use the old navy/violet look, switching Quiz →
+Flashcards clears a handed-in file, the tray menu's Quick review label is
+fixed to Ctrl+Alt+Space, About → Check for updates has no entry point in
+the Windows app.
 
 ---
 
