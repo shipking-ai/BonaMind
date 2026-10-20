@@ -32,11 +32,13 @@ const FRESH_WAIT_MS = 6_000;
 const queued = async (p: Promise<void>) => { await p; getSyncEngine().notifyEnqueued(); };
 
 // Class-copy decks report live progress to teachers (the RPC reads the reviews
-// and sessions the outbox just pushed). Offline or non-class decks: no-op.
-async function reportClassProgress(userId: string, deckId: string) {
+// and sessions the outbox just pushed) and refresh any open class screen.
+// Offline or non-class decks: no-op.
+async function reportClassProgress(queryClient: ReturnType<typeof useQueryClient>, userId: string, deckId: string) {
   try {
     await getOutbox().flush(userId);
-    await syncProgressForDeck(deckId);
+    const count = await syncProgressForDeck(deckId);
+    if (count > 0) queryClient.invalidateQueries({ queryKey: ['classroom-progress'] });
   } catch (e) {
     console.warn('[study] class progress sync skipped', e);
   }
@@ -140,7 +142,7 @@ function StudyRun({ deckId, deckTitle, userId, cards, sessions, schedule }: {
 
   async function close() {
     await session.close(serverNow());
-    void reportClassProgress(userId, deckId);
+    void reportClassProgress(queryClient, userId, deckId);
     router.back();
   }
 

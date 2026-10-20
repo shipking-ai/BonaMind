@@ -29,6 +29,7 @@ function ownProgressLine(row: ProgressRow): string {
 }
 
 function teacherLine(rows: ProgressRow[], students: number): string {
+  if (students === 0) return 'No students yet.';
   const done = rows.filter((r) => r.status === 'completed').length;
   const started = rows.length;
   return `${done} of ${students} completed · ${started} started`;

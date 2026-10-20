@@ -260,23 +260,25 @@ export async function recordDeckProgress(assignmentId: string, localDeckId: stri
   return (data as any)?.status;
 }
 
-/** After studying a class-copy deck, refresh every assignment it belongs to. */
-export async function syncProgressForDeck(localDeckId: string): Promise<void> {
+/** After studying a class-copy deck, refresh every assignment it belongs to. Returns how many progress rows were touched. */
+export async function syncProgressForDeck(localDeckId: string): Promise<number> {
   const { data, error } = await getSupabase()
     .from('assignment_progress')
     .select('assignment_id')
     .eq('local_deck_id', localDeckId);
   if (error) throw error;
-  for (const row of (data ?? []) as any[]) {
+  const rows = (data ?? []) as any[];
+  for (const row of rows) {
     await recordDeckProgress(row.assignment_id, localDeckId);
   }
+  return rows.length;
 }
 
 /** Own membership role (RLS only returns the caller's own row). */
 export async function fetchMyRole(classroomId: string, userId: string): Promise<ClassroomRole | null> {
-  // Filter on the user, not just the classroom: the membership table chats
-  // back every member you may read, and without the filter limit(1) once
-  // picked up the teacher's row for a student.
+  // Filter on the user, not just the classroom: RLS lets a member read every
+  // membership in the class, so without the filter limit(1) picked up the
+  // teacher's row and a student saw teacher controls.
   const { data, error } = await getSupabase()
     .from('classroom_memberships')
     .select('role')

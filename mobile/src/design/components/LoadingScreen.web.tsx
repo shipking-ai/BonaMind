@@ -2,15 +2,9 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LOADING_LINES } from './loadingLines';
 import { colors, fonts, space } from '../tokens';
 
-/** What the loader says while it works; one line every LINE_MS. Mirrors LoadingScreen.tsx — keep the two lists in sync. */
-export const LOADING_LINES = [
-  'Shuffling your due cards',
-  'Checking what you remember',
-  'Lining up the tricky ones',
-  'Warming up the aurora',
-] as const;
 const LINE_MS = 2_000;
 const SIZE = 168;
 
