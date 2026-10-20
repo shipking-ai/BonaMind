@@ -60,7 +60,7 @@ export function ClassDetailScreen() {
   });
   const role = useQuery({
     queryKey: ['classroom-role', id, userId],
-    queryFn: () => (id ? fetchMyRole(id) : Promise.resolve(null)),
+    queryFn: () => (id && userId ? fetchMyRole(id, userId) : Promise.resolve(null)),
     enabled: !!id,
   });
 

@@ -17,4 +17,17 @@ config.resolver.resolveRequest = (context, moduleName, platform) =>
     ? context.resolveRequest({ ...context, originModulePath: appOrigin }, moduleName, platform)
     : context.resolveRequest(context, moduleName, platform);
 
+// expo-sqlite on web (alpha; docs /versions/v57.0.0/sdk/sqlite/): the SQL
+// worker loads a .wasm asset and needs SharedArrayBuffer, which browsers only
+// expose to cross-origin-isolated documents.
+config.resolver.assetExts.push('wasm');
+config.server = {
+  ...config.server,
+  enhanceMiddleware: (middleware) => (req, res, next) => {
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+    middleware(req, res, next);
+  },
+};
+
 module.exports = config;

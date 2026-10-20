@@ -113,9 +113,9 @@ it('refreshes every assignment that a class-copy deck belongs to', async () => {
 
 it('reads the caller role from memberships', async () => {
   supabase.from.mockReturnValue(fromRows([{ role: 'teacher' }]));
-  await expect(fetchMyRole('c1')).resolves.toBe('teacher');
+  await expect(fetchMyRole('c1', 'u1')).resolves.toBe('teacher');
   supabase.from.mockReturnValue(fromRows([]));
-  await expect(fetchMyRole('c1')).resolves.toBeNull();
+  await expect(fetchMyRole('c1', 'u1')).resolves.toBeNull();
 });
 
 it('maps progress rows including attempts and local deck', async () => {

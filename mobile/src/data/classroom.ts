@@ -273,11 +273,15 @@ export async function syncProgressForDeck(localDeckId: string): Promise<void> {
 }
 
 /** Own membership role (RLS only returns the caller's own row). */
-export async function fetchMyRole(classroomId: string): Promise<ClassroomRole | null> {
+export async function fetchMyRole(classroomId: string, userId: string): Promise<ClassroomRole | null> {
+  // Filter on the user, not just the classroom: the membership table chats
+  // back every member you may read, and without the filter limit(1) once
+  // picked up the teacher's row for a student.
   const { data, error } = await getSupabase()
     .from('classroom_memberships')
     .select('role')
     .eq('classroom_id', classroomId)
+    .eq('user_id', userId)
     .limit(1);
   if (error) throw error;
   const role = (data ?? [])[0]?.role;
