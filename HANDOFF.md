@@ -18,7 +18,7 @@ the traps that cost real time.
 | CI | Node **22 + 24** (20 dropped, EOL); required checks are `build-and-test (22.x)` and `(24.x)` |
 | Migrations | all applied through `20260925_close_admin_oracle.sql` (verified live 2026-09-28); merged since: `20260929_cards_rls_owner_and_deck.sql` (#116) and `20260930_marketplace_fork_and_listing.sql` (#137) — **live application of those two not re-verified** |
 | iOS | builds and screenshots in CI (`mobile-ios.yml`); unsigned device IPA on demand; **never run on a real phone yet** |
-| Native app | `mobile/` (Expo SDK 57, RN 0.86) + `packages/core` (`@bonamind/core`). Part 1 merged (#156) and runs in Expo Go on a real iPhone; unsigned IPA built on `main` 2026-10-12. Part 2 (create a course on the phone) merged (#164). See the 2026-10-11 and 2026-10-12 sections |
+| Native app | `mobile/` (Expo SDK 57, RN 0.86) + `packages/core` (`@bonamind/core`). Part 1 merged (#156) and runs in Expo Go on a real iPhone; unsigned IPA built on `main` 2026-10-12. Part 2 (create a course on the phone) merged (#164). See the 2026-10-11 and 2026-10-12 sections. Part 3 (classes: assign decks/quizzes, server-graded quizzes; verified E2E through the app's own web target) sits local on `main` 2026-10-19, **not pushed yet** — see the 2026-10-19 section |
 | Tests | 137 files / 968 declared cases (734 unit, 155 API, 26 seeded Playwright, 53 in `packages/core`). The seeded e2e specs skip in CI — they mint real accounts with the service-role key, which CI does not have |
 
 ---
@@ -2042,3 +2042,58 @@ minute"). Adding a free Gemini key (aistudio.google.com/apikey) makes Gemini
 the first choice. Planned: on-device text recognition (Apple Vision / ML Kit)
 once the app moves off Expo Go to development builds; it's free, offline and
 private, with the server as the fallback.
+
+## 2026-10-19 - Native app, part 3: classes verified end-to-end, on the web
+
+The classes port (the website's classrooms, into the native app) is now
+verified as a real E2E run driven through the Expo app itself, served by
+Expo's web target, using the app's own `/e2e/session?rt=` adoption screen
+(`EXPO_PUBLIC_E2E=true`). Commits, all local on `main` on top of the 2026-10-18
+`03d102ed`, not pushed yet:
+
+- `1e081199` feat(mobile): quiz assignments and progress in classes — teacher
+  assigns a deck or a quiz, students accept decks (server-side copy) and take
+  server-graded quizzes (`get_quiz_questions`/`submit_quiz_attempt`), teacher
+  and student dashboards count completed/started from `assignment_progress`.
+- `295e0874` fix(mobile): make the app usable on web — secureStorage's dual
+  backend, sqlite wasm + COOP/COEP headers in Metro, three `.web.tsx` Skia
+  stand-ins (aurora, confetti, loading), `fetchMyRole` filtered by user, and
+  a web fallback for the study card.
+- `c0526c45` fix(mobile): class page polish — shared `LOADING_LINES`, a
+  `['classroom-progress']` invalidation when a study session closes, and
+  "No students yet." instead of "0 of 0 completed · 0 started".
+- `3db642a4` feat(mobile-e2e): seed-students script for a mixed roster —
+  creates `e2e-student-N@example.com` (idempotent), joins by code, and
+  fabricates believable progress (one completes deck + quiz, one reviews 3
+  cards, one just joins). Tokens go to `GITHUB_OUTPUT` (masked) or `--out`
+  NDJSON for `/e2e/session?rt=`. Verified live: the class showed "2 of 4
+  completed · 3 started" (deck) and "2 of 4 completed · 2 started" (quiz)
+  with a 5-person roster.
+- Type-check clean; lint 0 errors (20 warnings); mobile jest steady at
+  34 suites / 183 tests.
+
+### Traps found here
+
+- **RNGH 2.32.0 + react-native-web freezes on press.** The old
+  `Gesture.Race(Pan, Exclusive(Long, Tap))` hung the tab the moment a press
+  began (even `1+1` in evaluate timed out). The fix is the platform branch in
+  `CardStack.tsx` (`GESTURE_CARD`): native keeps gestures, web gets a plain
+  Pressable + `RatingBar`. Don't try to tune thresholds.
+- **`classroom_memberships` RLS lets a member read every row of the class** —
+  any unfiltered role query with `limit(1)` will once hand the caller the
+  teacher's row. Always filter by `user_id` (`fetchMyRole`).
+- **`classroom_roster` names come from `user_profiles.full_name`** and fall
+  back to the UUID; accounts created without onboarding show raw ids until
+  `user_profiles` is upserted.
+- **`card_reviews` no longer has `UNIQUE(card_id)`** (20260916000000 widened
+  the idempotency key to user+card+reviewed_at): seeded review events are
+  plain INSERTs; re-runs add events but progress counts DISTINCT card_id.
+- **jest after heavy browser automation:** a first run can report failing
+  suites with zero failing tests (resource contention). Rerun before
+  caring; the steady state here is 34/34 suites, 183/183 tests.
+- **Driving the web app in a browser tool:** most react-native-web buttons
+  react to synthetic `pointerdown`/`pointerup`/`click`, but quiz choices
+  only to plain `el.click()`; `preview_snapshot` times out on this app
+  (read state via evaluate); hidden tabs freeze rAF, so exit animations
+  leave ghost nodes that can shadow `querySelector`.
+

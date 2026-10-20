@@ -23,7 +23,7 @@ const countFlag = args.indexOf('--count');
 const count = countFlag >= 0 ? Number(args[countFlag + 1]) : 3;
 const outFlag = args.indexOf('--out');
 const outFile = outFlag >= 0 ? args[outFlag + 1] : null;
-if (!outFile) process.env.GITHUB_OUTPUT ? null : console.log('(no --out; tokens stay masked)');
+if (!outFile && !process.env.GITHUB_OUTPUT) console.log('(no --out and no GITHUB_OUTPUT; tokens stay masked)');
 
 const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
