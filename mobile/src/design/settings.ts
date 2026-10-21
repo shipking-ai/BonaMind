@@ -7,6 +7,10 @@ interface Settings {
   setHapticsEnabled(v: boolean): void;
   targetRetention: string;
   setTargetRetention(v: string): void;
+  reminderEnabled: boolean;
+  setReminderEnabled(v: boolean): void;
+  reminderHour: number;
+  setReminderHour(v: number): void;
 }
 
 export const RETENTION_OPTIONS = ['Conservative - 90%', 'Balanced - 85%', 'Aggressive - 80%'] as const;
@@ -18,6 +22,10 @@ export const useSettings = create<Settings>()(
       setHapticsEnabled: (hapticsEnabled) => set({ hapticsEnabled }),
       targetRetention: 'Balanced - 85%',
       setTargetRetention: (targetRetention) => set({ targetRetention }),
+      reminderEnabled: false,
+      setReminderEnabled: (reminderEnabled) => set({ reminderEnabled }),
+      reminderHour: 9,
+      setReminderHour: (reminderHour) => set({ reminderHour }),
     }),
     {
       name: 'bonamind.settings',
@@ -26,7 +34,12 @@ export const useSettings = create<Settings>()(
         setItem: (k, v) => SecureStore.setItemAsync(k, v),
         removeItem: (k) => SecureStore.deleteItemAsync(k),
       })),
-      partialize: ({ hapticsEnabled, targetRetention }) => ({ hapticsEnabled, targetRetention }),
+      partialize: ({ hapticsEnabled, targetRetention, reminderEnabled, reminderHour }) => ({
+        hapticsEnabled,
+        targetRetention,
+        reminderEnabled,
+        reminderHour,
+      }),
     },
   ),
 );
