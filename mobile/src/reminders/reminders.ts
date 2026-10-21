@@ -2,9 +2,8 @@
  * Local review reminders — one "your review queue is ready" notification per
  * day at the chosen hour. Device-local on purpose: remote push needs Firebase
  * credentials and stays out of the app's hands (HANDOFF: push sender awaits
- * them). Mirrors the website's daily reminder (`auramind-gemini/src/lib/
- * reminderSchedule.ts`, `buildReminderNotifications`) for the one interval
- * every platform can honor.
+ * them). Mirrors the website's daily reminder (its lib/reminderSchedule,
+ * buildReminderNotifications) for the one interval every platform can honor.
  */
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';

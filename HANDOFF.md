@@ -2092,6 +2092,12 @@ workflows green on the push, including Mobile iOS at 14m):
 - **jest after heavy browser automation:** a first run can report failing
   suites with zero failing tests (resource contention). Rerun before
   caring; the steady state here is 34/34 suites, 183/183 tests.
+- **The rename guard (`packages/core/test/brandNames.test.ts`) scans
+  `mobile/src` too.** It rejected a doc comment that cited the website file
+  by its legacy repo path (`auramind-gemini/src/lib/…`); comments must avoid
+  the folder name — markdown files keep the `<!-- legacy-name: ok -->`
+  convention, code has no loophole. The guard allows only the Android
+  package id `com.auramind.app`.
 - **Driving the web app in a browser tool:** most react-native-web buttons
   react to synthetic `pointerdown`/`pointerup`/`click`, but quiz choices
   only to plain `el.click()`; `preview_snapshot` times out on this app
