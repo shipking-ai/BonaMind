@@ -109,7 +109,7 @@ export function isEntitled(user: UserLike | null | undefined, now?: number): boo
 
 /**
  * Internal roles that bypass the paywall for QA/staff purposes. Mirrors the
- * client rule in `auramind-gemini/src/utils/permissions.ts` (hasFreeAccess).
+ * client rule in `bonamind-web/src/utils/permissions.ts` (hasFreeAccess).
  * Reads `app_metadata.role` ONLY — user_metadata is client-writable and is
  * never an entitlement source.
  */

@@ -21,7 +21,7 @@ import { expect, it } from 'vitest';
 const APP_ROOT = resolve(__dirname, '../..');
 const TEXT = /\.(ts|tsx|js|jsx|mjs|css|html|json|svg|xml|plist|md|txt|webmanifest|java|kt|swift|rs|ps1)$/;
 
-/** Roots scanned for visible copy, relative to auramind-gemini/. */
+/** Roots scanned for visible copy, relative to bonamind-web/. */
 const ROOTS = [
   'src',
   'public',

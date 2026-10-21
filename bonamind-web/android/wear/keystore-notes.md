@@ -3,7 +3,7 @@
 The watch app (`android/wear`, package `com.auramind.app.wear`) is a separate
 APK that must be signed to ship on the Play Store. It shares the **same
 release keystore and credentials** as the phone app — see
-`auramind-gemini/android/keystore/README.md`.
+`bonamind-web/android/keystore/README.md`.
 
 ## Rules (identical to the phone app)
 
@@ -19,7 +19,7 @@ release keystore and credentials** as the phone app — see
 
 ```bash
 # Compile-only check (no credentials needed)
-cd auramind-gemini/android && ./gradlew :wear:assembleDebug
+cd bonamind-web/android && ./gradlew :wear:assembleDebug
 
 # Signed release (with ANDROID_KEYSTORE_* env vars set)
 ./gradlew :wear:bundleRelease

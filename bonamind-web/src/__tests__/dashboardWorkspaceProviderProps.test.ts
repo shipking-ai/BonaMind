@@ -11,7 +11,7 @@
 // regression can land on main.
 //
 // Mirrors the required-prop set on DashboardWorkspaceProviderProps in
-// auramind-gemini/src/contexts/DashboardWorkspaceContext.tsx. Update this
+// bonamind-web/src/contexts/DashboardWorkspaceContext.tsx. Update this
 // list if the provider contract grows.
 
 import * as fs from 'node:fs';

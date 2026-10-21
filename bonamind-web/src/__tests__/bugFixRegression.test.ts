@@ -728,8 +728,8 @@ describe('Bug #6: CogniVect parent-brand placement', () => {
     // assertions live in the round-18 BUG #7 describe block; this
     // round-17 BUG #6 block stays focused on the identity-only files.
     //
-    // Paths are RELATIVE TO __dirname (auramind-gemini/src/__tests__).
-    // Two `..` segments lift back to auramind-gemini/.
+    // Paths are RELATIVE TO __dirname (bonamind-web/src/__tests__).
+    // Two `..` segments lift back to bonamind-web/.
     // The name is no longer typed into these files by hand. It comes from
     // app-identity.ts, and capacitor.config.ts / index.html consume it by
     // import and by a build-time transform respectively. So the assertion is
@@ -740,13 +740,13 @@ describe('Bug #6: CogniVect parent-brand placement', () => {
       // [rel path readable from __dirname, human label, tokens that MUST be present]
       // capacitor.config.ts pulls appName from app-identity.ts; `appId:` stays
       // a literal because the bundle id is deliberately not renameable.
-      ['../../capacitor.config.ts',          'auramind-gemini/capacitor.config.ts',          ['appId:', "from './app-identity.ts'", 'appName: APP_NAME']],
-      ['../../app-identity.ts',             'auramind-gemini/app-identity.ts',             ["export const APP_NAME = '"]],
-      ['../../metadata.json',              'auramind-gemini/metadata.json',               ['"name": "BonaMind"']],
-      ['../../package.json',               'auramind-gemini/package.json',                ['"name": "bonamind"']],
+      ['../../capacitor.config.ts',          'bonamind-web/capacitor.config.ts',          ['appId:', "from './app-identity.ts'", 'appName: APP_NAME']],
+      ['../../app-identity.ts',             'bonamind-web/app-identity.ts',             ["export const APP_NAME = '"]],
+      ['../../metadata.json',              'bonamind-web/metadata.json',               ['"name": "BonaMind"']],
+      ['../../package.json',               'bonamind-web/package.json',                ['"name": "bonamind"']],
       // index.html is rewritten at build time; the data-brand marker is what
       // the transform keys on, and its absence makes the build fail.
-      ['../../index.html',                 'auramind-gemini/index.html',                  ['data-brand="title"', 'data-brand="og:title"']],
+      ['../../index.html',                 'bonamind-web/index.html',                  ['data-brand="title"', 'data-brand="og:title"']],
     ];
     for (const [rel, expectedPath, identityTokens] of identityFiles) {
       const p = path.resolve(__dirname, rel);

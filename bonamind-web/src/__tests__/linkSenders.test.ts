@@ -10,22 +10,22 @@ import { expect, it } from 'vitest';
 
 const REPO = resolve(__dirname, '../../..');
 const ROOTS = [
-  'auramind-gemini/src',
-  'auramind-gemini/android/app/src/main',
-  'auramind-gemini/ios/App',
-  'auramind-gemini/src-tauri/src',
+  'bonamind-web/src',
+  'bonamind-web/android/app/src/main',
+  'bonamind-web/ios/App',
+  'bonamind-web/src-tauri/src',
   'api',
 ];
 const TEXT = /\.(ts|tsx|js|java|kt|swift|rs|xml|plist)$/;
 
 /** Files whose job is to accept both schemes, with why. */
 const ACCEPTS_BOTH = new Set([
-  'auramind-gemini/src-tauri/src/links.rs', // Windows launch-argument parser and its tests
-  'auramind-gemini/android/app/src/main/AndroidManifest.xml', // registers both schemes
-  'auramind-gemini/ios/App/App/Info.plist', // registers both schemes
-  'auramind-gemini/src/lib/deepLinks.ts', // parses both schemes
-  'auramind-gemini/src/desktop/deepLinkRouter.ts', // routes both schemes on Windows
-  'auramind-gemini/src/services/notifications/pushService.ts', // follows both on a notification tap
+  'bonamind-web/src-tauri/src/links.rs', // Windows launch-argument parser and its tests
+  'bonamind-web/android/app/src/main/AndroidManifest.xml', // registers both schemes
+  'bonamind-web/ios/App/App/Info.plist', // registers both schemes
+  'bonamind-web/src/lib/deepLinks.ts', // parses both schemes
+  'bonamind-web/src/desktop/deepLinkRouter.ts', // routes both schemes on Windows
+  'bonamind-web/src/services/notifications/pushService.ts', // follows both on a notification tap
 ]);
 /** Single lines that accept the old scheme. */
 const ACCEPT_LINE = /startsWith\('auramind:\/\/'\)/; // POST /api/push/send link check // legacy-name: ok

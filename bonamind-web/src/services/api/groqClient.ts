@@ -214,7 +214,7 @@ function resolveModel(override?: string): string {
       deprecatedModelBannerLogged = true;
       console.warn(
         `[BonaMind/groqClient] Configured model '${resolved}' is decommissioned by Groq. ` +
-        `Falling back to '${fallback}' for this session. Update auramind-gemini/.env (VITE_GROQ_MODEL) and restart.`,
+        `Falling back to '${fallback}' for this session. Update bonamind-web/.env (VITE_GROQ_MODEL) and restart.`,
       );
     }
     return fallback;
@@ -335,7 +335,7 @@ export async function groqChat(opts: GroqChatOptions): Promise<GroqChatResult> {
         console.warn(
           `[BonaMind/groqClient] Groq rejected the API key (HTTP ${res.status} ${upstreamMessage}). ` +
           `AI features will use the Puter free fallback or offline template for this session. ` +
-          `Fix the key in auramind-gemini/.env (VITE_GROQ_API_KEY) and restart \`npm run dev\`.`,
+          `Fix the key in bonamind-web/.env (VITE_GROQ_API_KEY) and restart \`npm run dev\`.`,
         );
       }
       throw new GroqUnavailableError(

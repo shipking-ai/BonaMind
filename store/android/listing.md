@@ -66,7 +66,7 @@ Whether you're prepping for med school (USMLE), law school (BAR), grad school cu
 
 The phone screenshots are real screens from the Android app, captured on an
 emulator from the development build's sample-data harness. Regenerate them
-with `auramind-gemini/scripts/capture-android-screenshots.mjs`; its header
+with `bonamind-web/scripts/capture-android-screenshots.mjs`; its header
 lists the build and install steps.
 
 ## Content rating (IARC)
@@ -91,7 +91,7 @@ Expected rating: **PEGI 3 / ESRB E / IARC General** (everyone, no objectionable 
 
 ## Pre-launch checklist (Android-specific)
 
-- [x] AAB signed and built (alias `auramind-upload`, SHA256 `C2:58:01:CB:...`) — see `auramind-gemini/android/keystore/README.md`
+- [x] AAB signed and built (alias `auramind-upload`, SHA256 `C2:58:01:CB:...`) — see `bonamind-web/android/keystore/README.md`
 - [ ] AAB uploaded to Internal Testing track
 - [ ] Closed testing runs cleanly for ≥ 14 days with at least 5 internal testers
 - [ ] Privacy policy URL returns 200 (not 404)

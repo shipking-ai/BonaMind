@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Renders the README banner (docs/assets/banner.svg -> banner.png, 1280x640).
 // GitHub shows the PNG, so re-run this after editing the SVG:
-//   node scripts/render-banner.mjs   (from auramind-gemini/)
+//   node scripts/render-banner.mjs   (from bonamind-web/)
 // Run it on Windows: the SVG asks for Segoe UI, and the PNG should use it.
 
 import { readFileSync } from 'node:fs';

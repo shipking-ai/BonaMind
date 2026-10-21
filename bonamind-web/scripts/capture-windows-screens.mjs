@@ -4,7 +4,7 @@
 // makes the page behave as the Windows app (isDesktopApp() is true, bridge
 // calls resolve to nothing).
 //
-//   npm run dev                                   (in auramind-gemini/)
+//   npm run dev                                   (in bonamind-web/)
 //   node scripts/capture-windows-screens.mjs [baseUrl] [outDir]
 //
 // Defaults: http://localhost:3000, ../.superpowers/windows-screens (git-ignored).

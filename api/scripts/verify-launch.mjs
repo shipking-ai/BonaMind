@@ -29,7 +29,7 @@ import { fileURLToPath } from 'url';
 import Stripe from 'stripe';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CLIENT_ENV_PATH = path.resolve(__dirname, '..', '..', 'auramind-gemini', '.env');
+const CLIENT_ENV_PATH = path.resolve(__dirname, '..', '..', 'bonamind-web', '.env');
 
 const failures = [];
 const passes = [];
@@ -50,7 +50,7 @@ function readEnvFile(filePath) {
 }
 
 const api = process.env; // api/.env loaded by dotenv/config
-// Client env comes from auramind-gemini/.env, with any VITE_* env vars set in
+// Client env comes from bonamind-web/.env, with any VITE_* env vars set in
 // the shell (e.g. CI) taking precedence — the .env file doesn't exist in CI.
 const client = {
   ...readEnvFile(CLIENT_ENV_PATH),

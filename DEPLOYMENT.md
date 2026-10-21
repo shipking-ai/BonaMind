@@ -19,10 +19,10 @@
 
 ### 2. Environment Variables
 
-Copy `.env.example` to `.env` in the `auramind-gemini/` directory:
+Copy `.env.example` to `.env` in the `bonamind-web/` directory:
 
 ```bash
-cd auramind-gemini
+cd bonamind-web
 cp .env.example .env
 ```
 
@@ -54,21 +54,21 @@ vercel --prod
 ## Manual Build
 
 ```bash
-cd auramind-gemini
+cd bonamind-web
 npm install
 npm run build
 ```
 
-The built files will be in `auramind-gemini/dist/`.
+The built files will be in `bonamind-web/dist/`.
 
 ## Windows App (Tauri 2)
 
-The Windows app lives in `auramind-gemini/src-tauri/`. It bundles a desktop
+The Windows app lives in `bonamind-web/src-tauri/`. It bundles a desktop
 build of the web app (`vite build --mode desktop`, API origins from the
 committed `.env.desktop`) and serves it from `https://tauri.localhost`.
 
 ```bash
-cd auramind-gemini
+cd bonamind-web
 npm run dev:desktop     # the app window against the Vite dev server
 npm run build:desktop   # installer -> src-tauri/target/release/bundle/nsis/
 ```
@@ -91,7 +91,7 @@ window on Ctrl+Alt+Space, drop-to-create (window, Explorer, tray),
 1. Supabase → Authentication → URL Configuration → Redirect URLs: add
    `bonamind://auth/callback` (keep the older `auramind://auth/callback` entry too: <!-- legacy-name: ok -->
    Windows installs from before the rename still send it).
-2. In `auramind-gemini/.env.desktop`, uncomment `VITE_DESKTOP_OAUTH=true`.
+2. In `bonamind-web/.env.desktop`, uncomment `VITE_DESKTOP_OAUTH=true`.
 3. Release a new version. Until then the app shows email + password only.
 
 ### Updater signing key (one-time)
@@ -113,7 +113,7 @@ every installed app unable to update).
 
 ### Releasing
 
-1. Bump `version` in `auramind-gemini/package.json`. It must be higher than
+1. Bump `version` in `bonamind-web/package.json`. It must be higher than
    any release already installed; the first Windows release must be above
    2.0.0 (the retired June build).
 2. Tag and push: `git tag desktop-v2.1.0 && git push origin desktop-v2.1.0`.
@@ -137,15 +137,15 @@ The tour uses bundled sample data and makes no network calls, so placeholder
 Supabase env is enough.
 
 ```bash
-cd auramind-gemini
+cd bonamind-web
 npm run build:ios-preview
 ```
 
 Then host `dist/` anywhere static, or create a second Vercel project on the
 same repo with:
 
-- Build command: `cd auramind-gemini && npm run build:ios-preview`
-- Output directory: `auramind-gemini/dist`
+- Build command: `cd bonamind-web && npm run build:ios-preview`
+- Output directory: `bonamind-web/dist`
 - Env: `VITE_IOS_PREVIEW=true`, plus `VITE_SUPABASE_URL` /
   `VITE_SUPABASE_ANON_KEY` (placeholders are fine — the tour never calls them)
 
@@ -177,13 +177,13 @@ app does not read it, and Vite would publish it to every visitor.
 
 ## PWA Setup
 
-1. App icons live in `auramind-gemini/public/favicons,logos/`:
+1. App icons live in `bonamind-web/public/favicons,logos/`:
    - `icon-192.png`
    - `icon-384.png`
    - `icon-512.png`
    - plus `favicon.svg`, `favicon.ico`, and the apple-touch icon
 
-2. The OG image is `auramind-gemini/public/favicons,logos/og-image.png` (1200x630px)
+2. The OG image is `bonamind-web/public/favicons,logos/og-image.png` (1200x630px)
 
 3. `manifest.json` references the icons above
 
@@ -232,7 +232,7 @@ Still requires manual/out-of-band setup (cannot be verified from the repo):
 
 ### Build fails
 ```bash
-cd auramind-gemini
+cd bonamind-web
 rm -rf node_modules package-lock.json
 npm install
 npm run build

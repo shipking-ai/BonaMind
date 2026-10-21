@@ -30,7 +30,7 @@
 ## 2. Build artifacts
 
 - [x] Android AAB signed with the **production upload keystore**
-      (`auramind-gemini/android/keystore/release.keystore`).
+      (`bonamind-web/android/keystore/release.keystore`).
 - [ ] Wear OS companion AAB signed with the **same upload keystore**
       (`com.auramind.app.wear` — `./gradlew :wear:bundleRelease`).
 - [x] Android `versionCode` increments by 1 every release (currently `1`).
@@ -39,7 +39,7 @@
       on a sideloaded release build — there should be no `console.log`.
       We use Sentry's `beforeSend` stripper to strip browser debug logs.)
 - [x] ProGuard / R8 mapping file generated
-      (`auramind-gemini/android/app/build/outputs/mapping/release/mapping.txt`)
+      (`bonamind-web/android/app/build/outputs/mapping/release/mapping.txt`)
       — upload to Sentry/Crashlytics for symbolicated crashes.
 
 ## 3. Capabilities & permissions

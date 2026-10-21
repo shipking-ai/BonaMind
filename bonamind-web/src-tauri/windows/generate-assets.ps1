@@ -1,5 +1,5 @@
 # Renders the Windows-only brand assets from icons/icon.png.
-# Run from auramind-gemini/src-tauri:  powershell -ExecutionPolicy Bypass -File windows/generate-assets.ps1
+# Run from bonamind-web/src-tauri:  powershell -ExecutionPolicy Bypass -File windows/generate-assets.ps1
 # Outputs are committed; rerun only when the mark or palette changes.
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing

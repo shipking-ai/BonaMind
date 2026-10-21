@@ -132,7 +132,7 @@ if (missingBinaries > 0) {
   process.exit(2);
 } else if (failed > 0) {
   console.error(`\n${failed} required item${failed === 1 ? '' : 's'} missing. Set them in your environment or in CI/CD secrets and try again.\n`);
-  console.error('See auramind-gemini/android/keystore/README.md and docs/M6-store-submission-playbook.md for what each var means.\n');
+  console.error('See bonamind-web/android/keystore/README.md and docs/M6-store-submission-playbook.md for what each var means.\n');
   process.exit(1);
 } else {
   console.log('\nAll required items present.\n');

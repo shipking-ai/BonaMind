@@ -1,6 +1,6 @@
 # Handoff — BonaMind 2.0.0
 
-Written 2026-09-09; updated 2026-09-28 (FSRS scheduler repair, the iPhone app, one special capability per platform, a sideloadable IPA, Live Activity in CI, the admin oracle closed), 2026-10-11 (the native Expo app, part 1, and the shared `@bonamind/core`), 2026-10-12 (every claim re-verified against the code; the stale rows below corrected, the PR list refreshed, the BonaMind rebrand and the community tab recorded), and 2026-10-20 (native app part 4: billing + review reminders). Context for continuing this work in another tool.
+Written 2026-09-09; updated 2026-09-28 (FSRS scheduler repair, the iPhone app, one special capability per platform, a sideloadable IPA, Live Activity in CI, the admin oracle closed), 2026-10-11 (the native Expo app, part 1, and the shared `@bonamind/core`), 2026-10-12 (every claim re-verified against the code; the stale rows below corrected, the PR list refreshed, the BonaMind rebrand and the community tab recorded), 2026-10-20 (native app part 4: billing + review reminders), and 2026-10-21 (the web folder renamed `bonamind-web/`). Context for continuing this work in another tool.
 
 Read `CLAUDE.md` first for conventions, then `ARCHITECTURE.md` for structure.
 This file covers only what those two don't: current state, what's left, and
@@ -12,7 +12,7 @@ the traps that cost real time.
 
 | | |
 |---|---|
-| Version | 2.3.6 (root, app, Android and Wear agree; Windows reads it from `auramind-gemini/package.json`). **Windows 2.3.5 published 2026-10-19** (`desktop-v2.3.5`, marked latest). 2.3.6 (tag `desktop-v2.3.6` once its PR merges) clears the 2.3.5 leftovers: Updates in Settings, the paper Quick Review card and drop overlay, file-named courses, the tray shortcut label, and Quick Review's stale cache. Play's versionCode 14 still says 2.0.0 |
+| Version | 2.3.6 (root, app, Android and Wear agree; Windows reads it from `bonamind-web/package.json`). **Windows 2.3.5 published 2026-10-19** (`desktop-v2.3.5`, marked latest). 2.3.6 (tag `desktop-v2.3.6` once its PR merges) clears the 2.3.5 leftovers: Updates in Settings, the paper Quick Review card and drop overlay, file-named courses, the tray shortcut label, and Quick Review's stale cache. Play's versionCode 14 still says 2.0.0 |
 | Play | versionCode 14 (the BonaMind rename, built after #172 and #176), closed testing (Alpha), **rolled out and sent for review 2026-10-16** together with the BonaMind listing |
 | Branch | `main` at `03d102ed` (2026-10-18, through #181: the Windows app's own layout (#180) and its paper-and-ink look; the BonaMind rename finished in #177; #176 the Gradle heap fix). Repo renamed to `shipking-ai/BonaMind` 2026-10-13 |
 | CI | Node **22 + 24** (20 dropped, EOL); required checks are `build-and-test (22.x)` and `(24.x)` |
@@ -81,7 +81,7 @@ the traps that cost real time.
     Android release build and `.env.desktop` call `https://bonamind.app`, and
     a CORS preflight that gets a redirect fails (see the trap "A redirect on
     the API host breaks every app"). The redirect was removed (Vercel project
-    `auramind-gemini` → Domains: `bonamind.app` now serves Production
+    `bonamind-web` → Domains: `bonamind.app` now serves Production
     directly; `www.bonamind.app` serves too). Verified: preflights from
     `https://localhost` and `https://tauri.localhost` to both hosts answer
     204. **Don't re-add an apex↔www redirect** without moving every app's
@@ -137,7 +137,7 @@ dispatch go live without a console visit.
 Nothing is broken. These are the next things worth doing, roughly in order of
 value:
 
-- **iOS app — builds in CI, not yet signed.** `auramind-gemini/ios/` (Capacitor
+- **iOS app — builds in CI, not yet signed.** `bonamind-web/ios/` (Capacitor
   8, Swift Package Manager, generated on Windows — no CocoaPods). The
   `Mobile iOS` workflow builds it unsigned on a GitHub Mac, runs it in an
   iPhone simulator and uploads a screenshot. What differs from Android:
@@ -487,7 +487,7 @@ gesture-handler:
 
 `mobile-android.yml` and `mobile-ios.yml` hardcode one public Turnstile site
 key for the Capacitor builds (`0x4AAAAAAAEsHm7dsqEhBi3Nr`).
-`auramind-gemini/.env` holds a different one. The native app (`mobile/.env.local`, copied
+`bonamind-web/.env` holds a different one. The native app (`mobile/.env.local`, copied
 from that `.env`) signs in successfully with the `.env` key, so
 `mobile-builds.yml` now uses that one too (2026-10-12). Whether the Capacitor
 key is stale is unverified. If the Capacitor apps' human check fails, compare
@@ -497,7 +497,7 @@ app's hostname shows "Unable to connect to website".
 ### The dependency audit fails PRs that didn't touch dependencies
 
 `Dependency audit (prod deps, critical gate)` runs `npm audit --omit=dev
---audit-level=critical` for `auramind-gemini/` and `api/` on every PR. A newly
+--audit-level=critical` for `bonamind-web/` and `api/` on every PR. A newly
 published critical advisory therefore fails whichever PR runs next, whatever
 that PR changed. On 2026-10-12 it was `proxy-addr` ≤ 2.0.7 (GHSA-jqcg-44mw-7w3h),
 pulled in through Express in both packages (shadcn → MCP SDK → express on the
@@ -538,7 +538,7 @@ while no repo of the old name exists. **Don't create a repo called
 ### Pre-rename names live in one web file
 
 The rename to BonaMind moved every stored key from `auramind…` to <!-- legacy-name: ok -->
-`bonamind…`. `auramind-gemini/src/lib/legacyNames.ts` is the **only** web
+`bonamind…`. `bonamind-web/src/lib/legacyNames.ts` is the **only** web
 source file allowed to spell a pre-rename name, and
 `src/__tests__/legacyStorageNames.test.ts` fails CI on any other. It holds the
 migration's old prefix and the old link scheme. It also holds names that can
@@ -578,7 +578,7 @@ way to turn CI green; it needs a one-line reason and a test case in
 
 ### Full website suite timeouts on this PC
 
-`npx vitest run` in `auramind-gemini/` on this machine sometimes ends with a
+`npx vitest run` in `bonamind-web/` on this machine sometimes ends with a
 few "Test timed out" and "Worker forks emitted error" failures in different
 files each run (androidNative, desktopShell, analyticsFunnel, realtimeE2E…).
 Rerun the named files alone before suspecting a change. They pass alone, and
@@ -625,14 +625,14 @@ the version `npx expo install --check` expects (29.5.14 for SDK 57).
 `onboarding.spec.ts` and `spark.spec.ts` mint real accounts with the
 service-role key from the root `.env`; without it (CI) they skip. They need
 the Vite dev server on 3001 (the spark force hook is dev-only) and the API
-somewhere else — `auramind-gemini/.env` points the `/api` proxy at 3001, i.e.
+somewhere else — `bonamind-web/.env` points the `/api` proxy at 3001, i.e.
 at Vite itself, which hangs every API call. Run the API on 3002 and override
 the proxy:
 
 ```bash
 cd api && PORT=3002 npx tsx server.js
-cd auramind-gemini && VITE_API_PROXY_TARGET=http://localhost:3002 npm run dev -- --port 3001
-cd auramind-gemini && npx playwright test e2e/onboarding.spec.ts e2e/spark.spec.ts
+cd bonamind-web && VITE_API_PROXY_TARGET=http://localhost:3002 npm run dev -- --port 3001
+cd bonamind-web && npx playwright test e2e/onboarding.spec.ts e2e/spark.spec.ts
 ```
 
 ---
@@ -645,7 +645,7 @@ measured.
 
 ```bash
 # build, install, launch
-cd auramind-gemini
+cd bonamind-web
 npm run build:apk:debug
 adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 adb shell am start -n com.bonamind.app.debug/com.bonamind.app.MainActivity
@@ -969,7 +969,7 @@ Spec `docs/superpowers/specs/2026-10-16-windows-native-shell-design.md`,
 plan `docs/superpowers/plans/2026-10-16-windows-native-shell.md`. The
 Windows app no longer looks like the website in a window.
 
-- **Where it lives:** `auramind-gemini/src/components/windows/`. Chosen the
+- **Where it lives:** `bonamind-web/src/components/windows/`. Chosen the
   way the iPhone app is: `NovaDashboardShell` returns `WindowsShell` when
   `shouldUseWindowsShell(pathname)` (Windows app, not `/admin`), and
   `NovaHub` picks `WindowsToday` / `WindowsLibrary` / `WindowsSettings`;
@@ -995,7 +995,7 @@ Windows app no longer looks like the website in a window.
 - **Seeing it without the app or an account:** the dev-only route
   `/__e2e/windows?screen=today|library|session|answer|complete|settings|chat|create`
   renders the screens with sample data; `node scripts/capture-windows-screens.mjs`
-  (in `auramind-gemini/`, with `npm run dev` running) screenshots them in
+  (in `bonamind-web/`, with `npm run dev` running) screenshots them in
   light and dark into `.superpowers/windows-screens/` (git-ignored).
 - **Trap — two key handlers:** `StudyModePage` has its own window keydown
   handler (Space flips, 1–4 rate). Any platform session screen that handles
@@ -1032,7 +1032,7 @@ Windows app no longer looks like the website in a window.
   build's host. DEPLOYMENT.md named the updater key file wrongly.
 - **README banner:** `docs/assets/banner.png` still showed the old wordmark
   (binary files are outside the guard's scan). It is now rendered from
-  `banner.svg` by `auramind-gemini/scripts/render-banner.mjs` (Playwright,
+  `banner.svg` by `bonamind-web/scripts/render-banner.mjs` (Playwright,
   run on Windows for Segoe UI); edit the SVG, then re-run the script. The
   platform line now reads WEB · ANDROID · iOS · WINDOWS.
 - **Owner decisions (2026-10-15):** `LICENSE` now names BonaMind as the
@@ -1530,7 +1530,7 @@ the moment credentials arrive. Nothing else in the code changes when they do.
 1. Firebase console → project + Android app `com.bonamind.app` (debug build
    uses `com.bonamind.app.debug` — register it too if pushes are wanted in
    debug).
-2. `google-services.json` → `auramind-gemini/android/app/` and rebuild. The
+2. `google-services.json` → `bonamind-web/android/app/` and rebuild. The
    gradle plugin applies itself when the file exists (already wired in
    `app/build.gradle`).
 3. Service account with `firebase-messaging(sender)` → key JSON → set
@@ -1907,7 +1907,7 @@ Capacitor builds. Spec and plan:
 ### Running it on a phone (Expo Go)
 
 `mobile/.env.local` (git-ignored) holds the four public `EXPO_PUBLIC_*`
-values copied from `auramind-gemini/.env`. Then, inside `mobile/`:
+values copied from `bonamind-web/.env`. Then, inside `mobile/`:
 `npx expo login` once, `npx expo start --go`, scan the QR code with the iPhone
 camera. Google sign-in can't work in Expo Go (it uses its own `exp://` scheme
 instead of `bonamind://`); email + password and email codes do.
@@ -1990,7 +1990,7 @@ plan `docs/superpowers/plans/2026-10-12-bonamind-native-app-part2.md`.
   type-check in `packages/core`. Use structural types (`AbortLike`) and reach
   timers through `globalThis`.
 - **A brand guard scans core's comments.** `test/brandNames.test.ts` failed on
-  a comment naming the `auramind-gemini` folder. Refer to "the website"
+  a comment naming the `bonamind-web` folder. Refer to "the website"
   instead.
 - **`expo install --check` moves after any install.** Adding modules pulled a
   newer SDK 57 patch list. Six existing packages had to be bumped to keep it
@@ -2094,7 +2094,7 @@ workflows green on the push, including Mobile iOS at 14m):
   caring; the steady state here is 34/34 suites, 183/183 tests.
 - **The rename guard (`packages/core/test/brandNames.test.ts`) scans
   `mobile/src` too.** It rejected a doc comment that cited the website file
-  by its legacy repo path (`auramind-gemini/src/lib/…`); comments must avoid
+  by its legacy repo path (`bonamind-web/src/lib/…`); comments must avoid
   the folder name — markdown files keep the `<!-- legacy-name: ok -->`
   convention, code has no loophole. The guard allows only the Android
   package id `com.auramind.app`.
@@ -2191,3 +2191,60 @@ date (push together with CI; `npx expo install expo-notifications` added
   not in the app — the foreground refetch in YouScreen exists precisely for
   the user swiping back into the app.
 
+
+## 2026-10-21 - The web folder is `bonamind-web/` now
+
+`auramind-gemini/` was renamed to `bonamind-web/` (same contents, same git
+history). 186 path references were rewritten across the build, CI, deploy,
+API and test tooling; the only old-name references left are intentional (see
+below). Verified locally before pushing: web type-check, lint, 117 suites /
+874 tests, production `vite build`; `packages/core` 16/99; `api` 27/189;
+`node scripts/check-brand.mjs` clean.
+
+What changed (the ones that actually break if missed):
+
+- `vercel.json` (build/dev commands + `outputDirectory`), root `package.json`
+  scripts, `run-migrations.js`, `api/server.js` (serves `dist` locally),
+  `api/scripts/verify-launch.mjs`.
+- Seven workflows: `ci.yml`, `deploy.yml`, `desktop-windows.yml`,
+  `migration-drift.yml`, `mobile-android.yml`, `mobile-ios.yml`,
+  `scheduled-checks.yml` — `cd`, `working-directory`, cache-dependency,
+  artifact and path-filter entries.
+- `.vercelignore` and root `.gitignore` — silent breakage: stale paths stop
+  excluding `dist/`, `android/`, `ios/`, `src-tauri/`, so deploy uploads and
+  the index bloat.
+- `.github/dependabot.yml` — the web npm updates point at the directory.
+- Repo-relative paths inside tests: `linkSenders.test.ts` (scan roots),
+  `supabaseContract.test.ts` (`SRC_DIR`), `bugFixRegression.test.ts` labels.
+  These resolve from `__dirname`, so a stale literal silently scans nothing
+  or fails.
+- `scripts/check-brand.mjs` allowlist (the legacy-names module path) and its
+  test fixture; the PR template, keystore notes, and the living docs.
+
+Deliberately still saying the old name:
+
+- The **Vercel project** stays `auramind-gemini` (`vercel link --project=...`);
+  renaming the folder does not rename the project, and renaming the project
+  would mean a new project + domain rewiring.
+- `com.auramind.app` (Play Store updates, Windows identity), `auramind_*` <!-- legacy-name: ok -->
+  storage keys, the `auramind://` deep-link acceptance, and the local Supabase <!-- legacy-name: ok -->
+  `project_id` (renaming it would start a fresh local DB stack).
+- `docs/superpowers/**` dated records, and the `auramind-gemini` brand-guard
+  token that lets them pass.
+
+Traps found here:
+
+- Rename on Windows with `git mv`, never in Explorer — ignored directories
+  (`node_modules`, `dist`, `src-tauri/target`) move with the folder; if a dev
+  server holds a file the move fails halfway.
+- Delete `node_modules/.vite`, `dist`, and the Android `build/`/`.gradle`
+  caches after the move (they embed absolute paths). `src-tauri/target`
+  (11.6 GB here) was left in place: it is gitignored and cargo re-fingerprints
+  on the path change, at the cost of a slower next desktop build.
+- The first Vercel deploy after the rename is a cold build; the project's
+  Root Directory is the repo root, so only `vercel.json` needed editing.
+- The in-folder `.gitignore` had `auramind-gemini/fastlane/...` patterns,
+  which never matched anything (relative to the folder, they pointed at
+  `bonamind-web/auramind-gemini/...`); they are now `fastlane/...`.
+- PowerShell 5.1's `Get-Content`/`Set-Content` round-trip rewrites UTF-8 as
+  ANSI (mojibake in every dash). Edit big UTF-8 files with Node or the editor.

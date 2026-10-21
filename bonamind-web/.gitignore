@@ -62,11 +62,11 @@ fastlane/**/*.p12
 *.p12
 
 # ── fastlane: per-run reports + screenshots cache ───────────────
-auramind-gemini/fastlane/report.xml
-auramind-gemini/fastlane/Preview.html
-auramind-gemini/fastlane/screenshots/
-auramind-gemini/fastlane/test_output/
-auramind-gemini/fastlane/.fastlane_history
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+fastlane/.fastlane_history
 
 # ── Capacitor build artifacts + synced web bundle ───────────────
 android/app/src/main/assets/public/

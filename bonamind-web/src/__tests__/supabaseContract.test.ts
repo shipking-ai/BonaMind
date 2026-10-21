@@ -30,7 +30,7 @@
  *   - Validating column-level RLS — that's a manual audit.
  *
  * The migration set is read from `supabase/migrations/*.sql` (sibling of the
- * `auramind-gemini/` package). Resolution uses `path.resolve` from this
+ * `bonamind-web/` package). Resolution uses `path.resolve` from this
  * file's location so the test passes from any cwd.
  */
 
@@ -38,8 +38,8 @@ import { describe, expect, it, beforeAll } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-const ROOT = path.resolve(__dirname, '../../..');             // repo root (file is at auramind-gemini/src/__tests__/<test>.ts; three levels up)
-const SRC_DIR = path.join(ROOT, 'auramind-gemini', 'src');
+const ROOT = path.resolve(__dirname, '../../..');             // repo root (file is at bonamind-web/src/__tests__/<test>.ts; three levels up)
+const SRC_DIR = path.join(ROOT, 'bonamind-web', 'src');
 // supabase/migrations/ is the Supabase CLI-managed history; migrations applied
 // out-of-band to production via run-migrations.js live in migrations-extra/.
 // The contract must see both, since both declare objects referenced in src/.

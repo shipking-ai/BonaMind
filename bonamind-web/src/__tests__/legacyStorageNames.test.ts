@@ -5,8 +5,8 @@
  * `// legacy-name: ok`. A missed reader would silently show defaults after
  * the migration moved its data, so this fails CI instead.
  *
- * Exempt everywhere: the app ID `com.auramind.app`, the `auramind-gemini`
- * folder name and `auramind://` links (accepted alongside `bonamind://`). // legacy-name: ok
+ * Exempt everywhere: the app ID `com.auramind.app` and `auramind://` links // legacy-name: ok
+ * (accepted alongside `bonamind://`). // legacy-name: ok
  * Capitalised "AuraMind" is visible copy and is checked separately. // legacy-name: ok
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -40,7 +40,7 @@ function legacyHits(): string[] {
       .split('\n')
       .forEach((line, i) => {
         if (line.includes('// legacy-name: ok')) return;
-        const cleaned = line.replace(/com\.auramind\.app/g, '').replace(/auramind-gemini/g, ''); // legacy-name: ok
+        const cleaned = line.replace(/com\.auramind\.app/g, ''); // legacy-name: ok
         if (LEGACY.test(cleaned)) hits.push(`${rel}:${i + 1}`);
       });
   }

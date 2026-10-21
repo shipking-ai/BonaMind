@@ -10,10 +10,10 @@ BonaMind is a full-stack adaptive AI learning system — it turns any input (PDF
 
 | Unit | Path | Tech | Purpose |
 |---|---|---|---|
-| Web SPA | `auramind-gemini/` | React 19 + Vite 8 + Tailwind 4 | Main application (PWA) |
-| Android app | `auramind-gemini/android/` | Capacitor 8 | Active native build (Play closed testing) |
-| iOS app | `auramind-gemini/ios/` | Capacitor 8 (Swift Package Manager) | Built unsigned in CI; not yet on TestFlight |
-| Windows app | `auramind-gemini/src-tauri/` | Tauri 2 (WebView2) | Desktop app with signed auto-updates; built in CI, not yet released |
+| Web SPA | `bonamind-web/` | React 19 + Vite 8 + Tailwind 4 | Main application (PWA) |
+| Android app | `bonamind-web/android/` | Capacitor 8 | Active native build (Play closed testing) |
+| iOS app | `bonamind-web/ios/` | Capacitor 8 (Swift Package Manager) | Built unsigned in CI; not yet on TestFlight |
+| Windows app | `bonamind-web/src-tauri/` | Tauri 2 (WebView2) | Desktop app with signed auto-updates; built in CI, not yet released |
 | Backend API | `api/` | Vercel Serverless + Express dev server | Auth, AI proxy, Stripe, admin, push, cron |
 
 **Key dependencies:** Supabase (auth + DB), Stripe (payments), Resend (email), PostHog (analytics), Upstash Redis (distributed rate limiting), Firebase Cloud Messaging (push, dormant until credentials are set). AI providers: Groq, Cerebras, Gemini, OpenRouter (server-side failover), plus Puter (user-pays) and local Ollama/LM Studio.
@@ -222,10 +222,10 @@ src/
 
 ## Native Apps
 
-- **Android** — active Capacitor 8 app at `auramind-gemini/android/`, built
+- **Android** — active Capacitor 8 app at `bonamind-web/android/`, built
   from the same React source with a native bottom nav, status-bar/back
   handling, haptics, local reminders, and system sharing.
-- **iOS** — Capacitor 8 app at `auramind-gemini/ios/`. The `Mobile iOS`
+- **iOS** — Capacitor 8 app at `bonamind-web/ios/`. The `Mobile iOS`
   workflow builds it unsigned, runs it in a simulator, and checks the Live
   Activity. Both apps share the phone layout; `src/lib/platform.ts` gates the
   Android-only parts. Listening uses a native `BonaListenPlugin` on both
@@ -253,7 +253,7 @@ reading down and returns on reverse, swipe-to-refresh on the list screens
 (`lib/workspaceRefresh.ts`), modal bottom sheets that close on the system back
 gesture (`lib/backStack.ts`), long-press deck actions, and a navigation rail
 at 600dp and up.
-- **Windows** — Tauri 2 app at `auramind-gemini/src-tauri/`, a fresh shell
+- **Windows** — Tauri 2 app at `bonamind-web/src-tauri/`, a fresh shell
   (the June 2026 Tauri build was retired, not revived). It bundles
   `vite build --mode desktop` and serves it from `https://tauri.localhost`;
   that origin holds every user's session and offline data, so it must never
