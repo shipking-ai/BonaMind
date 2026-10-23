@@ -117,6 +117,9 @@ jobs:
       - name: Verify the server got exactly 5 reviews
         working-directory: mobile
         run: node e2e/verify-reviews.mjs "${{ steps.session.outputs.since }}" "${{ steps.session.outputs.user }}" 5
+      - name: Open the course-creation sheet (device crash guard)
+        working-directory: mobile
+        run: maestro test -e APP_ID=com.bonamind.app -e RT=${{ steps.session.outputs.rt }} --test-output-dir ../e2e-ios e2e/create-sheet.yaml
       - uses: actions/upload-artifact@v7
         if: always()
         with: { name: e2e-ios, path: e2e-ios, if-no-files-found: ignore }
@@ -161,6 +164,7 @@ jobs:
           script: |
             adb install mobile/android/app/build/outputs/apk/release/app-release.apk
             cd mobile && maestro test -e APP_ID=com.auramind.app -e RT=${{ steps.session.outputs.rt }} --test-output-dir ../e2e-android e2e/core-loop.yaml
+            maestro test -e APP_ID=com.auramind.app -e RT=${{ steps.session.outputs.rt }} --test-output-dir ../e2e-android e2e/create-sheet.yaml
       - name: Verify the server got exactly 5 reviews
         working-directory: mobile
         run: node e2e/verify-reviews.mjs "${{ steps.session.outputs.since }}" "${{ steps.session.outputs.user }}" 5

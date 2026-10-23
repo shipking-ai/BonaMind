@@ -1,0 +1,20 @@
+# The course-creation sheet must open without dying: on a real iPhone (v1.0.0
+# release build) tapping a course button towards it killed the whole app with
+# a kernel data abort, 4 out of 4 tries. The deep link below reaches the same
+# /create mount the buttons trigger, so CI keeps that mount alive.
+appId: ${APP_ID}
+---
+- openLink: bonamind://e2e/session?rt=${RT}
+- extendedWaitUntil:
+    visible: "Today"
+    timeout: 30000
+- openLink: bonamind://create
+- extendedWaitUntil:
+    visible: "Your topic"
+    timeout: 15000
+- assertVisible: "Make my course"
+- takeScreenshot: create-sheet
+- tapOn: "Close"
+- extendedWaitUntil:
+    visible: "Today"
+    timeout: 10000
