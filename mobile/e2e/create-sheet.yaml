@@ -1,22 +1,43 @@
 # The course-creation sheet must open without dying: on a real iPhone (v1.0.0
 # release build) tapping a course button towards it killed the whole app with
-# a kernel data abort, 4 out of 4 tries. The deep link below reaches the same
-# /create mount the buttons trigger, so CI keeps that mount alive.
+# a kernel data abort, 4 out of 4 tries. This flow signs in to Today and then
+# taps the real Today "Add course" button, which routes to /create exactly
+# the way production does. iOS's first parked deep-link opens behind a system
+# sheet; see the comment under openLink for the confirm ladder.
 appId: ${APP_ID}
 ---
 - openLink: bonamind://e2e/session?rt=${RT}
 - runFlow:
     when:
       platform: iOS
-    file: confirm-open.yaml
+    commands:
+      # iOS 26 parks a system "Open in 'BonaMind'?" sheet on the first deep
+      # link, sometimes a few seconds after the call, and nothing happens
+      # until it is confirmed. when-conditions are evaluated once instead of
+      # polled, so the runScript gives the sheet time to render first; the
+      # text tap is the fast path and the point tap is the fallback in case
+      # Maestro's element tree cannot reach system sheets (68%,54% is the
+      # Open button on every iPhone Pro simulator).
+      - runScript:
+          script: |
+            const end = Date.now() + 6000
+            while (Date.now() < end) {}
+      - runFlow:
+          when:
+            visible: "^Open$"
+          commands:
+            - tapOn: "^Open$"
+      - runFlow:
+          when:
+            notVisible: "Today"
+          commands:
+            - tapOn:
+                point: "68%,54%"
 - extendedWaitUntil:
     visible: "Today"
     timeout: 30000
-- openLink: bonamind://create
-- runFlow:
-    when:
-      platform: iOS
-    file: confirm-open.yaml
+- takeScreenshot: before-create
+- tapOn: "Add course"
 - extendedWaitUntil:
     visible: "Your topic"
     timeout: 15000

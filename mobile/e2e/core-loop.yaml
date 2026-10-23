@@ -1,13 +1,37 @@
 # The core loop on a real build: signed in -> Today -> study 5 cards (going
 # offline mid-session on Android) -> celebration. verify-reviews.mjs then
-# checks the server received exactly those 5 reviews.
+# checks the server received exactly those 5 reviews. iOS parked deep-link
+# opens behind a system sheet; see the comment under openLink for why the
+# confirm ladder looks the way it does.
 appId: ${APP_ID}
 ---
 - openLink: bonamind://e2e/session?rt=${RT}
 - runFlow:
     when:
       platform: iOS
-    file: confirm-open.yaml
+    commands:
+      # iOS 26 parks a system "Open in 'BonaMind'?" sheet on the first deep
+      # link, sometimes a few seconds after the call, and nothing happens
+      # until it is confirmed. when-conditions are evaluated once instead of
+      # polled, so the runScript gives the sheet time to render first; the
+      # text tap is the fast path and the point tap is the fallback in case
+      # Maestro's element tree cannot reach system sheets (68%,54% is the
+      # Open button on every iPhone Pro simulator).
+      - runScript:
+          script: |
+            const end = Date.now() + 6000
+            while (Date.now() < end) {}
+      - runFlow:
+          when:
+            visible: "^Open$"
+          commands:
+            - tapOn: "^Open$"
+      - runFlow:
+          when:
+            notVisible: "Today"
+          commands:
+            - tapOn:
+                point: "68%,54%"
 - extendedWaitUntil:
     visible: "Today"
     timeout: 30000
