@@ -1,4 +1,4 @@
-import { computeStreak, composeSessionQueue, dueCards, Rating, retentionFromSetting, type Card, type ScheduleOptions, type StudySession as SessionRow } from '@bonamind/core';
+import { computeStreak, composeSessionQueue, dueCards, Rating, retentionFromSetting, type Card, type Deck, type ScheduleOptions, type StudySession as SessionRow } from '@bonamind/core';
 import * as Sentry from '@sentry/react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Crypto from 'expo-crypto';
@@ -53,7 +53,8 @@ export function StudyScreen() {
   const cardsQuery = useCards(userId, { refetchOnMount: 'always' });
   const fsrs = useFsrsProfile(userId, { refetchOnMount: 'always' });
   const sessions = useSessions(userId).data;
-  const deck = (useDecks(userId).data ?? []).find((d) => d.id === deckId);
+  const decks = useDecks(userId).data ?? [];
+  const deck = decks.find((d) => d.id === deckId);
   const { online } = useSync(userId);
   // A slow network shouldn't hold the deck hostage: after FRESH_WAIT_MS the
   // session starts from the on-device copy (the outbox keeps it consistent).
@@ -72,14 +73,14 @@ export function StudyScreen() {
   }
   return (
     <StudyRun
-      deckId={deckId} deckTitle={deck?.title} userId={userId} cards={cards} sessions={sessions}
+      deckId={deckId} deckTitle={deck?.title} decks={decks} userId={userId} cards={cards} sessions={sessions}
       schedule={{ weightsOverride: fsrs.data?.weights, profileLabel: fsrs.data?.profileLabel ?? null, retention: retentionFromSetting(targetRetention) }}
     />
   );
 }
 
-function StudyRun({ deckId, deckTitle, userId, cards, sessions, schedule }: {
-  deckId: string; deckTitle?: string; userId: string; cards: Card[]; sessions: SessionRow[]; schedule: ScheduleOptions;
+function StudyRun({ deckId, deckTitle, decks, userId, cards, sessions, schedule }: {
+  deckId: string; deckTitle?: string; decks: Deck[]; userId: string; cards: Card[]; sessions: SessionRow[]; schedule: ScheduleOptions;
 }) {
   const queryClient = useQueryClient();
   const { width } = useWindowDimensions();
@@ -87,9 +88,10 @@ function StudyRun({ deckId, deckTitle, userId, cards, sessions, schedule }: {
   const [start] = useState(() => {
     const now = serverNow();
     const due = dueCards(cards.filter((c) => c.deckId === deckId), now);
-    const { queue } = composeSessionQueue(due, cards, { now, currentDeckId: deckId });
+    const { queue, resurfacedIds } = composeSessionQueue(due, cards, { now, currentDeckId: deckId });
     return {
       total: queue.length,
+      resurfacedIds,
       streakBefore: computeStreak(sessions, new Date(now)),
       session: createStudySession({
         userId, deckId, cards: queue, startedAt: now, schedule,
@@ -101,7 +103,7 @@ function StudyRun({ deckId, deckTitle, userId, cards, sessions, schedule }: {
       }),
     };
   });
-  const { session, total, streakBefore } = start;
+  const { session, total, streakBefore, resurfacedIds } = start;
   const [burst, setBurst] = useState(0);
   const [finishedAt, setFinishedAt] = useState<number | null>(null);
   const [, rerender] = useReducer((n: number) => n + 1, 0);
@@ -170,12 +172,16 @@ function StudyRun({ deckId, deckTitle, userId, cards, sessions, schedule }: {
   }
 
   const left = session.left();
+  const current = session.current();
+  const sparkTitle = current && resurfacedIds.has(current.id)
+    ? decks.find((d) => d.id === current.deckId)?.title ?? 'another course'
+    : null;
   return (
     <SafeAreaView style={styles.fill}>
       <View style={styles.top}>
         <GlassButton symbol={{ ios: 'xmark', android: 'close' }} label="Close" onPress={() => void close()} tint={colors.text} />
         <View style={styles.pill} accessibilityRole="progressbar" accessibilityLabel={`${left} left`}>
-          <Text style={styles.pillText} numberOfLines={1}>{`${deckTitle ?? 'Review'} · ${left} left`}</Text>
+          <Text style={styles.pillText} numberOfLines={1}>{`${sparkTitle ? `Spark · ${sparkTitle}` : deckTitle ?? 'Review'} · ${left} left`}</Text>
           <ProgressBar value={total ? 1 - left / total : 0} color={colors.violetSoft} />
         </View>
       </View>
