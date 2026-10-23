@@ -1,6 +1,8 @@
+appId: ${APP_ID}
+---
 # iOS 26 parks a system "Open in 'BonaMind'?" sheet for custom-scheme deep
 # links, sometimes a few seconds after the open call, and the app behind it
-# stays dead until the sheet is confirmed. Importing flows call this as
+# stays dead until the sheet is confirmed. Importing flows call this as:
 #     - runFlow: { when: { platform: iOS }, file: confirm-open.yaml }
 # The runScript buys the sheet time to render (when-conditions are evaluated
 # once, not polled), the text tap is the fast path, and the point tap is the
