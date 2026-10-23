@@ -4,13 +4,10 @@
 appId: ${APP_ID}
 ---
 - openLink: bonamind://e2e/session?rt=${RT}
-  # iOS 26 simulators ask "Open in 'BonaMind'?" for custom-scheme links; the
-  # cold start behind that sheet has to be confirmed or the app never opens.
 - runFlow:
     when:
-      visible: "Open in"
-    commands:
-      - tapOn: "^Open$"
+      platform: iOS
+    file: confirm-open.yaml
 - extendedWaitUntil:
     visible: "Today"
     timeout: 30000

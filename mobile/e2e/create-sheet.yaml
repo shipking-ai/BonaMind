@@ -7,18 +7,16 @@ appId: ${APP_ID}
 - openLink: bonamind://e2e/session?rt=${RT}
 - runFlow:
     when:
-      visible: "Open in"
-    commands:
-      - tapOn: "^Open$"
+      platform: iOS
+    file: confirm-open.yaml
 - extendedWaitUntil:
     visible: "Today"
     timeout: 30000
 - openLink: bonamind://create
 - runFlow:
     when:
-      visible: "Open in"
-    commands:
-      - tapOn: "^Open$"
+      platform: iOS
+    file: confirm-open.yaml
 - extendedWaitUntil:
     visible: "Your topic"
     timeout: 15000
