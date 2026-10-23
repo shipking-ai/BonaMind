@@ -1,13 +1,14 @@
 import { Card, Rating } from '../../types';
 import { calculateSRS } from './srs';
-import { dbService } from '../database/dbService';
 import { cardReviewsService } from '../database/modules/cardReviewsService';
+import { persistReview } from './persistReview';
 
 /**
  * Grade one card outside a study session (spark pop-ups, the Study Float
  * window). Same path as StudyModePage: calculateSRS → dbService.updateCard →
  * cardReviewsService, so these are real reviews. Returns the card update so
- * the caller can apply it optimistically; throws if the card write fails.
+ * the caller can apply it optimistically; throws only if the review could be
+ * neither saved nor queued for sync.
  */
 export async function reviewCard(
   card: Card,
@@ -25,7 +26,17 @@ export async function reviewCard(
     lastReviewed: now,
   };
   if (res.fsrsState) update.fsrsState = res.fsrsState;
-  await dbService.updateCard(card.id, update);
+  // Queued for sync when offline or when the write fails. Only a review
+  // that was neither saved nor queued is a failure the caller sees.
+  const { saved, queued } = await persistReview({
+    cardId: card.id,
+    rating,
+    srsResult: res,
+    update,
+    userId,
+    reviewedAt: now,
+  });
+  if (!saved && !queued) throw new Error(`Review of card ${card.id} was not saved`);
   if (userId) {
     cardReviewsService
       .recordReview({
