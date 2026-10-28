@@ -2,8 +2,8 @@
 # release build) tapping a course button towards it killed the whole app with
 # a kernel data abort, 4 out of 4 tries. This flow signs in to Today and then
 # taps the real Today "Add course" button, which routes to /create exactly
-# the way production does. iOS's first parked deep-link opens behind a system
-# sheet; see the comment under openLink for the confirm ladder.
+# the way production does. iOS's parked deep-link open is handled by the
+# repeat loop; see the comment in the core-loop flow.
 appId: ${APP_ID}
 ---
 - openLink: bonamind://e2e/session?rt=${RT}
@@ -11,31 +11,19 @@ appId: ${APP_ID}
     when:
       platform: iOS
     commands:
-      # iOS 26 parks a system "Open in 'BonaMind'?" sheet on the first deep
-      # link, sometimes a few seconds after the call, and nothing happens
-      # until it is confirmed. Maestro forbids nested runFlows, so instead of
-      # matching the sheet we tap its Open button by position: 68%,54% is the
-      # Open button on every iPhone Pro simulator (verified from the dialog's
-      # hierarchy dump). Three taps, spaced out, cover slow renders, and they
-      # land on empty Today-screen background once the app is already open.
-      - runScript:
-          script: |
-            const end = Date.now() + 6000
-            while (Date.now() < end) {}
-      - tapOn:
-          point: "68%,54%"
-      - runScript:
-          script: |
-            const end = Date.now() + 3000
-            while (Date.now() < end) {}
-      - tapOn:
-          point: "68%,54%"
-      - runScript:
-          script: |
-            const end = Date.now() + 3000
-            while (Date.now() < end) {}
-      - tapOn:
-          point: "68%,54%"
+      # iOS 26 parks a system "Open in 'BonaMind'?" sheet for a few seconds
+      # after a deep link, and nothing opens until it is confirmed. Maestro's
+      # tree cannot see that sheet, so we tap its Open button by position
+      # (68%,54% is the Open button on every iPhone Pro simulator, verified
+      # from the dialog's hierarchy dump) and keep spotting it while the app
+      # has not reached Today yet. The loop stops once Today is visible.
+      - repeat:
+          times: 6
+          while:
+            notVisible: "Today"
+          commands:
+            - tapOn:
+                point: "68%,54%"
 - extendedWaitUntil:
     visible: "Today"
     timeout: 30000
