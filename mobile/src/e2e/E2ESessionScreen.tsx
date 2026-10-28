@@ -1,8 +1,8 @@
-import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { View } from 'react-native';
-import { getSupabase } from '../data/supabase';
 import { env } from '../env';
+import { adoptRuntimeSession } from './adopt';
 
 /**
  * End-to-end builds only (EXPO_PUBLIC_E2E=true): CI mints a session for the
@@ -18,8 +18,7 @@ export function E2ESessionScreen() {
 function Adopt() {
   const { rt } = useLocalSearchParams<{ rt?: string }>();
   useEffect(() => {
-    if (!rt) return;
-    void getSupabase().auth.refreshSession({ refresh_token: rt }).then(() => router.replace('/today'));
+    if (rt) void adoptRuntimeSession(rt);
   }, [rt]);
   return <View />;
 }

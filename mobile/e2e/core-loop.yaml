@@ -1,29 +1,27 @@
 # The core loop on a real build: signed in -> Today -> study 5 cards (going
 # offline mid-session on Android) -> celebration. verify-reviews.mjs then
 # checks the server received exactly those 5 reviews.
+#
+# iOS signs in through the clipboard-adopt hook (src/e2e/ClipboardAdopt.tsx):
+# the workflow plants bonamind://e2e/session?rt=… on the simulator clipboard
+# (xcrun simctl pbcopy) and the app adopts it on the welcome screen. openLink
+# cannot sign iOS in: iOS 26 gates cold custom-scheme deep links behind a
+# system "Open in 'BonaMind'?" sheet whose Open button drops the URL in CI
+# (mobile-dev-inc/Maestro#2610, unfixed). Android has no such sheet, so the
+# deep link signs it in directly.
 appId: ${APP_ID}
 ---
 - runFlow:
     when:
       platform: iOS
     commands:
-      # iOS 26 gates the first cold deep-link launch behind a system "Open in
-      # 'BonaMind'?" sheet whose Open button routinely fails to actually
-      # launch the app in CI (mobile-dev-inc/Maestro#2610, unfixed). Launching
-      # the app normally warms it up, so openLink routes into an
-      # already-running process and the sheet never appears.
       - launchApp:
           clearState: true
-- openLink: bonamind://e2e/session?rt=${RT}
 - runFlow:
     when:
-      platform: iOS
+      platform: Android
     commands:
-      # Belt and braces: if a "Open in 'BonaMind'?" sheet shows up anyway,
-      # confirm it; optional keeps this from failing when it does not.
-      - tapOn:
-          text: "^Open$"
-          optional: true
+      - openLink: bonamind://e2e/session?rt=${RT}
 - extendedWaitUntil:
     visible: "Today"
     timeout: 30000

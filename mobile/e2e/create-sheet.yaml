@@ -1,43 +1,59 @@
 # The course-creation sheet must open without dying: on a real iPhone (v1.0.0
 # release build) tapping a course button towards it killed the whole app with
-# a kernel data abort, 4 out of 4 tries. This flow signs in to Today and then
-# taps the real Today "Add course" button, which routes to /create exactly
-# the way production does. iOS's parked deep-link open is handled by the
-# repeat loop; see the comment in the core-loop flow.
+# a kernel data abort, 4 out of 4 tries. This flow reaches /create exactly the
+# way production does: from Today's "Add course" button, or from the Courses
+# tab's "New course" button — Today may be all caught up after the core loop,
+# which renders no CTA at all.
+#
+# iOS is already signed in by the core loop (same simulator, session in the
+# keychain), so a plain launch lands on Today; openLink is unusable on iOS 26
+# (Maestro#2610, see core-loop). Android re-adopts the session deep link and
+# routes to /create by deep link as well.
 appId: ${APP_ID}
 ---
 - runFlow:
     when:
       platform: iOS
     commands:
-      # iOS 26 gates the first cold deep-link launch behind a system "Open in
-      # 'BonaMind'?" sheet whose Open button routinely fails to actually
-      # launch the app in CI (mobile-dev-inc/Maestro#2610, unfixed). Launching
-      # the app normally warms it up, so openLink routes into an
-      # already-running process and the sheet never appears.
-      - launchApp:
-          clearState: true
-- openLink: bonamind://e2e/session?rt=${RT}
+      - launchApp
 - runFlow:
     when:
-      platform: iOS
+      platform: Android
     commands:
-      # Belt and braces: if a "Open in 'BonaMind'?" sheet shows up anyway,
-      # confirm it; optional keeps this from failing when it does not.
-      - tapOn:
-          text: "^Open$"
-          optional: true
+      - openLink: bonamind://e2e/session?rt=${RT}
 - extendedWaitUntil:
     visible: "Today"
     timeout: 30000
 - takeScreenshot: before-create
-- tapOn: "Add course"
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn: "Courses"
+      - tapOn: "New course"
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - openLink: bonamind://create
 - extendedWaitUntil:
     visible: "Your topic"
     timeout: 15000
 - assertVisible: "Make my course"
 - takeScreenshot: create-sheet
 - tapOn: "Close"
-- extendedWaitUntil:
-    visible: "Today"
-    timeout: 10000
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      # Close routes back to the Courses tab the sheet was pushed from.
+      - extendedWaitUntil:
+          visible: "Classes"
+          timeout: 10000
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - extendedWaitUntil:
+          visible: "Today"
+          timeout: 10000

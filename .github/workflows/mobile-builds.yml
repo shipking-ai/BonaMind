@@ -107,10 +107,13 @@ jobs:
           DEVICE=$(xcrun simctl list devices available -j | node -e "const d=JSON.parse(require('fs').readFileSync(0)).devices;console.log(Object.values(d).flat().find(x=>/^iPhone \d+ Pro$/.test(x.name)).udid)")
           xcrun simctl boot "$DEVICE" && xcrun simctl bootstatus "$DEVICE" -b
           xcrun simctl install "$DEVICE" build/Build/Products/Release-iphonesimulator/BonaMind.app
+          echo "DEVICE=$DEVICE" >> "$GITHUB_ENV"
       - name: Reseed and mint a session for the test account
         id: session
         working-directory: mobile
         run: node e2e/reseed.mjs && node e2e/mint-session.mjs
+      - name: Plant the session link on the simulator clipboard
+        run: printf 'bonamind://e2e/session?rt=%s' "${{ steps.session.outputs.rt }}" | xcrun simctl pbcopy "$DEVICE"
       - name: Run the core loop
         working-directory: mobile
         run: maestro test -e APP_ID=com.bonamind.app -e RT=${{ steps.session.outputs.rt }} --test-output-dir ../e2e-ios e2e/core-loop.yaml
