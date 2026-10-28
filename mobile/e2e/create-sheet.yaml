@@ -16,6 +16,11 @@ appId: ${APP_ID}
       platform: iOS
     commands:
       - launchApp
+      # Only needed if the session was lost and the welcome screen reads the
+      # clipboard again; optional keeps the happy path unaffected.
+      - tapOn:
+          text: "^Allow Paste$"
+          optional: true
 - runFlow:
     when:
       platform: Android

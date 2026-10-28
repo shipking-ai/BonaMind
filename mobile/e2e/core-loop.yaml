@@ -17,6 +17,11 @@ appId: ${APP_ID}
     commands:
       - launchApp:
           clearState: true
+      # Reading the planted clipboard raises iOS's paste permission sheet and
+      # blocks the adopt hook until it is allowed (absent when iOS remembers).
+      - tapOn:
+          text: "^Allow Paste$"
+          optional: true
 - runFlow:
     when:
       platform: Android
