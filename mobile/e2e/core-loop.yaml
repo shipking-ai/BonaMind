@@ -3,25 +3,27 @@
 # checks the server received exactly those 5 reviews.
 appId: ${APP_ID}
 ---
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      # iOS 26 gates the first cold deep-link launch behind a system "Open in
+      # 'BonaMind'?" sheet whose Open button routinely fails to actually
+      # launch the app in CI (mobile-dev-inc/Maestro#2610, unfixed). Launching
+      # the app normally warms it up, so openLink routes into an
+      # already-running process and the sheet never appears.
+      - launchApp:
+          clearState: true
 - openLink: bonamind://e2e/session?rt=${RT}
 - runFlow:
     when:
       platform: iOS
     commands:
-      # iOS 26 parks a system "Open in 'BonaMind'?" sheet for a few seconds
-      # after a deep link, and nothing opens until it is confirmed. Maestro's
-      # tree cannot see that sheet, so we tap its Open button by position
-      # (68%,54% is the Open button on every iPhone Pro simulator, verified
-      # from the dialog's hierarchy dump) and keep spotting it while the app
-      # has not reached Today yet. The loop fronts opens that need no sheet
-      # and stops once Today is visible.
-      - repeat:
-          times: 6
-          while:
-            notVisible: "Today"
-          commands:
-            - tapOn:
-                point: "68%,54%"
+      # Belt and braces: if a "Open in 'BonaMind'?" sheet shows up anyway,
+      # confirm it; optional keeps this from failing when it does not.
+      - tapOn:
+          text: "^Open$"
+          optional: true
 - extendedWaitUntil:
     visible: "Today"
     timeout: 30000
