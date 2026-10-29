@@ -1,16 +1,25 @@
 /// <reference types="vitest" />
 import * as path from 'path';
+import * as fs from 'fs';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { pwaConfig } from './src/lib/pwa';
 import { brandHtml } from './vite-plugins/brand-html.ts';
 
+// Single source of truth for the displayed app version: package.json feeds
+// import.meta.env.APP_VERSION in every build (web, Capacitor, Tauri) so no
+// page can ship a hardcoded stale version again.
+const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8')) as { version: string };
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   const isProd = mode === 'production';
 
   return {
+    define: {
+      'import.meta.env.APP_VERSION': JSON.stringify(pkg.version),
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
