@@ -17,6 +17,14 @@ import {
   Square,
 } from "@/components/icons";
 import type { Message } from "../../hooks/useAIChat";
+import {
+  canonicalSessionId,
+  deleteRemoteSession,
+  fetchRemoteSessions,
+  mergeRemoteSessions,
+  queueSession,
+  type PersistedSession,
+} from "../../services/chatSessionService";
 
 export interface ChatSession {
   id: string;
@@ -63,6 +71,31 @@ function previewFromMessages(msgs: Message[]): string {
   const last = msgs.filter((m) => m.content).slice(-1)[0];
   if (!last) return "Empty conversation";
   return last.content.length > 72 ? last.content.slice(0, 72) + "…" : last.content;
+}
+
+function sortSessions(sessions: ChatSession[]): ChatSession[] {
+  return [...sessions].sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    return b.updatedAt - a.updatedAt;
+  });
+}
+
+function fromRemote(r: PersistedSession): ChatSession {
+  return {
+    id: r.id,
+    title: r.title,
+    pinned: r.pinned,
+    preview: previewFromMessages(r.messages),
+    messages: r.messages,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+    deckName: r.deckName,
+  };
+}
+
+/** What has to match for the remote copy to already be up to date. */
+function syncSignature(s: { updatedAt: number; pinned: boolean; title: string; messages: unknown[] }): string {
+  return `${s.updatedAt}|${s.pinned}|${s.title}|${s.messages.length}`;
 }
 
 export function fmtRelTime(ts: number): string {
@@ -172,6 +205,64 @@ export default function ConversationHistory({
     if (open) requestAnimationFrame(() => searchRef.current?.focus());
   }, [open]);
 
+  // ── Cross-device sync ────────────────────────────────────────────────
+  // localStorage stays the instant, offline-friendly truth; Supabase is the
+  // sync layer. On open, remote chats are merged in. After that, any
+  // session whose content differs from what the server is known to hold is
+  // queued (debounced in chatSessionService). Uploads wait for the first
+  // fetch so an older local copy never overwrites a newer remote one; if the
+  // fetch fails, only sessions changed from now on are uploaded.
+  const remoteSignatures = useRef(new Map<string, string>());
+  const uploadFloor = useRef(0);
+  const [remoteReady, setRemoteReady] = useState(false);
+
+  useEffect(() => {
+    if (!persistHistory) return;
+    let cancelled = false;
+    fetchRemoteSessions(100)
+      .then((remote) => {
+        if (cancelled) return;
+        for (const r of remote) remoteSignatures.current.set(canonicalSessionId(r.id), syncSignature(r));
+        if (remote.length === 0) return;
+        setSessions((prev) => {
+          const next = sortSessions(mergeRemoteSessions(prev, remote, fromRemote));
+          safeWrite(next);
+          return next;
+        });
+      })
+      .catch(() => {
+        uploadFloor.current = Date.now();
+      })
+      .finally(() => {
+        if (!cancelled) setRemoteReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [persistHistory]);
+
+  useEffect(() => {
+    if (!persistHistory || !remoteReady) return;
+    for (const s of sessions) {
+      if (s.messages.length === 0 || s.updatedAt < uploadFloor.current) continue;
+      const key = canonicalSessionId(s.id);
+      const signature = syncSignature(s);
+      if (remoteSignatures.current.get(key) === signature) continue;
+      remoteSignatures.current.set(key, signature);
+      queueSession(s).catch(() => {
+        // Retried on the next change of this session.
+        remoteSignatures.current.delete(key);
+      });
+    }
+  }, [persistHistory, remoteReady, sessions]);
+
+  const forgetRemote = useCallback((ids: Iterable<string>) => {
+    for (const id of ids) {
+      remoteSignatures.current.delete(canonicalSessionId(id));
+      void deleteRemoteSession(id).catch(() => undefined);
+    }
+  }, []);
+
   // Auto-save current session whenever the in-memory messages change
   useEffect(() => {
     if (!persistHistory || messages.length === 0) return;
@@ -234,6 +325,7 @@ export default function ConversationHistory({
         safeWrite(next);
         return next;
       });
+      forgetRemote([id]);
       if (activeId === id) {
         setActiveId(null);
         try {
@@ -244,7 +336,7 @@ export default function ConversationHistory({
         onNewChat?.();
       }
     },
-    [activeId, onNewChat],
+    [activeId, onNewChat, forgetRemote],
   );
 
   const togglePin = useCallback((id: string) => {
@@ -302,6 +394,7 @@ export default function ConversationHistory({
       safeWrite(next);
       return next;
     });
+    forgetRemote(selected);
     if (activeId && selected.has(activeId)) {
       setActiveId(null);
       try {
@@ -312,7 +405,7 @@ export default function ConversationHistory({
       onNewChat?.();
     }
     setSelected(new Set());
-  }, [selected, activeId, onNewChat]);
+  }, [selected, activeId, onNewChat, forgetRemote]);
 
   const bulkPin = useCallback(() => {
     if (selected.size === 0) return;

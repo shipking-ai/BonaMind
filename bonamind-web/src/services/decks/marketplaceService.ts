@@ -12,6 +12,7 @@
  */
 
 import { supabase } from '../database/supabase';
+import { clearCache } from '../database/modules/cache';
 
 export interface MarketplaceDeck {
   id: string;
@@ -107,6 +108,8 @@ export async function forkPublicDeck(deckId: string): Promise<string> {
   const { data, error } = await supabase.rpc('fork_public_deck', { p_deck_id: deckId });
   if (error) throw error;
   if (typeof data !== 'string' || !data) throw new Error('Fork did not return a deck');
+  // The copy was made server-side; the cached deck/card lists predate it.
+  clearCache();
   return data;
 }
 

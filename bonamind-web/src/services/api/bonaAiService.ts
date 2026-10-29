@@ -574,27 +574,44 @@ export class BonaAiClient {
         throw new Error('Response body is not readable');
       }
 
+      // A network read can end mid-line (and mid-character). Decoding with
+      // `stream: true` and carrying the trailing partial line into the next
+      // read keeps those tokens; splitting each read on its own dropped any
+      // SSE line that straddled two reads, so replies lost words.
+      let buffer = '';
+      const parseLine = (raw: string): { done: boolean; content?: string } => {
+        const line = raw.trim();
+        if (!line.startsWith('data: ')) return { done: false };
+        const data = line.slice(6);
+        if (data === '[DONE]') return { done: true };
+        try {
+          const parsed = JSON.parse(data);
+          return { done: false, content: parsed.choices?.[0]?.delta?.content };
+        } catch {
+          // Malformed line; skip it.
+          return { done: false };
+        }
+      };
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') return;
-
-            try {
-              const parsed = JSON.parse(data);
-              const content = parsed.choices[0]?.delta?.content;
-              if (content) yield content;
-            } catch (_e) {
-              // Ignore parsing errors for malformed chunks
-            }
-          }
+          const result = parseLine(line);
+          if (result.done) return;
+          if (result.content) yield result.content;
         }
+      }
+
+      buffer += decoder.decode();
+      if (buffer) {
+        const result = parseLine(buffer);
+        if (!result.done && result.content) yield result.content;
       }
     } catch (error) {
       console.error('Error in streaming AI API call:', error);

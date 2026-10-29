@@ -1,4 +1,5 @@
 import { requireSupabase } from "../database/supabase";
+import { clearCache } from "../database/modules/cache";
 import { mapAssignmentRow, mapProgressRow } from "../../lib/classroom/format";
 import type {
   Assignment,
@@ -147,6 +148,9 @@ export const assignmentService = {
       p_assignment_id: assignmentId,
     });
     if (error) throw error;
+    // The deck and its cards were created server-side; drop the cached
+    // lists so the next read (the study screen) sees them.
+    clearCache();
     return {
       deckId: data?.deck_id,
       title: data?.title,
