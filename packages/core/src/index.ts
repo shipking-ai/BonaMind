@@ -1,4 +1,6 @@
 export * from './identity';
+export * from './onboarding';
+export * from './memory';
 export * from './time';
 export * from './types';
 export * from './scheduling/fsrs';

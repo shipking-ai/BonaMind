@@ -18,14 +18,14 @@ Canonical docs (read these first, not this file):
 
 | Surface | Path | Notes |
 |---|---|---|
-| Web app | `auramind-gemini/` | React 19 + Vite 8 + Tailwind 4 + React Router 7, served by Vercel (PWA) |
-| Android app | `auramind-gemini/android/` | Active Capacitor 8 build, generated from the same React source |
-| iOS app | `auramind-gemini/ios/` | Capacitor 8, built unsigned in CI (`mobile-ios.yml`); not yet on TestFlight |
-| Windows app | `auramind-gemini/src-tauri/` | Tauri 2 around the bundled web build (`--mode desktop`), served from `https://tauri.localhost`, with its own Windows 11 layout (`src/components/windows/`); signed auto-updates from GitHub Releases (`desktop-windows.yml`) |
+| Web app | `bonamind-web/` | React 19 + Vite 8 + Tailwind 4 + React Router 7, served by Vercel (PWA) |
+| Android app | `bonamind-web/android/` | Active Capacitor 8 build, generated from the same React source |
+| iOS app | `bonamind-web/ios/` | Capacitor 8, built unsigned in CI (`mobile-ios.yml`); not yet on TestFlight |
+| Windows app | `bonamind-web/src-tauri/` | Tauri 2 around the bundled web build (`--mode desktop`), served from `https://tauri.localhost`, with its own Windows 11 layout (`src/components/windows/`); signed auto-updates from GitHub Releases (`desktop-windows.yml`) |
 | Backend | `api/` | Vercel serverless (`index.ts` + `stripe-webhook.ts`) with an Express dev server (`server.js`, port 3001) |
 | Database | `supabase/migrations/` | Append-only, idempotent SQL migrations (source of truth for schema) |
 
-## Commands (run inside `auramind-gemini/` unless noted)
+## Commands (run inside `bonamind-web/` unless noted)
 
 ```bash
 npm run dev            # Vite dev server (port 3000)

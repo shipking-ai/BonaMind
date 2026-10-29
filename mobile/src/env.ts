@@ -15,4 +15,9 @@ export const env = {
   sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN || undefined,
   appleSignIn: process.env.EXPO_PUBLIC_APPLE_SIGN_IN === 'true',
   e2e: process.env.EXPO_PUBLIC_E2E === 'true',
+  // Stripe price ids are public by design — the website ships them to the
+  // browser the same way. Empty string means "no plan configured", and the
+  // upgrade button then reports that instead of calling the API blind.
+  stripePriceIdMonthly: process.env.EXPO_PUBLIC_STRIPE_PRICE_ID_MONTHLY ?? '',
+  stripePriceIdAnnual: process.env.EXPO_PUBLIC_STRIPE_PRICE_ID_ANNUAL ?? '',
 } as const;

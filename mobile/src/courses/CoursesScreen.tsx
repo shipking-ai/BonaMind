@@ -56,6 +56,7 @@ export function CoursesScreen() {
             <Text style={styles.paperMeta}>Turn a topic, a link, a PDF or a photo of your notes into cards.</Text>
           </PaperCard>
           <PrimaryButton label="Make a course" onPress={newCourse} />
+          <SecondaryButton label="Classes" onPress={() => router.push('/classes')} />
           <SecondaryButton label="Open BonaMind on the web" onPress={() => void Linking.openURL(env.apiBaseUrl)} />
         </ScrollView>
       </>
@@ -66,6 +67,7 @@ export function CoursesScreen() {
     <>
       {header}
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={styles.content}>
+        <SecondaryButton label="Classes" onPress={() => router.push('/classes')} />
         {ordered.map((d, i) => {
           const deckCards = cards.filter((c) => c.deckId === d.id);
           const due = dueCards(deckCards, now).length;

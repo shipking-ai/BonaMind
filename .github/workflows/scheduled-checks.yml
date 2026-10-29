@@ -94,7 +94,7 @@ jobs:
           node-version: 22
 
       - name: Audit frontend prod deps
-        run: cd auramind-gemini && npm audit --omit=dev --audit-level=critical
+        run: cd bonamind-web && npm audit --omit=dev --audit-level=critical
 
       - name: Audit API prod deps
         run: cd api && npm audit --omit=dev --audit-level=critical

@@ -13,7 +13,7 @@ if (!process.env.NODE_ENV) {
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const distDir = path.resolve(__dirname, '..', 'auramind-gemini', 'dist');
+const distDir = path.resolve(__dirname, '..', 'bonamind-web', 'dist');
 const hasStaticBuild = fs.existsSync(distDir);
 
 const app = express();

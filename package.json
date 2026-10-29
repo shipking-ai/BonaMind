@@ -1,18 +1,18 @@
 {
   "name": "bonamind",
-  "version": "2.3.4",
+  "version": "2.3.6",
   "private": true,
   "engines": {
     "node": ">=22.22.2"
   },
   "description": "BonaMind — adaptive AI learning system for web, PWA, and native Android.",
   "scripts": {
-    "dev": "concurrently -n \"vite,api\" -c \"cyan,yellow\" \"cd auramind-gemini && npm run dev\" \"cd api && npx tsx server.js\"",
-    "dev:frontend": "cd auramind-gemini && npm run dev",
+    "dev": "concurrently -n \"vite,api\" -c \"cyan,yellow\" \"cd bonamind-web && npm run dev\" \"cd api && npx tsx server.js\"",
+    "dev:frontend": "cd bonamind-web && npm run dev",
     "dev:api": "cd api && npx tsx server.js",
-    "build": "cd auramind-gemini && npm run build",
-    "preview": "cd auramind-gemini && npm run preview",
-    "test": "cd auramind-gemini && npm run test",
+    "build": "cd bonamind-web && npm run build",
+    "preview": "cd bonamind-web && npm run preview",
+    "test": "cd bonamind-web && npm run test",
     "api": "cd api && npx tsx server.js",
     "start": "npm run build && cd api && npx tsx server.js"
   },

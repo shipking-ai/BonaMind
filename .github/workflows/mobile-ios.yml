@@ -19,13 +19,13 @@ name: Mobile iOS
 on:
   pull_request:
     paths:
-      - 'auramind-gemini/**'
+      - 'bonamind-web/**'
       - 'packages/core/**'
       - '.github/workflows/mobile-ios.yml'
   push:
     branches: [main]
     paths:
-      - 'auramind-gemini/**'
+      - 'bonamind-web/**'
       - 'packages/core/**'
       - '.github/workflows/mobile-ios.yml'
   workflow_dispatch:
@@ -49,7 +49,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: auramind-gemini
+        working-directory: bonamind-web
 
     steps:
       - uses: actions/checkout@v7
@@ -59,7 +59,7 @@ jobs:
         with:
           node-version: '22.x'
           cache: 'npm'
-          cache-dependency-path: auramind-gemini/package-lock.json
+          cache-dependency-path: bonamind-web/package-lock.json
 
       # Same public build values as the Android release. Secrets are absent
       # on Dependabot and fork PRs; the app still builds and boots to its
@@ -375,7 +375,7 @@ jobs:
           name: ios-simulator
           path: |
             ios-artifacts
-            auramind-gemini/build/xcodebuild*.log
+            bonamind-web/build/xcodebuild*.log
           if-no-files-found: ignore
 
   # An unsigned device build, for putting the app on a real iPhone without a
@@ -403,7 +403,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: auramind-gemini
+        working-directory: bonamind-web
 
     steps:
       - uses: actions/checkout@v7
@@ -413,7 +413,7 @@ jobs:
         with:
           node-version: '22.x'
           cache: 'npm'
-          cache-dependency-path: auramind-gemini/package-lock.json
+          cache-dependency-path: bonamind-web/package-lock.json
 
       - name: Write build env
         env:
@@ -507,5 +507,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.server_url != '' && 'bonamind-ios-live-reload-ipa' || 'bonamind-ios-unsigned-ipa' }}
-          path: auramind-gemini/build/BonaMind-unsigned.ipa
+          path: bonamind-web/build/BonaMind-unsigned.ipa
           if-no-files-found: error

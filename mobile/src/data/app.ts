@@ -3,6 +3,7 @@ import { createBonaMindData, createOutbox, type BonaMindData, type Outbox, type 
 import { loadKv, openBonaDb } from './db';
 import { createSqliteOutboxStore } from './sqliteOutboxStore';
 import { getSupabase } from './supabase';
+import { initServerTime, serverNow } from './serverTime';
 import { startSync } from './sync';
 
 /** Reported without card text or ids: only what kind of write failed and why. */
@@ -16,12 +17,14 @@ let outbox: Outbox | null = null;
 /** Opens the device database and wires the data layer. Runs once at launch. */
 export async function initAppData(): Promise<void> {
   if (outbox) return;
+  await initServerTime();
   const db = await openBonaDb();
   await loadKv(db);
   data = createBonaMindData(getSupabase());
   outbox = createOutbox({
     store: createSqliteOutboxStore(db),
     data,
+    now: serverNow,
     onDeadLetter: reportDeadLetter,
     // The review RPC runs as the caller: never send for a user who isn't signed in.
     canSend: async (userId) => (await getSupabase().auth.getSession()).data.session?.user.id === userId,

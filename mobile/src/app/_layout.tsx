@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { initAppData } from '../data/app';
 import { useAuth } from '../data/auth';
+import { hasCompletedOnboarding } from '@bonamind/core';
 import { getSyncEngine, useSync } from '../data/sync';
 import { AuroraScreen } from '../design/components/AuroraBackground';
 import { OfflinePill } from '../design/components/OfflinePill';
@@ -86,13 +87,14 @@ export default function RootLayout() {
 
   if (!ready) return null;
   const signedIn = auth.status === 'signed-in';
+  const needsOnboarding = signedIn && !hasCompletedOnboarding(auth.session?.user?.user_metadata as Record<string, unknown> | null | undefined);
   return (
     <GestureHandlerRootView style={styles.root}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider value={theme}>
           <AuroraScreen>
             <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
-              <Stack.Protected guard={signedIn}>
+              <Stack.Protected guard={signedIn && !needsOnboarding}>
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen name="study/[deckId]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
                 <Stack.Screen
@@ -106,6 +108,9 @@ export default function RootLayout() {
               </Stack.Protected>
               <Stack.Protected guard={!signedIn}>
                 <Stack.Screen name="welcome" />
+              </Stack.Protected>
+              <Stack.Protected guard={signedIn && needsOnboarding}>
+                <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
               </Stack.Protected>
             </Stack>
             <Offline userId={auth.userId} />

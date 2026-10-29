@@ -67,7 +67,7 @@ test('reports plans and specs dated from the rename on', () => {
 
 test('passes the legacy-names module and marked lines', () => {
   const hits = scan({
-    'auramind-gemini/src/lib/legacyNames.ts': "export const LEGACY_BRAND = 'AuraMind';\n", // legacy-name: ok
+    'bonamind-web/src/lib/legacyNames.ts': "export const LEGACY_BRAND = 'AuraMind';\n", // legacy-name: ok
     'src/b.ts': "accept('auramind'); // legacy-name: ok\n", // legacy-name: ok
   });
   assert.deepEqual(hits, []);

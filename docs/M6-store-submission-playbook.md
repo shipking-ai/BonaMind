@@ -12,7 +12,7 @@ there is no signed iOS release or TestFlight job yet. `desktop-windows.yml`
 builds the Windows app and drafts a GitHub release on `desktop-v*` tags (see
 `DEPLOYMENT.md`); it is not in the Microsoft Store.
 
-Run `node scripts/check-mobile-env.js` (from `auramind-gemini/`) to see
+Run `node scripts/check-mobile-env.js` (from `bonamind-web/`) to see
 which secrets are missing. Items marked **🟠 MUST provision** block the
 store upload they name; **🟡 optional** items unlock better UX but a
 build still works without them.
@@ -99,7 +99,7 @@ build. The values map (Play → mint → asciidoc):
 
 ## 3. Pre-flight check (everything in one place)
 
-From `auramind-gemini/scripts/check-mobile-env.js`:
+From `bonamind-web/scripts/check-mobile-env.js`:
 
 ```bash
 # Android only (cheapest minimal check):

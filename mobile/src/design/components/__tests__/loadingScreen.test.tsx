@@ -1,6 +1,7 @@
 import { act, render, screen } from '@testing-library/react-native';
 import { useMotion } from '../../motion';
-import { LOADING_LINES, LoadingScreen } from '../LoadingScreen';
+import { LOADING_LINES } from '../loadingLines';
+import { LoadingScreen } from '../LoadingScreen';
 
 jest.mock('@shopify/react-native-skia', () => {
   const { View } = require('react-native');

@@ -37,8 +37,8 @@ Checked against Stripe's live API on 2026-08-11 (`api/scripts/verify-launch.mjs`
 |---|---|---|
 | `api/.env` → `STRIPE_SECRET_KEY` | `sk_live_…` | ✅ Live |
 | `api/.env` → `STRIPE_PUBLISHABLE_KEY` | `pk_live_…` | ✅ Live |
-| `auramind-gemini/.env` → `VITE_STRIPE_PRICE_ID_MONTHLY` / `_ANNUAL` | both **live** prices, retrievable with the live key, `livemode` matches | ✅ Verified via `prices.retrieve` |
-| `auramind-gemini/.env` → `VITE_STRIPE_PUBLISHABLE_KEY` | `pk_live_…` | ✅ Fixed 2026-08-11 — was `pk_test_…` |
+| `bonamind-web/.env` → `VITE_STRIPE_PRICE_ID_MONTHLY` / `_ANNUAL` | both **live** prices, retrievable with the live key, `livemode` matches | ✅ Verified via `prices.retrieve` |
+| `bonamind-web/.env` → `VITE_STRIPE_PUBLISHABLE_KEY` | `pk_live_…` | ✅ Fixed 2026-08-11 — was `pk_test_…` |
 | `api/.env` → `STRIPE_WEBHOOK_SECRET` | `whsec_…` | ⚠️ Format matches; confirm the **endpoint is registered in live mode** on the dashboard with the event list in §5 |
 
 **Fixed 2026-08-11:** `VITE_STRIPE_PUBLISHABLE_KEY` was `pk_test_…` while
@@ -58,7 +58,7 @@ handler now enforces this: it retrieves the price and refuses a mode mismatch
 with an actionable 400 instead of a confusing 500.
 
 **Where the real env lives:** production runs on Vercel — the values in
-`api/.env` / `auramind-gemini/.env` only matter for local dev. Set the
+`api/.env` / `bonamind-web/.env` only matter for local dev. Set the
 corrected values in **Vercel's project env** (Project Settings → Environment
 Variables) and redeploy. Verify with `npx vercel env ls` (CLI must be
 authenticated) and `node api/scripts/verify-launch.mjs` (or `--offline` for
