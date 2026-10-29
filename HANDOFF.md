@@ -280,6 +280,15 @@ Adding a `user_metadata` fallback "for compatibility" reintroduces a paywall
 bypass: `auth.updateUser` lets any signed-in user write `user_metadata`
 directly. There is a regression test asserting the forged value is ignored.
 
+The plan **label** follows the same rule. Every screen that shows a plan
+reads `UserProfile.plan`, which comes from `resolvePlan()` in
+`auramind-gemini/src/lib/subscriptionPlan.ts` (app_metadata only), and
+`/api/subscription` derives its `plan` from the status. Don't read
+`user_metadata.plan` or `user_profiles.plan` for display: the first is
+self-set, the second is never updated by billing, and the two showed the
+same account as "Pro" and "Free". `subscriptionPlan.test.ts` scans `src/`
+for a `metadata.plan` read.
+
 ### Play burns a versionCode permanently
 
 `versionCode` comes from `github.run_number`, which is monotonic. Don't
@@ -2042,6 +2051,43 @@ minute"). Adding a free Gemini key (aistudio.google.com/apikey) makes Gemini
 the first choice. Planned: on-device text recognition (Apple Vision / ML Kit)
 once the app moves off Expo Go to development builds; it's free, offline and
 private, with the server as the fallback.
+
+---
+
+## 2026-10-18 - One plan label, from app_metadata
+
+The same account showed two plans. The Windows, iPhone and Android settings
+showed `user.plan`, which App.tsx mapped from `user_metadata.plan` (writable
+by the user with one `auth.updateUser` call; the owner's account said "Pro").
+The full settings page showed `user_profiles.plan` via
+`userService.getCurrentUser()`, which billing never updates ("Free").
+
+Now there is one source: `resolvePlan(authUser)` in
+`src/lib/subscriptionPlan.ts`, which reads `app_metadata.subscription_status`
+and returns `Pro` for `active`, `trialing` or `past_due` and `Starter`
+otherwise. No fallback to user_metadata.
+- `App.tsx` builds `profile.plan` with it, so the workspace user, every
+  settings screen and analytics' `plan` trait agree. `updateUserProfile` no
+  longer writes `plan` into user_metadata.
+- `userService.getCurrentUser()` uses it too, and the full settings page and
+  Android settings show the workspace plan first. The "Free" fallback is gone;
+  the label is `Starter` everywhere.
+- `/api/subscription` returns `plan` derived from the status instead of
+  echoing `user_metadata.plan`.
+
+What you'll see: a **staff account with no subscription now reads
+"Starter"**. hasFreeAccess still unlocks everything, but the label says what
+billing records, not what the role grants. If the owner's account shows
+Starter, that is app_metadata saying there is no subscription.
+
+Left alone: the Stripe webhook and the dunning cron still write
+`user_metadata.plan`. Nothing reads it any more, so it is dead data, not a
+second source. The `user_profiles.plan` column is likewise unread for display.
+
+Tests: `subscriptionPlan.test.ts` (resolver, plus a scan of `src/` for any
+`metadata.plan` read and checks on each display path),
+`userServicePlan.test.ts`, two cases in `windowsSettings.test.tsx`, and three
+in `api/tests/entitlement-source.test.ts` for `/api/subscription`.
 
 ## 2026-10-19 - Native app, part 3: classes verified end-to-end, on the web
 

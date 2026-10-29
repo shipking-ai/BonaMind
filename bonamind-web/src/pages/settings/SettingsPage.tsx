@@ -536,7 +536,7 @@ export default function SettingsPage() {
               )}
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="px-2 py-0.5 rounded-full bg-[#7C3AED]/10 text-[#8B5CF6] text-[9px] font-medium shrink-0">
-                  {profile?.plan || 'Free'}
+                  {workspace?.user?.plan || profile?.plan || 'Starter'}
                 </span>
               </div>
               <p className="text-[#7A7A96] text-xs mt-1">{profile?.email || ''}</p>

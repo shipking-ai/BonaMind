@@ -602,7 +602,7 @@ export default function AndroidSettingsScreen() {
             );
           })()}
           <small>
-            {profile?.plan || workspace?.user.plan || "Starter"} plan ·{" "}
+            {workspace?.user.plan || profile?.plan || "Starter"} plan ·{" "}
             {workspace?.user.streak ?? 0} day streak
           </small>
           {profileError && (
