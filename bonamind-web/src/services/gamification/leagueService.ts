@@ -27,7 +27,6 @@ import {
   leagueGroupIdFor,
   tierForLifetimeXp,
   getTierById,
-  hashSeed,
 } from '../../types/league';
 
 export interface LeagueBoardData {
@@ -35,9 +34,17 @@ export interface LeagueBoardData {
   currentUserTier: number;
   currentUserGroupId?: string;
   currentUserRank?: number;
+  /**
+   * Only the caller's own group: names are obtainable solely through the
+   * league_group_roster RPC, which is gated to groups the caller belongs to.
+   * Other tiers' groups are deliberately omitted — rendering them would need
+   * fabricated names. Empty array = a real, correct "no group yet" state.
+   */
   groupsThisTier: LeagueGroupView[];
   weekStartsAt: number;
   weekEndsAt: number;
+  /** Set when the board could not be read at all; never filled with fake players. */
+  loadError?: string;
 }
 
 /** Local cache so the leaderboard renders instantly after first paint. */
@@ -140,7 +147,14 @@ export async function fetchLeagueBoard(
   const { startsAt, endsAt } = currentWeekBounds();
 
   if (!supabase || !currentUserId) {
-    return buildFallbackBoard(seasonId, startsAt, endsAt);
+    return {
+      seasonId,
+      currentUserTier: 0,
+      groupsThisTier: [],
+      weekStartsAt: startsAt,
+      weekEndsAt: endsAt,
+      loadError: 'league-unavailable',
+    };
   }
 
   try {
@@ -165,6 +179,7 @@ export async function fetchLeagueBoard(
     const memberships: LeagueMembership[] = (rows as LeagueMembership[]) ?? [];
 
     if (memberships.length === 0) {
+      // Real empty state: the user has not been placed in a group this week.
       return {
         seasonId,
         currentUserTier,
@@ -174,67 +189,63 @@ export async function fetchLeagueBoard(
       };
     }
 
-    // Step 3: join with user_profiles for names.
-    const userIds = memberships.map(m => m.user_id);
-    const { data: profiles } = await supabase
-      .from('user_profiles')
-      .select('user_id, full_name, email, avatar_url')
-      .in('user_id', userIds);
-
-    const nameOf = new Map<string, string>();
-    const avatarOf = new Map<string, string>();
-    (profiles ?? []).forEach((p: any) => {
-      nameOf.set(p.user_id, p.full_name || p.email?.split('@')[0] || 'Learner');
-      if (p.avatar_url) avatarOf.set(p.user_id, p.avatar_url);
-    });
-
-    // Step 4: group by group_id + sort by weekly_xp desc, accuracy desc as tiebreaker.
-    const byGroup = new Map<string, LeagueMemberView[]>();
-    memberships.forEach(m => {
-      const list = byGroup.get(m.league_group_id) ?? [];
-      list.push({
-        userId: m.user_id,
-        name: nameOf.get(m.user_id) ?? 'Learner',
-        avatar: avatarOf.get(m.user_id),
-        weeklyXp: m.weekly_xp,
-        accuracyRate: Number(m.accuracy_rate ?? 0),
-        rank: 0,
-        tier: m.tier,
-        trend: 'same',
-      });
-      byGroup.set(m.league_group_id, list);
-    });
-
-    // If current user isn't in any group yet (new login), inject them.
+    // Step 3: find the caller's own group, then resolve its names through the
+    // SECURITY DEFINER roster RPC — user_profiles is own-read-only by RLS, so
+    // the old direct read returned nothing and every peer fell back to
+    // "Learner". The RPC returns names only for groups the caller belongs to;
+    // other groups in the tier are deliberately left out (their member names
+    // are not obtainable and must not be fabricated).
     let myGroupId: string | undefined;
-    byGroup.forEach((members, gid) => {
-      if (members.some(m => m.userId === currentUserId)) myGroupId = gid;
+    memberships.forEach(m => {
+      if (m.user_id === currentUserId) myGroupId = m.league_group_id;
     });
 
     const groups: LeagueGroupView[] = [];
     let myRank: number | undefined;
-    byGroup.forEach((members, gid) => {
+    if (myGroupId) {
+      const { data: roster, error: rosterError } = await supabase.rpc(
+        'league_group_roster' as never,
+        { p_group_id: myGroupId, p_season_id: seasonId } as never,
+      );
+      if (rosterError) throw rosterError;
+
+      const nameOf = new Map<string, string>();
+      const avatarOf = new Map<string, string>();
+      ((roster ?? []) as { user_id: string; display_name: string; avatar_url: string | null }[]).forEach(p => {
+        nameOf.set(p.user_id, p.display_name);
+        if (p.avatar_url) avatarOf.set(p.user_id, p.avatar_url);
+      });
+
+      const members: LeagueMemberView[] = memberships
+        .filter(m => m.league_group_id === myGroupId)
+        .map(m => ({
+          userId: m.user_id,
+          name: nameOf.get(m.user_id) ?? 'Learner',
+          avatar: avatarOf.get(m.user_id),
+          weeklyXp: m.weekly_xp,
+          accuracyRate: Number(m.accuracy_rate ?? 0),
+          rank: 0,
+          tier: m.tier,
+          trend: 'same',
+        }));
+
       members.sort((a, b) => b.weeklyXp - a.weeklyXp || b.accuracyRate - a.accuracyRate);
       members.forEach((m, i) => {
         m.rank = i + 1;
         m.isCurrentUser = m.userId === currentUserId;
         if (m.isCurrentUser) myRank = m.rank;
       });
+
       groups.push({
-        groupId: gid,
+        groupId: myGroupId,
         tier: currentUserTier,
-        members: members.slice(0, LEAGUE_GROUP_SIZE),
+        members,
         currentUserRank: myRank,
         promotionZoneTop: PROMOTION_COUNT,
         relegationZoneBottom: LEAGUE_GROUP_SIZE - DEMOTION_COUNT + 1,
         weekStartsAt: startsAt,
         weekEndsAt: endsAt,
       });
-    });
-
-    // Ensure at least one group exists so the page renders even with no rows.
-    if (groups.length === 0) {
-      groups.push(buildDemoGroup(currentUserId, currentUserTier, seasonId, startsAt, endsAt));
     }
 
     return {
@@ -246,59 +257,19 @@ export async function fetchLeagueBoard(
       weekStartsAt: startsAt,
       weekEndsAt: endsAt,
     };
-  } catch {
-    return buildFallbackBoard(seasonId, startsAt, endsAt);
-  }
-}
-
-/** Build a fully synthetic group when DB is unreachable so the UI never blanks out. */
-function buildFallbackBoard(seasonId: string, startsAt: number, endsAt: number): LeagueBoardData {
-  const tier = tierForLifetimeXp(Number(localStorage.getItem('bonamind_user_xp') ?? 0));
-  const demoGroup = buildDemoGroup(undefined, tier, seasonId, startsAt, endsAt);
-  return {
-    seasonId,
-    currentUserTier: tier,
-    groupsThisTier: [demoGroup],
-    weekStartsAt: startsAt,
-    weekEndsAt: endsAt,
-  };
-}
-
-function buildDemoGroup(
-  currentUserId: string | undefined,
-  tier: number,
-  seasonId: string,
-  startsAt: number,
-  endsAt: number,
-): LeagueGroupView {
-  const names = [
-    'Aurora', 'Zen', 'Pixel', 'Cobalt', 'Nova', 'Echo', 'Atlas',
-    'Lyra', 'Iris', 'Rune', 'Sage', 'Wren', 'Juno', 'Halo', 'Quill',
-  ];
-  const members: LeagueMemberView[] = names.map((name, i) => {
-    const stableXp = Math.round(2200 - i * 130 + (hashSeed(name + tier) % 80));
-    const acc = Math.round(72 + (hashSeed(name + 'acc') % 22));
+  } catch (err) {
+    // Real error state: surface that the board is unavailable. Never fake
+    // players — the demo board masked outages as a busy league. PostgREST
+    // errors are plain { message } objects, not Error instances.
     return {
-      userId: `demo-${tier}-${i}`,
-      name,
-      weeklyXp: Math.max(80, stableXp),
-      accuracyRate: acc,
-      rank: i,
-      tier,
-      trend: i === 0 ? 'up' : i === 14 ? 'down' : 'same',
-      isCurrentUser: currentUserId !== undefined && i === 7,
+      seasonId,
+      currentUserTier: 0,
+      groupsThisTier: [],
+      weekStartsAt: startsAt,
+      weekEndsAt: endsAt,
+      loadError: (err as { message?: string } | null)?.message ?? 'league-unavailable',
     };
-  });
-  return {
-    groupId: `t${tier}_g0_${seasonId}`,
-    tier,
-    members,
-    currentUserRank: currentUserId ? 8 : undefined,
-    promotionZoneTop: PROMOTION_COUNT,
-    relegationZoneBottom: LEAGUE_GROUP_SIZE - DEMOTION_COUNT + 1,
-    weekStartsAt: startsAt,
-    weekEndsAt: endsAt,
-  };
+  }
 }
 
 /**
