@@ -16,8 +16,16 @@ appId: ${APP_ID}
       platform: iOS
     commands:
       - launchApp
-      # Only needed if the session was lost and the welcome screen reads the
-      # clipboard again; optional keeps the happy path unaffected.
+      # Only reached on the rare path where the session was lost and the
+      # welcome screen adopts the clipboard again: wait for its paste sheet,
+      # then confirm it (see core-loop). The happy path never shows welcome.
+      - repeat:
+          times: 10
+          while:
+            visible: "Continue with email"
+          commands:
+            - waitForAnimationToEnd:
+                timeout: 3000
       - tapOn:
           text: "^Allow Paste$"
           optional: true

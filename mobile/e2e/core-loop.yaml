@@ -17,8 +17,19 @@ appId: ${APP_ID}
     commands:
       - launchApp:
           clearState: true
-      # Reading the planted clipboard raises iOS's paste permission sheet and
-      # blocks the adopt hook until it is allowed (absent when iOS remembers).
+      # The cold welcome screen adopts the planted clipboard session
+      # (src/e2e/ClipboardAdopt.tsx). iOS interposes a paste-permission sheet
+      # over it, and a system sheet hides the app's own tree from the
+      # snapshot, so wait until "Continue with email" either vanishes
+      # (sign-in went through) or is hidden by the sheet, then confirm the
+      # sheet if it is indeed up.
+      - repeat:
+          times: 30
+          while:
+            visible: "Continue with email"
+          commands:
+            - waitForAnimationToEnd:
+                timeout: 3000
       - tapOn:
           text: "^Allow Paste$"
           optional: true
