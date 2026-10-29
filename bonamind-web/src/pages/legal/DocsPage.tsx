@@ -120,11 +120,6 @@ const sections = [
           <li>Automatically convert assignments and materials into flashcards.</li>
           <li>Navigate to <strong className="text-[#F0EFFE]">Settings → Integrations</strong> to connect.</li>
         </ul>
-        <h4 className="text-sm font-semibold text-[#F0EFFE] mt-4 mb-2">Notion</h4>
-        <ul className="list-disc pl-5 space-y-1.5 text-[#9090A8]">
-          <li>Import notes and study content directly from your Notion workspace.</li>
-          <li>Sync selected pages as flashcards for review.</li>
-        </ul>
       </>
     ),
   },

@@ -39,11 +39,6 @@ const ROWS: ComparisonRow[] = [
     values: { bonamind: "yes", anki: "partial", quizlet: "no", remnote: "no" },
   },
   {
-    feature: "Bring your Anki decks (.apkg)",
-    detail: "Import your existing library in one click",
-    values: { bonamind: "yes", anki: "yes", quizlet: "no", remnote: "no" },
-  },
-  {
     feature: "Concept map linking",
     detail: "Link cards across decks to see the bigger picture",
     values: { bonamind: "yes", anki: "no", quizlet: "no", remnote: "partial" },
