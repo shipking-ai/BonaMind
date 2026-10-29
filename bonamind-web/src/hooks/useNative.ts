@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { APP_VERSION } from "../lib/env";
 import { Capacitor } from "../lib/nativeShim";
 import { Haptics, ImpactStyle, NotificationType } from "../lib/nativeShim";
 import { PushNotifications } from "../lib/nativeShim";
@@ -56,7 +57,7 @@ export function useNativeDeviceInfo(): NativeDeviceInfo | null {
           platform: "web",
           model: navigator.userAgent,
           osVersion: "",
-          appVersion: "2.0.0",
+          appVersion: APP_VERSION,
           isNative: false,
         });
         return;
