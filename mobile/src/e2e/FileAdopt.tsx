@@ -51,5 +51,7 @@ export function FileAdopt() {
     adoptRuntimeSession(read.token);
   }, [read]);
   if (!env.e2e || read.token) return null;
-  return <Text style={{ fontSize: 9, color: '#777' }}>{read.note ?? 'e2e file idle'}</Text>;
+  // Legible in Maestro's failure screenshots: any surviving note is the
+  // diagnosis of why the adopt never navigated.
+  return <Text style={{ fontSize: 13, color: '#e8e8f0' }}>{read.note ?? 'e2e file idle'}</Text>;
 }
