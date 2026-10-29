@@ -24,8 +24,8 @@
 
 ## Checklist
 
-- [ ] I have run `npm run type-check` in `auramind-gemini/` and there are no new errors
-- [ ] I have run `npm test` in `auramind-gemini/` and added/adjusted tests for the change
+- [ ] I have run `npm run type-check` in `bonamind-web/` and there are no new errors
+- [ ] I have run `npm test` in `bonamind-web/` and added/adjusted tests for the change
 - [ ] I have updated `CHANGELOG.md` under the "Unreleased" section
 - [ ] If this is a schema change, I have added a migration in `supabase/migrations/` and noted it in `docs/M6-store-submission-playbook.md` if it affects mobile
 - [ ] I have considered and documented any privacy / RLS implications (no `(dev)` policy slips, every UPDATE has WITH CHECK)

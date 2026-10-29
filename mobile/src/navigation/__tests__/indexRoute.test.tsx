@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react-native';
 import Index from '../../app/index';
 
 let mockStatus = 'signed-out';
-jest.mock('../../data/auth', () => ({ useAuth: () => ({ status: mockStatus, userId: null }) }));
+jest.mock('../../data/auth', () => ({ useAuth: () => ({ status: mockStatus, userId: null, session: mockStatus === 'signed-in' ? { user: { user_metadata: { onboarding_completed: true } } } : null }) }));
 jest.mock('expo-router', () => {
   const { Text } = require('react-native');
   return { Redirect: ({ href }: { href: string }) => <Text>{`redirect:${href}`}</Text> };

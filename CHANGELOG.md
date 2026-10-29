@@ -7,6 +7,98 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.6] - 2026-10-19
+
+### Added
+- **Windows app: Updates in Settings** - the installed version, Check for
+  updates and Restart and update (About was unreachable in the app)
+
+### Changed
+- **Windows app** - Quick Review is a small paper index card (handwritten
+  answer, ink buttons) and "Drop to make a course" is paper and ink,
+  matching the rest of the Windows look
+
+### Fixed
+- **Courses made from a file** are named after it without the extension
+  ("Water cycle Flashcards", not "water-cycle.pdf Flashcards")
+- **Generator** - switching Quiz to Flashcards no longer drops the topic or
+  a file handed in from Explorer or a drop
+- **Windows app** - the tray's Quick review item shows the current
+  shortcut; Quick Review no longer offers cards already studied in the
+  main window
+
+## [2.3.5] - 2026-10-18
+
+### Fixed
+- **PDF import (every platform)** - every PDF failed with "Failed to
+  extract text from PDF": pdf.js's worker was loaded from unpkg under a
+  name pdf.js 4+ no longer publishes. The worker now ships in the app
+- **Windows app: generating a course** always failed ("check your
+  connection"): AI requests carried two extra headers the API's CORS rules
+  didn't allow from the app. The app stops sending them and the API accepts
+  them, so installed copies work again once the site deploys
+- **Windows app: Start with Windows** opened the window at sign-in instead
+  of starting quietly in the tray (the window-state plugin restored
+  "visible")
+
+## [2.3.4] - 2026-10-18
+
+### Fixed
+- **Windows app: Quick Review** - cards rated in the panel now update
+  Today, the Library and the tray count straight away, instead of after a
+  restart
+
+## [2.3.3] - 2026-10-18
+
+### Fixed
+- **Windows app: Quick Review** - opening it froze the whole app (the
+  panel was built on the thread WebView2 needs to finish it), and once
+  that was fixed it showed an old "Page not found": the panel loaded from
+  http://tauri.localhost instead of the main window's https origin, so it
+  had no sign-in and an old service worker served a stale app
+
+## [2.3.2] - 2026-10-18
+
+### Fixed
+- **Windows app** - when another app already owns the Quick Review
+  shortcut (Ctrl+Alt+Space), Settings now says so and asks for another,
+  instead of showing a shortcut that does nothing
+- **Windows app** - the window title on launch says "Today · BonaMind"
+  rather than "BonaMind"
+
+## [2.3.1] - 2026-10-18
+
+### Fixed
+- **Windows app, light mode** - the Quick Review shortcut, its Change
+  button and the Start with Windows switch in Settings, and the selected
+  Study Coach / Companion pill in Prof. Linnea, were nearly invisible
+- **Windows app** - the Library says "1 card due", and the window title on
+  Today says "Today"
+
+## [2.3.0] - 2026-10-18
+
+### Changed
+- **Windows app look** - paper and ink instead of generic cards: a command
+  bar, plain lists with columns and a status bar; warm paper (light) and a
+  warm desk (dark); serif headlines; study sessions on a ruled index card
+  with the answer in handwriting. The title bar matches the app's theme
+
+## [2.2.0] - 2026-10-16
+
+### Added
+- **Windows app: its own simple layout** - a Windows 11-style sidebar
+  (Today, Library, Create, Prof. Linnea, Settings) that collapses with ☰ or
+  Ctrl+B; a Today screen with what's due and one Start review button; a
+  searchable Library with a right-click menu; study sessions inside the
+  window driven by the keyboard (Space, 1–4, Esc); and the app, window and
+  title bar following Windows light or dark mode
+
+### Changed
+- **Windows app** uses the normal Windows mouse pointer instead of the
+  website's custom cursor
+
+## [2.1.0] - 2026-10-16
+
 ### BonaMind rename
 
 - **AuraMind is now BonaMind, and Prof. Aura is now Prof. Linnea** - on <!-- legacy-name: ok -->

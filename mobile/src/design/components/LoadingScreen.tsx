@@ -5,16 +5,10 @@ import Animated, {
   Easing, FadeIn, FadeOut, useDerivedValue, useSharedValue, withRepeat, withTiming, type SharedValue,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LOADING_LINES } from './loadingLines';
 import { useMotion } from '../motion';
 import { colors, fonts, space } from '../tokens';
 
-/** What the loader says while it works; one line every LINE_MS. */
-export const LOADING_LINES = [
-  'Shuffling your due cards',
-  'Checking what you remember',
-  'Lining up the tricky ones',
-  'Warming up the aurora',
-] as const;
 const LINE_MS = 2_000;
 
 // The BonaMind prism, in its 512-unit design space (same as the app icon).

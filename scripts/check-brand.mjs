@@ -3,7 +3,7 @@
 //
 // The product was renamed to BonaMind and its tutor to Prof. Linnea
 // (docs/superpowers/specs/2026-10-13-bonamind-rename-design.md). Some old
-// names are permanent (app IDs, the folder name, data that would be lost if
+// names are permanent (app IDs, local instance ids, data that would be lost if
 // renamed); the allow-list below names each one with its reason. Adding an
 // entry is the owner's decision, never a way to make CI pass.
 //
@@ -25,7 +25,7 @@ const MARKER = 'legacy-name: ok';
 const PERMANENT_TOKENS = [
   { token: 'com.auramind.app', reason: 'Permanent app ID (Android, Windows)' }, // legacy-name: ok
   { token: 'com/auramind/app', reason: 'Java package path tied to the app ID' }, // legacy-name: ok
-  { token: 'auramind-gemini', reason: 'Folder name, owner decision' }, // legacy-name: ok
+  { token: 'auramind-gemini', reason: 'Former folder name, kept in dated records and fixtures' }, // legacy-name: ok
   { token: 'auramind_biometric_creds', reason: 'Keystore-encrypted credentials file' }, // legacy-name: ok
   { token: 'auramind_study_session', reason: 'Notification channel ID keeps users’ channel settings' }, // legacy-name: ok
   { token: 'auramind-upload', reason: 'Signing key alias stored inside the upload keystore' }, // legacy-name: ok
@@ -87,7 +87,7 @@ const ALLOW_FILES = [
     reason: 'Specs and plans dated up to the rename (its own included) are historical records',
   },
   {
-    test: (file) => file === 'auramind-gemini/src/lib/legacyNames.ts', // legacy-name: ok
+    test: (file) => file === 'bonamind-web/src/lib/legacyNames.ts', // legacy-name: ok
     reason: 'The one web module that names the old values',
   },
 ];

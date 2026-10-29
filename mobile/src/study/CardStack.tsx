@@ -1,6 +1,6 @@
 import { Rating, type Card } from '@bonamind/core';
 import { useState, type ReactNode } from 'react';
-import { ScrollView, StyleSheet, Text, View, type AccessibilityActionEvent } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type AccessibilityActionEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   FadeOut, interpolate, useAnimatedStyle, useSharedValue, withSpring, withTiming,
@@ -17,6 +17,9 @@ export const SWIPE_DISTANCE = 90;
 export const SWIPE_VELOCITY = 800;
 const RUBBER_BAND = 0.22;
 const ROTATE_DIVISOR = 13;
+// Interactions freeze the page under a mouse pointer on web (gesture race on
+// pointer events spins forever), so the card falls back to plain presses.
+const GESTURE_CARD = Platform.OS !== 'web';
 
 const A11Y_ACTIONS = [
   { name: 'activate', label: 'Flip card' },
@@ -89,6 +92,7 @@ function SwipeCard({ card, onRate }: { card: Card; onRate(rating: Rating): void 
     isFlipped.set(next ? 1 : 0);
     turn.set(reduce ? withTiming(next ? 1 : 0, { duration: 180 }) : withSpring(next ? 1 : 0, spring('flip')));
     haptic('light');
+    if (!GESTURE_CARD) setBarOpen(next);
   };
   const committed = useSharedValue(false);
   const commit = (rating: Rating) => {
@@ -100,7 +104,7 @@ function SwipeCard({ card, onRate }: { card: Card; onRate(rating: Rating): void 
   const openBar = () => { if (flipped) { setBarOpen(true); haptic('selection'); } };
   const tick = () => haptic('selection');
 
-  const pan = Gesture.Pan()
+  const pan = GESTURE_CARD ? Gesture.Pan()
     .withTestId('card-pan')
     .onUpdate((e) => {
       const k = isFlipped.value ? 1 : RUBBER_BAND;
@@ -126,10 +130,10 @@ function SwipeCard({ card, onRate }: { card: Card; onRate(rating: Rating): void 
       }
       tx.value = withSpring(0, { damping: 12, stiffness: 160 });
       ty.value = withSpring(0, { damping: 12, stiffness: 160 });
-    });
-  const tap = Gesture.Tap().withTestId('card-tap').onEnd(() => scheduleOnRN(flip));
-  const long = Gesture.LongPress().minDuration(350).withTestId('card-long').onStart(() => scheduleOnRN(openBar));
-  const gesture = Gesture.Race(pan, Gesture.Exclusive(long, tap));
+    }) : null;
+  const tap = GESTURE_CARD ? Gesture.Tap().withTestId('card-tap').onEnd(() => scheduleOnRN(flip)) : null;
+  const long = GESTURE_CARD ? Gesture.LongPress().minDuration(350).withTestId('card-long').onStart(() => scheduleOnRN(openBar)) : null;
+  const gesture = GESTURE_CARD && pan && tap && long ? Gesture.Race(pan, Gesture.Exclusive(long, tap)) : null;
 
   // The card leaves from wherever the thumb let go, in the direction rated.
   const exiting: EntryExitAnimationFunction = () => {
@@ -175,6 +179,39 @@ function SwipeCard({ card, onRate }: { card: Card; onRate(rating: Rating): void 
     const rating = ACTION_RATING[name];
     if (rating !== undefined) commit(rating);
   };
+
+  if (!gesture) {
+    // Web fallback: no gesture recognizers, mouse-friendly taps everywhere.
+    return (
+      <>
+        <Pressable
+          style={styles.card}
+          onPress={flip}
+          accessibilityRole="adjustable"
+          accessibilityLabel={flipped ? `Answer: ${card.back}` : `Question: ${card.front}`}
+          accessibilityHint="Click to flip."
+          accessibilityActions={A11Y_ACTIONS.filter((a) => a.name === 'activate')}
+          onAccessibilityAction={onAction}
+        >
+          <Animated.View style={[styles.face, front]} pointerEvents="none">
+            <Text style={styles.label}>Question</Text>
+            <FaceBody testID="card-front-scroll">
+              <Text style={styles.front}>{card.front}</Text>
+            </FaceBody>
+            <Text style={styles.hint}>Click to reveal</Text>
+          </Animated.View>
+          <Animated.View style={[styles.face, styles.faceBack, back]} pointerEvents="none">
+            <Text style={styles.label}>Answer</Text>
+            <FaceBody testID="card-back-scroll">
+              <Text style={styles.back}>{card.back}</Text>
+            </FaceBody>
+            <Text style={styles.hint}>Click to flip back</Text>
+          </Animated.View>
+        </Pressable>
+        {flipped && <RatingBar onRate={(r) => { setBarOpen(false); commit(r); }} onDismiss={() => setBarOpen(false)} />}
+      </>
+    );
+  }
 
   return (
     <>

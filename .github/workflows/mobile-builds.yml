@@ -29,6 +29,10 @@ env:
   EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
   EXPO_PUBLIC_API_BASE_URL: https://www.bonamind.app
   EXPO_PUBLIC_TURNSTILE_SITE_KEY: 0x4AAAAAAEsHm7dsqEhBi3Nr
+  # Stripe price ids are public (the website ships them to the browser): the
+  # upgrade button needs one at build time or it errors gracefully.
+  EXPO_PUBLIC_STRIPE_PRICE_ID_MONTHLY: price_1TqjKHGhRq84JnUVogflTfeY
+  EXPO_PUBLIC_STRIPE_PRICE_ID_ANNUAL: price_1SNlxOGhRq84JnUV1DzlFMS8
 
 jobs:
   ios-unsigned-ipa:

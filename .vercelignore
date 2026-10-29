@@ -31,21 +31,21 @@ model-service/
 .env.local
 .env.production
 .env.development
-auramind-gemini/.env
-auramind-gemini/.env.local
-auramind-gemini/.env.production
-auramind-gemini/.env.development
+bonamind-web/.env
+bonamind-web/.env.local
+bonamind-web/.env.production
+bonamind-web/.env.development
 
 # Native app builds and source
-auramind-gemini/src-tauri/
-auramind-gemini/android/
-auramind-gemini/ios/
+bonamind-web/src-tauri/
+bonamind-web/android/
+bonamind-web/ios/
 
 # Frontend dependencies and build output (installed/built remotely;
 # excluding them cuts CLI deploys from ~1.3GB to a few MB)
 node_modules/
-auramind-gemini/node_modules/
-auramind-gemini/dist/
+bonamind-web/node_modules/
+bonamind-web/dist/
 
 # Database migrations (applied via Supabase CLI)
 supabase/

@@ -21,7 +21,7 @@
  *
  * Relationship to app-identity.ts
  * -------------------------------
- * `auramind-gemini/app-identity.ts` owns the product NAME (what users read).
+ * `bonamind-web/app-identity.ts` owns the product NAME (what users read).
  * This file owns the DOMAIN (where the app is served) and is consumed by the
  * serverless API, which cannot import from the web app's TypeScript. Two
  * constants, two runtimes, one place each.

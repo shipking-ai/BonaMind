@@ -1,5 +1,6 @@
 import NetInfo from '@react-native-community/netinfo';
 import { useEffect, useSyncExternalStore } from 'react';
+import { refreshServerTime } from './serverTime';
 import { AppState } from 'react-native';
 import type { Outbox } from '@bonamind/core';
 
@@ -43,7 +44,7 @@ export function createSyncEngine(deps: { outbox: OutboxPort; netinfo: NetPort; a
     if (cameBack) void flushNow();
   });
   deps.appState.addEventListener('change', (s) => {
-    if (s === 'active') void flushNow();
+    if (s === 'active') { void refreshServerTime(); void flushNow(); }
   });
 
   return {
