@@ -1,6 +1,6 @@
 name: Desktop Windows
 
-# Builds the Tauri Windows app (auramind-gemini/src-tauri).
+# Builds the Tauri Windows app (bonamind-web/src-tauri).
 #
 #   pull_request / workflow_dispatch -> build the installer and attach it to
 #     the run as an artifact. Updater signing is switched off so the build
@@ -17,11 +17,11 @@ name: Desktop Windows
 on:
   pull_request:
     paths:
-      - 'auramind-gemini/src-tauri/**'
-      - 'auramind-gemini/src/lib/desktop*.ts'
-      - 'auramind-gemini/src/components/desktop/**'
-      - 'auramind-gemini/package.json'
-      - 'auramind-gemini/package-lock.json'
+      - 'bonamind-web/src-tauri/**'
+      - 'bonamind-web/src/lib/desktop*.ts'
+      - 'bonamind-web/src/components/desktop/**'
+      - 'bonamind-web/package.json'
+      - 'bonamind-web/package-lock.json'
       - '.github/workflows/desktop-windows.yml'
   push:
     tags:
@@ -41,7 +41,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: auramind-gemini
+        working-directory: bonamind-web
         shell: bash
 
     steps:
@@ -52,7 +52,7 @@ jobs:
         with:
           node-version: '22.x'
           cache: 'npm'
-          cache-dependency-path: auramind-gemini/package-lock.json
+          cache-dependency-path: bonamind-web/package-lock.json
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -60,7 +60,7 @@ jobs:
       - name: Cache Rust build
         uses: Swatinem/rust-cache@v2
         with:
-          workspaces: 'auramind-gemini/src-tauri -> target'
+          workspaces: 'bonamind-web/src-tauri -> target'
 
       - name: Install dependencies
         run: npm ci
@@ -113,8 +113,8 @@ jobs:
         if: ${{ !startsWith(github.ref, 'refs/tags/desktop-v') }}
         uses: actions/upload-artifact@v7
         with:
-          name: auramind-windows-installer
-          path: auramind-gemini/src-tauri/target/release/bundle/nsis/*.exe
+          name: bonamind-windows-installer
+          path: bonamind-web/src-tauri/target/release/bundle/nsis/*.exe
           if-no-files-found: error
           retention-days: 14
 
@@ -138,7 +138,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          projectPath: auramind-gemini
+          projectPath: bonamind-web
           tagName: ${{ github.ref_name }}
           releaseName: 'BonaMind for Windows ${{ github.ref_name }}'
           releaseBody: |

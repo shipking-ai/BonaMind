@@ -10,11 +10,11 @@ three things most contributors trip on:
 ## Local setup
 
 ```bash
-git clone https://github.com/shipking-ai/AuraMind-App-2.git
-cd AuraMind-App-2
+git clone https://github.com/shipking-ai/BonaMind.git
+cd BonaMind
 
 npm install                  # orchestration scripts at the root
-cd auramind-gemini
+cd bonamind-web
 npm install                  # the React + Vite frontend
 cp .env.example .env         # then paste your keys (see README.md)
 cd ..
@@ -31,7 +31,7 @@ You will need:
 To run only the web app without native toolchains:
 
 ```bash
-cd auramind-gemini
+cd bonamind-web
 npm run dev   # http://localhost:3000
 ```
 
@@ -78,7 +78,7 @@ production Supabase project — never self-apply to production from a PR.
 Before opening a PR:
 
 ```bash
-cd auramind-gemini
+cd bonamind-web
 npm run type-check
 npm run lint
 npm test
@@ -96,12 +96,12 @@ maintainer triages by:
 ## Code style
 
 - Frontend / API code in TypeScript with `strict: true`. ESLint is
-  configured in `auramind-gemini/eslint.config.js`; Prettier runs with its
-  defaults (`npm run format` / `npm run format:check` in `auramind-gemini/`).
+  configured in `bonamind-web/eslint.config.js`; Prettier runs with its
+  defaults (`npm run format` / `npm run format:check` in `bonamind-web/`).
 - `.editorconfig` enforces UTF-8, LF endings, 2-space indent (4 for
   Supabase migrations and Android/iOS sources).
 - Prefer imports from the existing utility folders first; new helpers
-  go in `src/lib/auramind/hooks.ts` or a topic-specific module.
+  go in `src/lib/bonamind/hooks.ts` or a topic-specific module.
 
 ## Reporting a bug or security issue
 

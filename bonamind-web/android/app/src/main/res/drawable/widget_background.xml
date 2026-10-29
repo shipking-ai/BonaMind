@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Widget ground. Matches the app's #060a16 navy so the widget reads as part
+  of BonaMind rather than a stock container. Android 12+ clips widgets to the
+  launcher's own corner radius; the explicit radius keeps older versions
+  looking the same.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#060A16" />
+    <corners android:radius="20dp" />
+    <stroke android:width="1dp" android:color="#1E2A44" />
+</shape>

@@ -19,12 +19,14 @@ name: Mobile iOS
 on:
   pull_request:
     paths:
-      - 'auramind-gemini/**'
+      - 'bonamind-web/**'
+      - 'packages/core/**'
       - '.github/workflows/mobile-ios.yml'
   push:
     branches: [main]
     paths:
-      - 'auramind-gemini/**'
+      - 'bonamind-web/**'
+      - 'packages/core/**'
       - '.github/workflows/mobile-ios.yml'
   workflow_dispatch:
     inputs:
@@ -47,7 +49,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: auramind-gemini
+        working-directory: bonamind-web
 
     steps:
       - uses: actions/checkout@v7
@@ -57,7 +59,7 @@ jobs:
         with:
           node-version: '22.x'
           cache: 'npm'
-          cache-dependency-path: auramind-gemini/package-lock.json
+          cache-dependency-path: bonamind-web/package-lock.json
 
       # Same public build values as the Android release. Secrets are absent
       # on Dependabot and fork PRs; the app still builds and boots to its
@@ -104,7 +106,7 @@ jobs:
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath build/ios \
             CODE_SIGNING_ALLOWED=NO \
-            build | tee build/xcodebuild.log | grep -E "error:|warning: .*AuraListen|BUILD (SUCCEEDED|FAILED)" || true
+            build | tee build/xcodebuild.log | grep -E "error:|warning: .*BonaListen|BUILD (SUCCEEDED|FAILED)" || true
           test -d build/ios/Build/Products/Debug-iphonesimulator/App.app
 
       - name: Launch in an iPhone simulator and screenshot
@@ -220,13 +222,13 @@ jobs:
           [ -f "$PLIST" ] && echo "prefs plist exists" || echo "::warning::prefs plist missing"
           read_prefs() { /usr/libexec/PlistBuddy -c "Print :CapacitorStorage.$1" "$PLIST" 2>/dev/null || echo MISSING; }
           for k in session seen device available started updated; do
-            echo "driver $k: $(read_prefs auramind_ci_live_$k)"
+            echo "driver $k: $(read_prefs bonamind_ci_live_$k)"
           done
-          echo "tour: $(read_prefs auramind_ci_tour_step)"
-          started=$(read_prefs auramind_ci_live_started)
-          updated=$(read_prefs auramind_ci_live_updated)
-          session=$(read_prefs auramind_ci_live_session)
-          echo "tour attempt: session=$session available=$(read_prefs auramind_ci_live_available) started=$started updated=$updated"
+          echo "tour: $(read_prefs bonamind_ci_tour_step)"
+          started=$(read_prefs bonamind_ci_live_started)
+          updated=$(read_prefs bonamind_ci_live_updated)
+          session=$(read_prefs bonamind_ci_live_session)
+          echo "tour attempt: session=$session available=$(read_prefs bonamind_ci_live_available) started=$started updated=$updated"
           # `session` is a descriptive marker ("session-mounted:<path>"), NOT a
           # boolean - compare by prefix. It is what separates "the tour never
           # reached the study screen" from "the ActivityKit bridge failed".
@@ -277,20 +279,20 @@ jobs:
           [ -f "$PLIST" ] && echo "prefs plist exists" || { echo "::error::prefs plist missing - cannot read driver state"; exit 1; }
           read_prefs() { /usr/libexec/PlistBuddy -c "Print :CapacitorStorage.$1" "$PLIST" 2>/dev/null || echo MISSING; }
           for k in session seen device plugins available started updated; do
-            echo "live-boot $k: $(read_prefs auramind_ci_live_$k)"
+            echo "live-boot $k: $(read_prefs bonamind_ci_live_$k)"
           done
-          echo "tour: $(read_prefs auramind_ci_tour_step)"
-          plugins=$(read_prefs auramind_ci_live_plugins)
-          available=$(read_prefs auramind_ci_live_available)
-          started=$(read_prefs auramind_ci_live_started)
-          updated=$(read_prefs auramind_ci_live_updated)
-          session=$(read_prefs auramind_ci_live_session)
+          echo "tour: $(read_prefs bonamind_ci_tour_step)"
+          plugins=$(read_prefs bonamind_ci_live_plugins)
+          available=$(read_prefs bonamind_ci_live_available)
+          started=$(read_prefs bonamind_ci_live_started)
+          updated=$(read_prefs bonamind_ci_live_updated)
+          session=$(read_prefs bonamind_ci_live_session)
           echo "live-boot available: $available | session: $session | started: $started | updated: $updated"
 
           # Two genuinely different situations, previously reported as one.
           #
           # `available: false` is the OS refusing, not the app failing.
-          # AuraLiveActivityPlugin.start() bails on
+          # BonaLiveActivityPlugin.start() bails on
           # ActivityAuthorizationInfo().areActivitiesEnabled, which reflects the
           # user's Live Activities setting - off on a freshly created simulator.
           # The plugin is behaving correctly, so failing on the refusal itself
@@ -327,7 +329,7 @@ jobs:
           case "$plugins" in
             *LiveActivity:true*) : ;;
             *)
-              echo "::error::AuraLiveActivity is not registered in this build (plugins=$plugins)."
+              echo "::error::BonaLiveActivity is not registered in this build (plugins=$plugins)."
               echo "::error::The app-local plugins are registered in MainViewController.capacitorDidLoad; anything that replaces the storyboard root view controller discards them, and voice study and the Live Activity then fail silently."
               exit 1
               ;;
@@ -373,7 +375,7 @@ jobs:
           name: ios-simulator
           path: |
             ios-artifacts
-            auramind-gemini/build/xcodebuild*.log
+            bonamind-web/build/xcodebuild*.log
           if-no-files-found: ignore
 
   # An unsigned device build, for putting the app on a real iPhone without a
@@ -401,7 +403,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: auramind-gemini
+        working-directory: bonamind-web
 
     steps:
       - uses: actions/checkout@v7
@@ -411,7 +413,7 @@ jobs:
         with:
           node-version: '22.x'
           cache: 'npm'
-          cache-dependency-path: auramind-gemini/package-lock.json
+          cache-dependency-path: bonamind-web/package-lock.json
 
       - name: Write build env
         env:
@@ -491,7 +493,7 @@ jobs:
           set -euo pipefail
           APP=build/device/Build/Products/Release-iphoneos/App.app
           # The Live Activity is useless if the extension did not come along.
-          if [ ! -d "$APP/PlugIns/AuraMindWidgets.appex" ]; then
+          if [ ! -d "$APP/PlugIns/BonaMindWidgets.appex" ]; then
             echo "::error::widget extension missing from the app bundle"
             exit 1
           fi
@@ -504,6 +506,6 @@ jobs:
       - name: Upload the IPA
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ inputs.server_url != '' && 'auramind-ios-live-reload-ipa' || 'auramind-ios-unsigned-ipa' }}
-          path: auramind-gemini/build/BonaMind-unsigned.ipa
+          name: ${{ inputs.server_url != '' && 'bonamind-ios-live-reload-ipa' || 'bonamind-ios-unsigned-ipa' }}
+          path: bonamind-web/build/BonaMind-unsigned.ipa
           if-no-files-found: error

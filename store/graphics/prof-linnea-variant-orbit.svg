@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" shape-rendering="geometricPrecision" role="img" aria-labelledby="orbit-title orbit-description">
+  <title id="orbit-title">Prof. Linnea — Orbit Core</title>
+  <desc id="orbit-description">An open orbital ring surrounding a luminous central core.</desc>
+  <defs>
+    <linearGradient id="orbit-bg" x1="48" y1="36" x2="464" y2="474" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#08152E" />
+      <stop offset="0.54" stop-color="#141B4A" />
+      <stop offset="1" stop-color="#291342" />
+    </linearGradient>
+    <linearGradient id="orbit-mark" x1="116" y1="388" x2="425" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#62F1FF" />
+      <stop offset="0.44" stop-color="#7B8CFF" />
+      <stop offset="0.76" stop-color="#C58CFF" />
+      <stop offset="1" stop-color="#FFB0D5" />
+    </linearGradient>
+    <radialGradient id="orbit-core" cx="34%" cy="27%" r="78%">
+      <stop stop-color="#FFFFFF" />
+      <stop offset="0.48" stop-color="#E5FCFF" />
+      <stop offset="1" stop-color="#76EFFF" />
+    </radialGradient>
+    <radialGradient id="orbit-glow" cx="50%" cy="48%" r="55%">
+      <stop stop-color="#6E7CFF" stop-opacity="0.3" />
+      <stop offset="0.58" stop-color="#7C3AED" stop-opacity="0.1" />
+      <stop offset="1" stop-color="#7C3AED" stop-opacity="0" />
+    </radialGradient>
+    <filter id="orbit-blur" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="18" />
+    </filter>
+    <filter id="orbit-core-blur" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="15" />
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#orbit-bg)" />
+  <circle cx="257" cy="256" r="204" fill="url(#orbit-glow)" filter="url(#orbit-blur)" />
+
+  <!-- A single open ring: motion, intelligence, and a deliberate gap for recognition. -->
+  <path d="M153 371C102 326 87 252 111 187C139 111 210 75 282 80C360 85 418 132 435 199" fill="none" stroke="url(#orbit-mark)" stroke-width="58" stroke-linecap="round" opacity="0.22" filter="url(#orbit-blur)" />
+  <path d="M153 371C102 326 87 252 111 187C139 111 210 75 282 80C360 85 418 132 435 199" fill="none" stroke="url(#orbit-mark)" stroke-width="58" stroke-linecap="round" />
+  <path d="M388 330C350 393 276 429 204 414" fill="none" stroke="url(#orbit-mark)" stroke-width="58" stroke-linecap="round" opacity="0.92" />
+
+  <circle cx="256" cy="256" r="38" fill="#83EFFF" opacity="0.25" filter="url(#orbit-core-blur)" />
+  <circle cx="256" cy="256" r="23" fill="url(#orbit-core)" />
+  <circle cx="249" cy="249" r="6" fill="#FFFFFF" opacity="0.9" />
+</svg>

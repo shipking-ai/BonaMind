@@ -1,0 +1,137 @@
+//! The main window's look: Windows 11 title bar in BonaMind colours, and
+//! shown only once React has painted (no white flash).
+
+use tauri::{AppHandle, Manager, WebviewWindow};
+
+/// `#rrggbb` → Win32 COLORREF (0x00BBGGRR).
+pub fn colorref(hex: &str) -> Option<u32> {
+    let hex = hex.strip_prefix('#')?;
+    if hex.len() != 6 {
+        return None;
+    }
+    let v = u32::from_str_radix(hex, 16).ok()?;
+    let (r, g, b) = ((v >> 16) & 0xff, (v >> 8) & 0xff, v & 0xff);
+    Some((b << 16) | (g << 8) | r)
+}
+
+/// Caption, title-text and border colours for the theme. `None` resets that
+/// attribute to the Windows default, so a light app gets Windows' own light
+/// title bar; the violet border stays in both.
+pub fn title_bar_colors(dark: bool) -> [Option<&'static str>; 3] {
+    if dark {
+        [Some("#1f1d1a"), Some("#efe9de"), Some("#8B5CF6")]
+    } else {
+        [None, None, Some("#8B5CF6")]
+    }
+}
+
+/// Applies `title_bar_colors`. Windows 10 doesn't support these attributes
+/// and returns an error, which is ignored: the frame then just follows the
+/// system theme.
+#[cfg(windows)]
+pub fn brand_title_bar(window: &WebviewWindow, dark: bool) {
+    use windows::Win32::Foundation::HWND;
+    use windows::Win32::Graphics::Dwm::{
+        DwmSetWindowAttribute, DWMWA_BORDER_COLOR, DWMWA_CAPTION_COLOR, DWMWA_TEXT_COLOR,
+    };
+    // DWMWA_COLOR_DEFAULT: hand the attribute back to Windows.
+    const DEFAULT: u32 = 0xFFFF_FFFF;
+    let Ok(raw) = window.hwnd() else { return };
+    let hwnd = HWND(raw.0 as _);
+    let [caption, text, border] = title_bar_colors(dark);
+    for (attr, hex) in [
+        (DWMWA_CAPTION_COLOR, caption),
+        (DWMWA_TEXT_COLOR, text),
+        (DWMWA_BORDER_COLOR, border),
+    ] {
+        if let Some(color) = hex.map_or(Some(DEFAULT), colorref) {
+            unsafe {
+                let _ = DwmSetWindowAttribute(
+                    hwnd,
+                    attr,
+                    &color as *const u32 as *const _,
+                    std::mem::size_of::<u32>() as u32,
+                );
+            }
+        }
+    }
+}
+
+#[cfg(not(windows))]
+pub fn brand_title_bar(_window: &WebviewWindow, _dark: bool) {}
+
+/// What the window-state plugin remembers between runs: size, position,
+/// maximized and so on, but never visibility. Restoring "visible" showed the
+/// window on an autostart (`--hidden`) and before React had painted;
+/// `app_ready` and the tray decide when the window appears.
+pub fn window_state_flags() -> tauri_plugin_window_state::StateFlags {
+    tauri_plugin_window_state::StateFlags::all() & !tauri_plugin_window_state::StateFlags::VISIBLE
+}
+
+/// Startup: match the system theme until React reports the app's own.
+pub fn initial_dark(window: &WebviewWindow) -> bool {
+    window.theme().map_or(true, |t| t == tauri::Theme::Dark)
+}
+
+pub fn show_main_window(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
+/// If React never reports its first paint (a crash, a very slow machine),
+/// show the window anyway so the app can't stay invisible.
+pub fn show_fallback(app: &AppHandle) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_secs(3));
+        let state = app.state::<crate::state::AppState>();
+        if state.hidden_start.load(std::sync::atomic::Ordering::SeqCst) {
+            return;
+        }
+        if let Some(window) = app.get_webview_window("main") {
+            if !window.is_visible().unwrap_or(true) {
+                show_main_window(&app);
+            }
+        }
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn window_state_never_restores_visibility() {
+        // Restoring "visible" showed the window on an autostart (--hidden)
+        // and before React painted; app_ready decides when to show it.
+        let flags = window_state_flags();
+        assert!(!flags.contains(tauri_plugin_window_state::StateFlags::VISIBLE));
+        assert!(flags.contains(tauri_plugin_window_state::StateFlags::SIZE));
+        assert!(flags.contains(tauri_plugin_window_state::StateFlags::POSITION));
+        assert!(flags.contains(tauri_plugin_window_state::StateFlags::MAXIMIZED));
+    }
+
+    #[test]
+    fn hex_becomes_bgr() {
+        assert_eq!(colorref("#0b1022"), Some(0x0022_100b));
+        assert_eq!(colorref("#8B5CF6"), Some(0x00f6_5c8b));
+        assert_eq!(colorref("#e8e6ff"), Some(0x00ff_e6e8));
+    }
+
+    #[test]
+    fn title_bar_colors_follow_theme() {
+        assert_eq!(title_bar_colors(true), [Some("#1f1d1a"), Some("#efe9de"), Some("#8B5CF6")]);
+        // Light: caption and text go back to the Windows default.
+        assert_eq!(title_bar_colors(false), [None, None, Some("#8B5CF6")]);
+    }
+
+    #[test]
+    fn malformed_hex_is_rejected() {
+        assert_eq!(colorref("0b1022"), None);
+        assert_eq!(colorref("#fff"), None);
+        assert_eq!(colorref("#zzzzzz"), None);
+    }
+}

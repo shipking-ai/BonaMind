@@ -100,7 +100,7 @@ Don't copy their pattern.
 ## Dependency audit status (Sep 28, 2026)
 
 `npm audit --omit=dev` reports **0 vulnerabilities** in all three
-packages (`auramind-gemini/`, `api/`, and the repo root). The residuals
+packages (`bonamind-web/`, `api/`, and the repo root). The residuals
 listed in the August audit (js-yaml, ws/engine.io-client via puter.js,
 react-router 6.x) are resolved.
 

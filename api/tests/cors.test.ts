@@ -51,7 +51,7 @@ describe('CORS in production', () => {
     'https://www.bonamind.app',
     // The pre-migration domain, allowlisted while links to it are still in
     // circulation (see LEGACY_APP_ORIGIN).
-    'https://auramind.app',
+    'https://auramind.app', // legacy-name: ok
   ])(
     'allows %s',
     async (origin) => {
@@ -74,4 +74,20 @@ describe('CORS in production', () => {
       expect(headers['vary']).toBe('Origin');
     },
   );
+});
+
+describe('CORS allowed request headers', () => {
+  // Windows 2.3.4 and earlier send HTTP-Referer and X-Title on AI requests
+  // (OpenRouter attribution). Not allowing them failed the preflight from
+  // https://tauri.localhost, so every course failed to generate in installed
+  // copies. Newer clients drop them; the server accepts them for old ones.
+  it('allows the headers installed Windows apps send', async () => {
+    vi.stubEnv('VERCEL', '1');
+    const { run, headers } = preflight('https://tauri.localhost');
+    await run();
+    const allowed = headers['access-control-allow-headers'].toLowerCase().split(/\s*,\s*/);
+    for (const h of ['content-type', 'authorization', 'http-referer', 'x-title']) {
+      expect(allowed).toContain(h);
+    }
+  });
 });

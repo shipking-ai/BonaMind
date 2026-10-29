@@ -1,6 +1,6 @@
 # Handoff — BonaMind 2.0.0
 
-Written 2026-09-09; updated 2026-09-28 (FSRS scheduler repair, the iPhone app, one special capability per platform, a sideloadable IPA, Live Activity in CI, the admin oracle closed). Context for continuing this work in another tool.
+Written 2026-09-09; updated 2026-09-28 (FSRS scheduler repair, the iPhone app, one special capability per platform, a sideloadable IPA, Live Activity in CI, the admin oracle closed), 2026-10-11 (the native Expo app, part 1, and the shared `@bonamind/core`), 2026-10-12 (every claim re-verified against the code; the stale rows below corrected, the PR list refreshed, the BonaMind rebrand and the community tab recorded), 2026-10-20 (native app part 4: billing + review reminders), and 2026-10-21 (the web folder renamed `bonamind-web/`). Context for continuing this work in another tool.
 
 Read `CLAUDE.md` first for conventions, then `ARCHITECTURE.md` for structure.
 This file covers only what those two don't: current state, what's left, and
@@ -12,13 +12,14 @@ the traps that cost real time.
 
 | | |
 |---|---|
-| Version | 2.0.0 (root, app and Android now agree) |
-| Play | versionCode 7, closed testing (Alpha), **submitted for review 2026-09-16** |
-| Branch | `main`; open PRs (2026-09-28): #95 (HANDOFF update, conflicts with `main`), #100–#104 (Dependabot, `auramind-gemini/`) |
+| Version | 2.3.6 (root, app, Android and Wear agree; Windows reads it from `bonamind-web/package.json`). **Windows 2.3.5 published 2026-10-19** (`desktop-v2.3.5`, marked latest). 2.3.6 (tag `desktop-v2.3.6` once its PR merges) clears the 2.3.5 leftovers: Updates in Settings, the paper Quick Review card and drop overlay, file-named courses, the tray shortcut label, and Quick Review's stale cache. Play's versionCode 14 still says 2.0.0 |
+| Play | versionCode 14 (the BonaMind rename, built after #172 and #176), closed testing (Alpha), **rolled out and sent for review 2026-10-16** together with the BonaMind listing |
+| Branch | `main` at `03d102ed` (2026-10-18, through #181: the Windows app's own layout (#180) and its paper-and-ink look; the BonaMind rename finished in #177; #176 the Gradle heap fix). Repo renamed to `shipking-ai/BonaMind` 2026-10-13 |
 | CI | Node **22 + 24** (20 dropped, EOL); required checks are `build-and-test (22.x)` and `(24.x)` |
-| Migrations | all applied through `20260925_close_admin_oracle.sql` (verified live 2026-09-28) |
+| Migrations | all applied through `20260925_close_admin_oracle.sql` (verified live 2026-09-28); merged since: `20260929_cards_rls_owner_and_deck.sql` (#116) and `20260930_marketplace_fork_and_listing.sql` (#137) — **live application of those two not re-verified** |
 | iOS | builds and screenshots in CI (`mobile-ios.yml`); unsigned device IPA on demand; **never run on a real phone yet** |
-| Tests | 95 files / 733 declared cases (557 unit, 115 API, 61 Playwright). The seeded e2e specs skip in CI — they mint real accounts with the service-role key, which CI does not have |
+| Native app | `mobile/` (Expo SDK 57, RN 0.86) + `packages/core` (`@bonamind/core`). Part 1 merged (#156) and runs in Expo Go on a real iPhone; unsigned IPA built on `main` 2026-10-12. Part 2 (create a course on the phone) merged (#164). Part 3 (classes, server-graded quizzes) pushed 2026-10-21 with `b7b41d86` — see the 2026-10-19 section. Part 4 (billing card + Stripe checkout + daily review reminder) sits on `main` 2026-10-20 — see the 2026-10-20 section |
+| Tests | 137 files / 968 declared cases (734 unit, 155 API, 26 seeded Playwright, 53 in `packages/core`). The seeded e2e specs skip in CI — they mint real accounts with the service-role key, which CI does not have |
 
 ---
 
@@ -49,9 +50,9 @@ the traps that cost real time.
    `src/services/voice/aiVoice.ts`.
 7. **Put the iPhone build on a phone.** Everything iOS is CI-verified only.
    Run `mobile-ios.yml` (workflow_dispatch), download
-   `BonaMind-ios-unsigned-ipa`, sign it with Sideloadly and a free Apple ID —
+   `bonamind-ios-unsigned-ipa`, sign it with Sideloadly and a free Apple ID —
    full steps under "Getting the app onto an iPhone from Windows" below. The
-   three things that have never executed on hardware: Siri (`AuraMindIntents`),
+   three things that have never executed on hardware: Siri (`BonaMindIntents`),
    the Live Activity, and native dictation (`SFSpeechRecognizer`).
 8. **Apple Developer Program ($99/yr) is the only way past the 7-day wall.**
    A free Apple ID signature expires weekly, allows 3 sideloaded apps, and
@@ -59,6 +60,72 @@ the traps that cost real time.
    no APNs. Paying also unlocks TestFlight, where internal testers get builds
    without App Review. Nothing in the code depends on this; it's purely a
    distribution ceiling.
+9. ~~**Merge PR #156 (native app, part 1).**~~ Merged 2026-10-12. All checks green; `main` needs one
+   approving review and auto mode won't bypass it, so merge by hand (admin:
+   "Merge without waiting for requirements", squash). `mobile-builds.yml` can
+   only be dispatched once it is on `main`. Two more PRs are open and small —
+   worth the same sitting: **#157** (the Live Activity update must be ordered
+   after its start, iOS) and **#147** (Android release config hardening).
+10. **Native app owner items** (none block merging):
+    - ~~Supabase redirect URL `bonamind://auth/callback`~~ — added 2026-10-10.
+    - ~~Expo account~~ — `shipking-ai`, signed in on the dev PC and in Expo Go.
+    - E2E for `mobile-builds.yml`: secrets `E2E_EMAIL_IOS` and
+      `E2E_EMAIL_ANDROID` (`SUPABASE_SERVICE_ROLE_KEY` already exists), two
+      test accounts each with a course of 5+ cards.
+    - Android continuity (the Expo app ships as `com.auramind.app` to replace
+      the Capacitor build): upload the existing upload keystore to EAS and
+      set `ANDROID_VERSION_CODE` above the last Play build.
+    - Trademark search for "Linnea" before any store listing.
+11. ~~**Apex redirect broke the apps' API calls.**~~ Fixed 2026-10-15.
+    From 2026-10-11 Vercel 308-redirected `bonamind.app` to `www`; the
+    Android release build and `.env.desktop` call `https://bonamind.app`, and
+    a CORS preflight that gets a redirect fails (see the trap "A redirect on
+    the API host breaks every app"). The redirect was removed (Vercel project
+    `bonamind-web` → Domains: `bonamind.app` now serves Production
+    directly; `www.bonamind.app` serves too). Verified: preflights from
+    `https://localhost` and `https://tauri.localhost` to both hosts answer
+    204. **Don't re-add an apex↔www redirect** without moving every app's
+    API host first. Both hosts serving means no canonical redirect for SEO;
+    the code treats the apex as canonical (`api/_lib/origin.ts`
+    `APP_ORIGIN`, `src/lib/branding.ts` `PRODUCT_SITE_URL`). The native Expo
+    app calls `https://www.bonamind.app` (`EXPO_PUBLIC_API_BASE_URL`), which
+    also works.
+12. **Course creation on the phone (Part 2) needs the API deployed.** The app
+    calls the new `/api/extract/document` and `/api/extract/image` endpoints on
+    `www.bonamind.app`, so they work only after the Part 2 PR is merged and
+    Vercel deploys. Photo reading uses Gemini when **`GEMINI_API_KEY`** is set,
+    otherwise Groq's image model through the existing `GROQ_API_KEY` (default
+    `qwen/qwen3.8-27b`, swap with `GROQ_VISION_MODEL`; Gemini's with
+    `GEMINI_VISION_MODEL`). No new key is required.
+    Then make one course from each source in Expo Go and check it appears on
+    bonamind.app.
+13. **BonaMind rename, owner steps** (spec
+    `docs/superpowers/specs/2026-10-13-bonamind-rename-design.md`; all four
+    PRs merged — #168, #170, #172, #177):
+    - ~~Supabase redirect URL `bonamind://auth/callback`~~ — added. Keep the
+      `auramind://auth/callback` entry: older Windows installs still send it. <!-- legacy-name: ok -->
+    - **Play listing:** paste `store/android/listings/en-US/` (`title.txt`
+      "BonaMind", `full_description.txt`) and
+      `store/android/changelogs/en-US.txt`; replace the screenshots with
+      `store/graphics/android/screenshots/` (five, from the real app) and the
+      feature graphic with `store/graphics/android/feature-1024x500.png`.
+    - ~~**Android:** ship the post-PR3 build~~ — versionCode 14 rolled out on
+      Alpha and sent for review 2026-10-16 (the first two attempts ran out of
+      Gradle heap, see the trap "Signing the release bundle needs a 4 GB
+      heap"). Play warns that the bundle has native code without debug
+      symbols: the native code is AndroidX's (`libdatastore_shared_counter.so`,
+      `libandroidx.graphics.path.so`), not ours, so it only affects reading
+      crashes inside those libraries. `ndk { debugSymbolLevel 'SYMBOL_TABLE' }`
+      in the release build type would clear it on the next build.
+    - ~~**Windows:** first BonaMind release~~ — **2.3.4 published
+      2026-10-18** after four hand tests on the owner's PC (see the
+      "Windows 2.3.x hand test" entries). Installed copies update from
+      `latest.json` on the next check. Not yet hand-tested: tray menu and
+      notifications, Start with Windows across a sign-out, drop and the
+      Explorer "Make a course" entry. About → Check for updates can't be
+      reached in the Windows app (no link to `/about` from either settings
+      page, and `bonamind://app/about` is ignored); the update banner
+      (`DesktopUpdateBanner`) is the only path today.
 
 After the first publish, `status=completed` in the release workflow makes a
 dispatch go live without a console visit.
@@ -70,14 +137,14 @@ dispatch go live without a console visit.
 Nothing is broken. These are the next things worth doing, roughly in order of
 value:
 
-- **iOS app — builds in CI, not yet signed.** `auramind-gemini/ios/` (Capacitor
+- **iOS app — builds in CI, not yet signed.** `bonamind-web/ios/` (Capacitor
   8, Swift Package Manager, generated on Windows — no CocoaPods). The
   `Mobile iOS` workflow builds it unsigned on a GitHub Mac, runs it in an
   iPhone simulator and uploads a screenshot. What differs from Android:
   - Both apps share the phone layout; `src/lib/platform.ts` gates the
     Android-only parts (spoken reminders, widgets, push for now).
   - Listening: WKWebView exposes `webkitSpeechRecognition` but it never
-    returns results (WebKit bug 239816), so `AuraListenPlugin.swift`
+    returns results (WebKit bug 239816), so `BonaListenPlugin.swift`
     (SFSpeechRecognizer) is used; both apps now listen natively. App-local
     plugins register in `MainViewController.swift`. Needs a real iPhone to
     verify transcription.
@@ -104,7 +171,7 @@ value:
 
 - **Voice study listening on Android** (merged in #79).
   Android WebView has no `SpeechRecognition`, so spoken answers never worked
-  in the app. `AuraListenPlugin` wraps `SpeechRecognizer`;
+  in the app. `BonaListenPlugin` wraps `SpeechRecognizer`;
   `services/voice/nativeRecognition.ts` presents it in the Web Speech shape so
   `useVoiceStudy` is unchanged. Verified on the emulator: Android's mic prompt
   appears, *Don't allow* surfaces as `not-allowed`, and after allowing,
@@ -154,7 +221,7 @@ is unset.
 `window.speechSynthesis` and `SpeechRecognition` are both `undefined` inside
 the Capacitor app, while the same code works in Chrome. Every voice feature
 was silent on Android until 2026-09-17. All speaking now goes through
-`services/voice/speechOutput.ts` (native `AuraSpeechPlugin` on Android, Web
+`services/voice/speechOutput.ts` (native `BonaSpeechPlugin` on Android, Web
 Speech elsewhere). Don't call `window.speechSynthesis` directly.
 
 Related native traps:
@@ -218,6 +285,17 @@ directly. There is a regression test asserting the forged value is ignored.
 `versionCode` comes from `github.run_number`, which is monotonic. Don't
 hardcode it, and don't "reset" it.
 
+### Signing the release bundle needs a 4 GB heap
+
+On 2026-10-15 the release build failed twice at `:app:signReleaseBundle`
+with only "A failure occurred while executing
+FinalizeBundleTask$BundleToolRunnable". `--stacktrace` (now always on in
+`mobile-android.yml`) showed `java.lang.OutOfMemoryError: Java heap space`:
+signing reads the whole bundle, which carries ~77 MB of web assets (about
+50 MB of it the landing page's videos), and the 1.5 GB Gradle heap was no
+longer enough. `gradle.properties` now sets `-Xmx4g`. The same build passes
+locally, so a CI-only signing failure is this, not the keystore.
+
 ### A draft app only accepts draft releases
 
 Until one release is published by hand, Play rejects any other status:
@@ -257,7 +335,7 @@ reminder simply fires once and never again.
 Android 16's promoted (Live Update) notifications look like one API level.
 They aren't: `Notification.ProgressStyle` landed in 36, but
 `setRequestPromotedOngoing` only exists in **36.1**, and compileSdk 36 rev 2
-fails to compile a direct call. `AuraLiveUpdatePlugin.requestPromotion` calls
+fails to compile a direct call. `BonaLiveUpdatePlugin.requestPromotion` calls
 it reflectively and no-ops when absent, which also keeps the plugin working on
 older Androids. If a platform method "should exist" and doesn't, check it with
 `javap -classpath $ANDROID_HOME/platforms/android-36/android.jar` before
@@ -281,7 +359,7 @@ size in a normal page; the window itself needs a real Chrome or Edge.
 There is no Mac here, so `ios/App/App.xcodeproj/project.pbxproj` is edited as
 text. Every object needs a **globally unique 24-hex ID** — copying a nearby
 block and keeping its IDs produces a project that still parses and then builds
-the wrong file (this happened once with `AuraMindIntents.swift` inheriting
+the wrong file (this happened once with `AuraMindIntents.swift` inheriting <!-- legacy-name: ok -->
 `MainViewController.swift`'s IDs). After any pbxproj edit, check: unique keys,
 no reference to an undefined ID, balanced braces. CI is a slow way to find out.
 
@@ -316,6 +394,203 @@ indexing it is a type error that only `tsc` sees — the tests pass locally and
 the PR fails on type-check. Run `npm run type-check` after *adding tests*, not
 only after changing source.
 
+### A root gesture recognizer eats every tap on iOS (native app)
+
+`AuroraScreen` once wrapped the whole app in a `GestureDetector` with
+`Gesture.Manual()` so the glow could follow the finger. On iOS that
+recognizer begins on *every* touch, and UIKit then cancels the touch in the
+view underneath: no `Pressable` fired and the Turnstile web view never got its
+tap. Jest can't see this (gesture-handler is mocked); only a phone does. To
+observe touches app-wide, use the passive `onTouchStart`/`onTouchMove` View
+props, which never claim the responder. Keep real gestures (`CardStack`)
+scoped to the view they belong to.
+
+### `Stack.Protected` drops a redirect it refuses
+
+`src/app/index.tsx` redirected to `/today` unconditionally. Signed out, the
+guard refuses `/today` and the redirect is silently dropped, leaving the app
+on the empty index route: aurora only, no sign-in. Redirect targets must be
+chosen from the auth state.
+
+### Turnstile retries itself; don't rebuild it on error
+
+The widget's `error-callback` fires on transient failures that Turnstile then
+retries (`retry: 'auto'`). Remounting the web view on each one made the check
+flash and restart forever. Drop the token on error or expiry and keep the
+widget; rebuild it only after a sign-in attempt has spent the single-use
+token.
+
+"Unable to connect to website" in the widget had two causes, fixed
+2026-10-11:
+- **Hostname allowlist.** The Turnstile widget in Cloudflare still listed the
+  old domain after the move to `bonamind.app`. The native app's widget runs
+  with `baseUrl: https://bonamind.app`, so that hostname must be allowed.
+  Re-check this on any future domain change.
+- **WebView allowlist.** react-native-webview checks `originWhitelist` on
+  *every* navigation, iframes included, and only `about:blank` is implicitly
+  allowed. Turnstile's challenge also uses `about:srcdoc`, which
+  `['https://*']` refused. `allowTurnstileNavigation` in
+  `mobile/src/auth/TurnstileGate.tsx` now decides each request instead.
+
+### A cross-host redirect strips the API token (native app)
+
+`https://bonamind.app/api/...` answers 308 to `www.bonamind.app`. Fetch
+drops `Authorization` on a cross-origin redirect, and on the phone the
+redirected streaming POST to `/api/ai/chat/stream` never answered: Prof.
+Linnea sat on "Thinking…" forever. Point API clients at the host that serves
+(`curl -sI https://bonamind.app/` shows which), never one that redirects.
+
+### The AI proxy reports failures inside a 200 stream
+
+When every provider fails, `api/_aiHandler.ts` still answers 200 and writes
+`data: {"error": "..."}` then `[DONE]`. A client that reads only
+`choices[0].delta.content` sees an empty reply. `streamLinnea` in
+`packages/core` now throws `unavailable` on an in-stream error and `busy` on a
+reply with no words; the app also abandons a reply that is silent for 30 s.
+
+### `isFetchedAfterMount` can wait forever inside `staleTime`
+
+The study screen waited for `isFetchedAfterMount` so it would build the queue
+from fresh data. With `staleTime: 30_000`, opening it within 30 s of Today's
+fetch triggers no refetch, so the flag never turns true: a black screen.
+Screens that need fresh data pass `{ refetchOnMount: 'always' }` to
+`useCards` / `useFsrsProfile`, and the study screen falls back to the cached
+copy after 6 s regardless.
+
+### `formSheet` with detents collapses a flex layout (native app)
+
+The Linnea chat was a react-native-screens `formSheet` with
+`sheetAllowedDetents: [0.5, 1]` and a transparent background. On iOS the
+column collapsed: the message list drew over the header, and Today showed
+through the sheet. It is now `presentation: 'modal'` (an iOS page sheet) with
+its own night background and aurora. Re-test layout on a device before going
+back to detents.
+
+### A swipe that "does nothing" on the study card (native app)
+
+Three separate causes, all fixed 2026-10-12. Check all three before blaming
+gesture-handler:
+- **A scroll view inside the card.** Each face's text sits in a `ScrollView`
+  so long cards can scroll. On iOS a scroll view that can scroll *or bounce*
+  claims the drag before the card's `Gesture.Pan` sees it. `FaceBody` in
+  `CardStack.tsx` enables scrolling and bouncing only when the text overflows.
+- **Swiping the question.** Swipes rate only after the answer is shown, so a
+  swipe on the question rubber-banded back. That read as broken. A full
+  swipe on the question now flips the card. It still never rates a card whose
+  answer hasn't been seen.
+- **Waiting on the save.** `StudyScreen` awaited the outbox write before
+  re-rendering, so a slow or failing SQLite write held the next card back.
+  `session.rate` advances the queue synchronously; the screen now re-renders
+  first and awaits the save after, reporting a failure to Sentry.
+
+### Two Turnstile site keys are in circulation
+
+`mobile-android.yml` and `mobile-ios.yml` hardcode one public Turnstile site
+key for the Capacitor builds (`0x4AAAAAAAEsHm7dsqEhBi3Nr`).
+`bonamind-web/.env` holds a different one. The native app (`mobile/.env.local`, copied
+from that `.env`) signs in successfully with the `.env` key, so
+`mobile-builds.yml` now uses that one too (2026-10-12). Whether the Capacitor
+key is stale is unverified. If the Capacitor apps' human check fails, compare
+it with the key in the Cloudflare dashboard. A key whose widget lacks the
+app's hostname shows "Unable to connect to website".
+
+### The dependency audit fails PRs that didn't touch dependencies
+
+`Dependency audit (prod deps, critical gate)` runs `npm audit --omit=dev
+--audit-level=critical` for `bonamind-web/` and `api/` on every PR. A newly
+published critical advisory therefore fails whichever PR runs next, whatever
+that PR changed. On 2026-10-12 it was `proxy-addr` ≤ 2.0.7 (GHSA-jqcg-44mw-7w3h),
+pulled in through Express in both packages (shadcn → MCP SDK → express on the
+website). `npm audit fix` (never `--force`) in the failing package, then run
+the type-check, tests and build.
+
+### Don't roll back the rename's storage migration; roll forward
+
+Once the PR1 web deploy has run on a browser, that browser's settings,
+saved chats and local XP live under `bonamind…` keys only. A Vercel instant
+rollback to an older build would read the old `auramind…` keys, find nothing, <!-- legacy-name: ok -->
+and show every returning user default settings: theme, consent banner, an
+empty chat history. Rolling forward again doesn't recover what they changed
+in between, because the migration's run-once marker is already set.
+
+Queued offline reviews are safe either way. The IndexedDB move never deletes
+a database and drains the old one again on every launch. If PR1's web build
+misbehaves, ship a fix forward.
+
+### The widget and Wear tile keep their pre-rename class names
+
+Android finds a placed home-screen widget, and Wear OS an added tile, by the
+class name registered in the manifest. `AuraMindWidgetProvider` and <!-- legacy-name: ok -->
+`AuraMindTileService` are now empty subclasses of the `BonaMind*` classes. <!-- legacy-name: ok -->
+**Never rename or delete them, and never register the BonaMind classes
+instead.** That silently removes the widget or tile from every user's screen.
+Code that asks Android about placed widgets or tiles must name the registered
+class (`new ComponentName(context, AuraMindWidgetProvider.class)`, <!-- legacy-name: ok -->
+`requestUpdate(AuraMindTileService::class.java)`). <!-- legacy-name: ok -->
+
+### The old repo URL must never be reused
+
+Installed Windows apps check `shipking-ai/AuraMind-App-2` for updates until <!-- legacy-name: ok -->
+they update once. GitHub redirects that URL to `shipking-ai/BonaMind` only
+while no repo of the old name exists. **Don't create a repo called
+`AuraMind-App-2`.** <!-- legacy-name: ok -->
+
+### Pre-rename names live in one web file
+
+The rename to BonaMind moved every stored key from `auramind…` to <!-- legacy-name: ok -->
+`bonamind…`. `bonamind-web/src/lib/legacyNames.ts` is the **only** web
+source file allowed to spell a pre-rename name, and
+`src/__tests__/legacyStorageNames.test.ts` fails CI on any other. It holds the
+migration's old prefix and the old link scheme. It also holds names that can
+never change: `urn:auramind:classroom:*` (raised by an applied migration), the <!-- legacy-name: ok -->
+Windows widget tag `auramind-due` (the widget board finds pinned widgets by <!-- legacy-name: ok -->
+tag), and the owner's Google Group address. Don't "finish the rename" on
+those. Other permanent names are listed in the spec's "What never changes"
+table: `com.auramind.app`, the signing-key alias `auramind-upload`, the Wear
+paths `/auramind/sync` and `/auramind/grade`, the notification channel
+`auramind_study_session` and `auramind_biometric_creds`.
+
+### A redirect on the API host breaks every app
+
+The Android, iOS and Windows apps run the site from their own origin
+(`https://localhost`, `capacitor://localhost`, `https://tauri.localhost`) and
+call the API on another host. Every signed-in call carries an
+`Authorization` header, so the web view first sends a CORS preflight
+(`OPTIONS`), and **a preflight that gets any redirect fails** — the app
+launches and looks fine, but AI, chat, Stripe and account calls all error.
+So the host in `VITE_API_BASE_URL` (the Android release workflow,
+`.env.desktop`) must answer directly. Check it with
+`curl -X OPTIONS -H "Origin: https://localhost" -H "Access-Control-Request-Method: POST" -I https://<host>/api/ai/chat`:
+204 is right, 30x is this trap. `desktopIdentity.test.ts` keeps the Windows
+and Android hosts identical; the domain setting itself lives in Vercel.
+
+### The brand guard (`scripts/check-brand.mjs`)
+
+CI fails any line in a tracked file that says `AuraMind`, `auramind`, <!-- legacy-name: ok -->
+`Prof. Aura` or `ProfAura` outside the allow-list (run it locally with <!-- legacy-name: ok -->
+`node scripts/check-brand.mjs`). Permanent names (`com.auramind.app`, the <!-- legacy-name: ok -->
+folder name, the signing alias, the Wear paths, applied migrations, …) are
+allow-listed in the script, each with its reason. Code that exists to read
+or accept an old name carries the marker `legacy-name: ok` in a comment on
+the same line. Adding an allow-list entry is the owner's decision, never a
+way to turn CI green; it needs a one-line reason and a test case in
+`scripts/check-brand.test.mjs`.
+
+### Full website suite timeouts on this PC
+
+`npx vitest run` in `bonamind-web/` on this machine sometimes ends with a
+few "Test timed out" and "Worker forks emitted error" failures in different
+files each run (androidNative, desktopShell, analyticsFunnel, realtimeE2E…).
+Rerun the named files alone before suspecting a change. They pass alone, and
+CI is the arbiter.
+
+### `@types/jest` 30 breaks Jest 29's failure output
+
+`jest-expo` runs Jest 29. `@types/jest@30` hoists `expect@30` and
+`jest-message-util@30`, and any failing suite then prints only
+`isError is not a function` with no assertion or stack. Keep `@types/jest` at
+the version `npx expo install --check` expects (29.5.14 for SDK 57).
+
 ---
 
 ## Environment quirks (this machine)
@@ -332,6 +607,16 @@ only after changing source.
 - **Claude Code's auto mode blocks** `gh pr merge` on unreviewed PRs,
   branch-protection edits and production migrations. Those are done by hand
   (or allowed in permission settings).
+- **`npx expo login -b` crashes on Windows.** The CLI opens the URL with
+  `cmd /c start`, which splits it at the first `&`, so the browser never opens
+  and the callback server dies. Use plain `npx expo login` (username +
+  password) or an `EXPO_TOKEN` access token.
+- **Expo Go requires sign-in** on both the phone and the CLI before it will
+  open a project ("You need to be signed in to Expo Go and Expo CLI").
+- **`npx expo install` fails with `EALLOWSCRIPTS`** under this machine's npm
+  allow-scripts policy. Use `npm install <pkg>@<version expo expects>`.
+- **The iMac is a Late 2013 on Catalina** (Xcode 12.4 max) and cannot build
+  the iOS app. iOS builds run on GitHub's macOS runners (or EAS).
 
 ---
 
@@ -340,14 +625,14 @@ only after changing source.
 `onboarding.spec.ts` and `spark.spec.ts` mint real accounts with the
 service-role key from the root `.env`; without it (CI) they skip. They need
 the Vite dev server on 3001 (the spark force hook is dev-only) and the API
-somewhere else — `auramind-gemini/.env` points the `/api` proxy at 3001, i.e.
+somewhere else — `bonamind-web/.env` points the `/api` proxy at 3001, i.e.
 at Vite itself, which hangs every API call. Run the API on 3002 and override
 the proxy:
 
 ```bash
 cd api && PORT=3002 npx tsx server.js
-cd auramind-gemini && VITE_API_PROXY_TARGET=http://localhost:3002 npm run dev -- --port 3001
-cd auramind-gemini && npx playwright test e2e/onboarding.spec.ts e2e/spark.spec.ts
+cd bonamind-web && VITE_API_PROXY_TARGET=http://localhost:3002 npm run dev -- --port 3001
+cd bonamind-web && npx playwright test e2e/onboarding.spec.ts e2e/spark.spec.ts
 ```
 
 ---
@@ -360,7 +645,7 @@ measured.
 
 ```bash
 # build, install, launch
-cd auramind-gemini
+cd bonamind-web
 npm run build:apk:debug
 adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 adb shell am start -n com.bonamind.app.debug/com.bonamind.app.MainActivity
@@ -372,7 +657,7 @@ adb forward tcp:9222 localabstract:webview_devtools_remote_$(adb shell pidof com
 Then drive it with Playwright over `connectOverCDP('http://127.0.0.1:9222')`,
 or evaluate directly over the page's `webSocketDebuggerUrl` (from
 `curl localhost:9222/json`) to call plugins, e.g.
-`window.Capacitor.Plugins.AuraSpeech.speak({ text: 'hi' })`. Audio can't be
+`window.Capacitor.Plugins.BonaSpeech.speak({ text: 'hi' })`. Audio can't be
 heard, but `adb shell dumpsys audio` lists the playing track and its usage.
 Navigate by URL rather than tapping coordinates — blind taps on a live account
 deleted a card during this work.
@@ -390,7 +675,7 @@ Everything iOS happens on GitHub's macOS runners via `.github/workflows/mobile-i
 - **`ios-simulator`** — builds for the simulator, boots it, and screenshots
   the `/__preview/ios` tour. This is the fast loop: push, read the artifact.
 - **`ios-device-ipa`** (workflow_dispatch) — builds `-sdk iphoneos` with
-  `CODE_SIGNING_ALLOWED=NO`, asserts `App.app/PlugIns/AuraMindWidgets.appex`
+  `CODE_SIGNING_ALLOWED=NO`, asserts `App.app/PlugIns/BonaMindWidgets.appex`
   exists, and zips `Payload/` by hand into `BonaMind-unsigned.ipa`. It uses
   `build`, not `archive`: with signing off, archiving doesn't reliably place
   `App.app` in the `.xcarchive`.
@@ -405,7 +690,7 @@ types line up and nothing else.
 ### Getting the app onto an iPhone from Windows
 
 1. Run `mobile-ios.yml` (Actions → Run workflow), then
-   `gh run download <id> -n BonaMind-ios-unsigned-ipa -D <dir>`. `gh` unzips
+   `gh run download <id> -n bonamind-ios-unsigned-ipa -D <dir>`. `gh` unzips
    the artifact, so what lands is the real `.ipa`, ~70 MB.
 2. Install **Sideloadly**. It needs Apple's own iTunes *and* iCloud from
    apple.com — the Microsoft Store versions don't expose the device.
@@ -441,6 +726,436 @@ app plus its extension burn two per sideload.
   ts-fsrs; bad intervals in production were repaired by migration
 - **Authorization** — the admin oracle (`is_admin(uuid)`) is closed to clients,
   and role and entitlement are read from `app_metadata` only
+- **Identity** — the product is BonaMind now (#139, #143–#145, merged
+  2026-10-04): the app name and the domain moved to bonamind.app through
+  single-source-of-truth constants. `auramind` survives only where Play <!-- legacy-name: ok -->
+  already keyed it — the Android package (`com.auramind.app`) and the CI
+  artifact names (`auramind-ios-unsigned-ipa`). The Windows/`AuraMind-windows` <!-- legacy-name: ok -->
+  checkouts predate this and still carry the old names.
+- **Community tab** (#137) — browse and fork published decks, migration
+  `20260930_marketplace_fork_and_listing.sql`.
+
+---
+
+## 2026-10-19 - Windows 2.3.6: the 2.3.5 leftovers
+
+- **Course names from files:** `courseTitleFromFileName` ("water-cycle.pdf"
+  → "Water cycle"), used for documents and recordings.
+- **Generator type switch** clears only the generated result
+  (`clearGenerated`), not the topic or a handed-in file. Checked headless
+  against `/__e2e/windows?screen=create`.
+- **Tray label:** `TrayHandles.quick_review`; `set_shortcut` updates the
+  item's accelerator (and resets it to the default when a change fails).
+  Not hand-checked (the agent can't open the tray menu).
+- **Updates in Settings** (`WindowsUpdates.tsx`, on `lib/desktopUpdater`):
+  version, Check for updates, Restart and update, an error alert.
+- **Quick Review panel:** paper index card (`.qr-*` in windows.css); the
+  page adds `platform-desktop` to its own `<html>` (DesktopChrome doesn't
+  run there); the window no longer applies acrylic, and `window-vibrancy`
+  is gone. It also **clears the card cache before each load**: like the
+  main-window bug fixed in 2.3.4, cards studied in the main window came
+  back in the panel from its own cache.
+- **Drop overlay:** `.drop-overlay*` hooks restyled under
+  `html.platform-desktop` only; the website keeps its look.
+
+---
+
+## 2026-10-19 - Windows 2.3.5 verified and published
+
+On the installed 2.3.5 release build: Explorer's "Make a course" loaded
+`water-cycle.pdf`, Flashcards generated five cards grounded in it, and
+"Save as Deck" created the course; dragging the PDF onto the window shows
+"Drop to make a course" and loads it (a small drag-source helper stood in
+for Explorer, which the test harness can only click); ✕ hides to the tray;
+`--hidden` stays hidden. The API's new CORS headers are live.
+
+Not tested by the agent: the tray menu (right-click on the taskbar is
+blocked for it) and notifications. The small leftovers listed at the time
+were fixed in 2.3.6 (next entry up).
+
+---
+
+## 2026-10-18 - Windows 2.3.4: the rest of the checklist
+
+A test PDF (`Documents/BonaMind test/water-cycle.pdf`, two pages of notes)
+and the remaining checklist items, on the published 2.3.4 and a local
+build:
+
+- **Explorer verb** is registered for .pdf and the other types
+  (`--create "%1"`), and running it hands the file to New course, warm or
+  hidden. But **every PDF failed** ("Failed to extract text from PDF"):
+  `pdfService` loaded pdf.js's worker from unpkg as `pdf.worker.min.js`,
+  which pdf.js 4+ doesn't publish (404; it's `.mjs`), and the Windows CSP
+  (`worker-src 'self' blob:`) would block a CDN anyway. Broken on the web
+  and Android too. Fixed by bundling the worker (`?url` import);
+  `pdfWorker.test.ts`. Verified on a local build: the file loads.
+- **Generating anything failed** in the Windows app ("Failed to generate
+  content. Please check your connection"), a plain topic included. The AI
+  client sent `HTTP-Referer` and `X-Title` (OpenRouter attribution) to
+  `https://bonamind.app/api/ai/*`; from `https://tauri.localhost` that
+  needs a preflight, and `api/_middleware.ts` allowed only Content-Type,
+  Authorization and X-Requested-With, so the browser blocked it. The
+  website is same-origin and was unaffected; Android may be too if
+  Capacitor's native HTTP carries the request (unverified). Fixed both
+  ways: the client sends only Authorization and Content-Type
+  (`bonaAiService.test.ts`), and the API allows the two headers for
+  installed 2.3.4 copies (`api/tests/cors.test.ts`). **The API change
+  takes effect on the next Vercel deploy of `main`.** Not yet re-verified
+  end to end in the app.
+- **Start with Windows** writes `BonaMind = ...bonamind-desktop.exe
+  --hidden` to the Run key, but `--hidden` still showed the window:
+  `tauri_plugin_window_state` restored `"visible": true` from
+  `.window-state.json`. Now `chrome::window_state_flags()` (everything
+  but VISIBLE), with a test. Verified on a local build: started hidden,
+  the window stays hidden. (The test's Run entry was removed afterwards;
+  the owner had it off.)
+- **Library → Delete** asks first (checked on 2.3.3).
+- Still not done: dropping a file on the window (Explorer can't be dragged
+  by the test harness; a drag helper exists in the session scratchpad),
+  the tray menu (behind other windows), notifications.
+- Small, not fixed: switching Quiz → Flashcards in the generator clears a
+  file handed in from Explorer.
+
+---
+
+## 2026-10-18 - Windows 2.3.3 hand test
+
+The release build of 2.3.3: Quick Review opens signed in with due cards,
+Esc hides it, the app stays responsive. The owner said the account's
+cards are test data, so this run graded and tried Delete:
+
+- **Library → Delete** asks first ("Its cards are deleted too. This can't
+  be undone."); Cancel keeps the course.
+- **Rating in Quick Review saved but the main window didn't move** (Today
+  stayed at 30 until a restart showed 29). `cards-changed` did arrive (a
+  `bonamind://` deep link proved the event path), but the reload went
+  through `cardService.fetchCards`, which returns its in-memory cache; the
+  rating was written from the panel's own window, so the main window's
+  cache was stale. The `cards-changed` handler now calls
+  `dbService.clearCache()` before `refreshWorkspace()` (test asserts the
+  order). Verified on a local build: one rating took Today from 29 to 28
+  and SQL from 10 to 9 due without a restart.
+
+Still for the owner: tray menu and notifications, Start with Windows,
+drop and the Explorer menu, Check for updates (needs a published
+release).
+
+---
+
+## 2026-10-18 - Windows 2.3.2 hand test: Quick Review
+
+2.3.2's fixes hold: the launch title is "Today · BonaMind", and Settings
+warns that another app owns Ctrl+Alt+Space. With the shortcut changed to
+Ctrl+Shift+F8 (Ctrl+Alt+Q is taken on this PC too), Quick Review was
+broken twice over:
+
+- **It froze the app.** The first press created the panel's window and
+  then the process stopped responding (Windows showed a `dwm` ghost
+  window). `quick_review::show` / `toggle` ran in the shortcut, tray and
+  notification handlers on the main thread, and building a webview there
+  waits on WebView2, which needs that same thread. They now run on their
+  own thread; Tauri sends each window call back to the main thread.
+- **It showed an old 404.** The panel's builder lacked
+  `use_https_scheme(true)`, so it loaded `http://tauri.localhost` while the
+  main window is `https://` (`useHttpsScheme` in tauri.conf.json): no
+  sign-in, and the June build's service worker, still registered on the
+  http origin, served a stale app. `quick_review::USE_HTTPS_SCHEME`, with a
+  test that it matches the main window's config.
+
+Verified on a local `tauri build --no-bundle`: the panel opens bottom-right
+above the taskbar, signed in, with due cards; Space flips, Esc hides, the
+shortcut reopens it, and the app stays responsive. Grading was skipped.
+
+Still for the owner: rating in Quick Review (the tray count should drop),
+Delete's confirm, tray and notifications (their "Quick review" now goes
+through the same fixed path), Start with Windows, drop and the Explorer
+menu, Check for updates. The panel still uses the old navy look, and the
+tray menu always labels Quick review "Ctrl+Alt+Space" even after a change.
+
+---
+
+## 2026-10-18 - Windows 2.3.1 hand test
+
+The `desktop-v2.3.1` draft, installed silently (`/S`) over 2.3.0 on the
+owner's PC. The 2.3.0 fixes hold: the Windows settings rows, the Study
+Coach pill and the Library count are readable in light mode.
+
+Found and fixed (2.3.2):
+- **Quick Review never opened on this PC.** Another app already owns
+  Ctrl+Alt+Space (still taken with BonaMind closed; Claude's desktop quick
+  entry uses it), so startup registration failed quietly and Settings
+  showed a shortcut that did nothing. New command `shortcut_registered`
+  (the plugin's `is_registered`, false when `register` failed); Settings
+  warns under Quick Review shortcut. Synthetic key presses do reach global
+  hotkeys (a test hotkey registered from PowerShell fired), so this was
+  not the test harness.
+- **Launch title said "BonaMind".** The app lands on "/" and redirects to
+  "/dashboard"; the two `setTitle` calls went out together and the stale
+  one won. `desktop.setTitle` now sends titles one at a time.
+
+Still for the owner: Quick Review itself (choose another shortcut in
+Settings, or use the tray), Delete's confirm, tray and notifications,
+Start with Windows, drop and the Explorer menu, Check for updates. The
+launch splash is still the old near-black loader with a violet glow
+(index.html), which flashes before the paper look in light mode.
+
+---
+
+## 2026-10-18 - Windows 2.3.0 hand test
+
+The `desktop-v2.3.0` draft, installed on the owner's Windows 11 PC and
+driven by computer use against `docs/windows-app-checklist.md`.
+
+Passed: no admin prompt (installed per user), dark title bar (warm grey,
+violet border), light title bar (Windows' own), Today (due count, minutes,
+course table, streak and "remembered this week"), sidebar and Ctrl+B,
+collapse below ~900px and restore, Library search, Sort and right-click
+menu, a study session inside the window (Space shows the handwritten
+answer, 1–4 show intervals, Esc ends), Settings and Ctrl+,, Ctrl+N, the
+Light / System switch, New course and Linnea in light, no browser menu on
+empty space, the taskbar badge ("9+"), and `bonamind://app/study`.
+
+Found and fixed (2.3.1):
+- Light mode, Settings → Windows: the Change button (white text), the
+  shortcut chip and the off Start with Windows switch were near invisible;
+  the divider under the shortcut row was dark.
+- Light mode, Linnea: the selected Study Coach / Companion pill had pale
+  violet text on paper.
+- Library status bar said "1 cards due".
+- The window title said "Home · BonaMind" on Today.
+
+Not checked by the agent, for the owner: Delete's confirm (the permission
+classifier blocks clicking Delete on real data), Quick Review (the global
+shortcut is registered, but synthetic key presses don't reach global
+hotkeys and the tray menu was behind the Claude window), tray menu and
+notifications, Start with Windows across a sign-out, two monitors, drop and
+Explorer "Make a course with BonaMind", About → Check for updates, and
+Google sign-in. Grading was skipped so the owner's review schedule did not
+change.
+
+---
+
+## 2026-10-16 - Windows app: the look (paper, ink, index card)
+
+The first Windows layout read as generic ("AI slop": rounded cards, violet
+buttons everywhere). It now has a point of view, combining three directions
+the owner picked from:
+
+- **Structure from Windows itself:** a command bar on top (the page's main
+  actions), details lists with columns (Course / Due / Cards / Last
+  studied), a status bar at the bottom (streak, weekly recall, key hints).
+- **Feel from paper and ink:** light mode is warm paper (`#f6f3ec`), dark
+  mode a warm desk (`#262420`), not navy. Headlines and numbers use a serif
+  (`--win-serif`, Georgia); rules instead of boxes; primary buttons are ink.
+  Violet appears only as the marker on the current sidebar place and as
+  link underlines.
+- **The index card only where you study:** the session shows a ruled index
+  card (red top line, blue rules); the question in the serif, the answer in
+  a handwriting face (`Ink Free`, built into Windows). Text sits on the
+  rules: they fall at 29px + 30n under a 44px header band, so the question
+  starts 15px below it and every line is 30px.
+- **Window frame:** the dark title bar is the desk colour (`#1f1d1a`) and
+  the window background matches the theme (`#f6f3ec` / `#262420`, also the
+  launch colour in `tauri.conf.json`).
+- **Reused pages (Create, Linnea):** `windows-reused.css` turns gradient
+  headline text into ink, removes violet glows, makes the violet action
+  buttons ink, sets their headings in the serif, and pads them. Their
+  violet selection tints remain until Phase 2 rebuilds them.
+- The sidebar's "Create" is now **New course**; Today has no greeting.
+
+## 2026-10-16 - Windows app: its own simple, Windows 11-style layout
+
+Spec `docs/superpowers/specs/2026-10-16-windows-native-shell-design.md`,
+plan `docs/superpowers/plans/2026-10-16-windows-native-shell.md`. The
+Windows app no longer looks like the website in a window.
+
+- **Where it lives:** `bonamind-web/src/components/windows/`. Chosen the
+  way the iPhone app is: `NovaDashboardShell` returns `WindowsShell` when
+  `shouldUseWindowsShell(pathname)` (Windows app, not `/admin`), and
+  `NovaHub` picks `WindowsToday` / `WindowsLibrary` / `WindowsSettings`;
+  `StudyModePage` keeps the engine and draws `WindowsStudySession` /
+  `WindowsStudyComplete` / `WindowsStudyEmpty` (`studyDesign()`).
+  `/dashboard/study` redirects to Today on Windows.
+- **Sidebar:** Today, Library, Create, Linnea, Classes (members only,
+  `useClassMembership`), Settings. ☰ / Ctrl+B collapse it
+  (`bonamind_win_sidebar`); under 900px it collapses without saving.
+- **Theme:** on Windows the theme default is `system` and auto night mode is
+  off (`themeDefaults()` in `lib/appPreferences.ts`), so the app follows
+  Windows live. `desktop.applyTheme` sets the window theme and background,
+  and the Rust command `set_title_bar_theme` recolours the title bar
+  (`chrome.rs` `title_bar_colors`; light hands caption and text back to
+  Windows). `tauri.conf.json` no longer forces `"theme": "Dark"`.
+- **Styles:** `src/styles/windows.css` (variables, shell, building blocks)
+  and `src/styles/windows-reused.css`, which re-maps the hard-coded dark
+  colours of the reused Create, Linnea and Classes pages inside the shell.
+  The chat's `android-chat-*` classes get `!important` overrides there
+  because `platform-styles.css` repaints them navy with `!important`.
+- **No custom cursor on Windows:** `CustomCursor` hid the Windows pointer
+  (`cursor: none`); it now stays off in the Windows app.
+- **Seeing it without the app or an account:** the dev-only route
+  `/__e2e/windows?screen=today|library|session|answer|complete|settings|chat|create`
+  renders the screens with sample data; `node scripts/capture-windows-screens.mjs`
+  (in `bonamind-web/`, with `npm run dev` running) screenshots them in
+  light and dark into `.superpowers/windows-screens/` (git-ignored).
+- **Trap — two key handlers:** `StudyModePage` has its own window keydown
+  handler (Space flips, 1–4 rate). Any platform session screen that handles
+  keys itself must switch it off, or Space flips twice (the answer never
+  shows) and every grade is saved twice. It stands down when `windowsDesign`
+  is true; `windowsStudyKeys.test.tsx` renders the real page to pin it.
+- **Trap — don't pin the window theme for "System":** `getCurrentWindow().setTheme('dark')`
+  makes Tauri set WebView2's `PreferredColorScheme`, after which
+  `prefers-color-scheme` stops following Windows (the app followed only the
+  first switch). `desktop.applyTheme(theme, followSystem)` passes `null`
+  for System; only an explicit Light/Dark (or auto night mode) pins it.
+- **Not done (Phase 2, once there is usage):** Windows-native Create and
+  Prof. Linnea (they are the website pages, restyled), reminders inside the
+  Windows Settings (it links to the full settings page), and the Study Float
+  button (Document PiP needs a real browser window).
+
+## 2026-10-15 - BonaMind rename, PR4: brand guard and docs (rename done)
+
+- **Rename — done.** With this PR every surface, doc and workflow says
+  BonaMind and Prof. Linnea; the old names survive only on the guard's
+  allow-list or on lines marked `legacy-name: ok`.
+- **Guard:** `scripts/check-brand.mjs` (+ `node:test` cases in
+  `scripts/check-brand.test.mjs`), run in both required `build-and-test` CI jobs. See the trap
+  "The brand guard".
+- **Docs and URLs:** README, CLAUDE.md, ARCHITECTURE, CONTRIBUTING (clone
+  `shipking-ai/BonaMind`), DEPLOYMENT, the issue-template links, root
+  `package.json` repository/bugs, the iOS artifact names
+  (`bonamind-ios-unsigned-ipa`, `bonamind-ios-live-reload-ipa`), the API's
+  service name (`bonamind-api`) and export filename, and a CHANGELOG
+  `### BonaMind rename` entry.
+- **Fixed on the way:** `.env.desktop` called the retired domain, which now <!-- legacy-name: ok -->
+  301s, so a Windows build made from it would have failed every signed-in
+  API call (preflight + redirect; see the trap). It now uses the Android
+  build's host. DEPLOYMENT.md named the updater key file wrongly.
+- **README banner:** `docs/assets/banner.png` still showed the old wordmark
+  (binary files are outside the guard's scan). It is now rendered from
+  `banner.svg` by `bonamind-web/scripts/render-banner.mjs` (Playwright,
+  run on Windows for Segoe UI); edit the SVG, then re-run the script. The
+  platform line now reads WEB · ANDROID · iOS · WINDOWS.
+- **Owner decisions (2026-10-15):** `LICENSE` now names BonaMind as the
+  product and mark (CogniVect and the terms unchanged), and `src/lib/seo.ts`
+  no longer sets `twitter:site`/`twitter:creator` — there is no BonaMind
+  account, and the old handle would point link previews at the old brand.
+
+## 2026-10-14 - BonaMind rename, PR3: code names and bonamind:// links
+
+- **Web.** The code names change, and `src/__tests__/codeNames.test.ts` enforces it:
+  - `ProfAura*` → `ProfLinnea*`, `AuraChatMode` → `LinneaChatMode`; <!-- legacy-name: ok -->
+  - the Capacitor plugins `AuraSpeech`/`AuraListen`/`AuraLiveActivity`/`AuraLiveUpdate`/`AuraDevice` → `Bona*`;
+  - `auraAiService` → `bonaAiService`, `useAuraMind` → `useBonaMind`; <!-- legacy-name: ok -->
+  - `components/auramind/` and `lib/auramind/` → `bonamind/`, and `public/auramind/` assets → `public/bonamind/`. <!-- legacy-name: ok -->
+- **Android.** The plugin classes are now `Bona*`, and the widget resources are
+  `bonamind_widget_info` and `widget_bonamind`. The widget's code moved to
+  `BonaMindWidgetProvider` and the watch tile's to `BonaMindTileService`. The
+  manifests still register **`.AuraMindWidgetProvider` and `.AuraMindTileService`**: <!-- legacy-name: ok -->
+  empty stand-in subclasses that keep placed widgets and added tiles alive.
+  `src/__tests__/androidIdentity.test.ts` pins this.
+- **iOS.** The types, files, the widget extension folder and the target are all
+  `BonaMind*`. `project.pbxproj` was edited by hand (object IDs unchanged), and
+  `iosNativeSource.test.ts` now checks that every file it references exists.
+  The unsigned build in `mobile-ios.yml` is the real check.
+- **Windows.**
+  - The crate is `bonamind-desktop` and the library `bonamind_desktop_lib`.
+  - The installer's Explorer verb is `BonaMindVerb`, under the registry key `shell\BonaMind`.
+  - The updater points at `shipking-ai/BonaMind`.
+  - The identifier stays `com.auramind.app`.
+- **Links.** Every surface now sends `bonamind://`: shortcuts, widget, tile,
+  Live Update, Live Activity, Siri, push reminders and the Windows OAuth return.
+  `src/__tests__/linkSenders.test.ts` enforces it. Everything still
+  **accepts** `auramind://`. <!-- legacy-name: ok -->
+- **Kept on purpose:**
+  - the aura glow-effect names (`auraDepth`, `AndroidAura`, `VoiceAura`) and the "Aura Sans"/"Aura Script" typefaces;
+  - the Wear data-layer paths, now `WEAR_SYNC_PATH`/`WEAR_GRADE_PATH` in `legacyNames.ts`. The sweep had renamed them, which would have broken phone↔watch sync.
+- **Owner:** after merging, ship new Android and Windows builds.
+
+## 2026-10-13 - BonaMind rename, PR2: Prof. Linnea and visible copy
+
+- **The tutor is Prof. Linnea everywhere a person reads.** That covers chat,
+  the iPhone and Android screens, the generator, settings, the legal pages, the
+  AI system prompts, Android strings and shortcuts, and the store text. Where
+  the old copy said plain "Aura", it now says "Linnea". The in-app copy uses no
+  pronoun for her. The Play listing already said "she" for Prof. Aura, and that <!-- legacy-name: ok -->
+  wording is kept.
+- **Saved reminder lines map forward.** The spoken-reminder line a user picks
+  is stored as its text. `currentReminderMessage` (`src/lib/reminderSchedule.ts`)
+  shows and speaks a line saved as "Prof. Aura here…" (or with "AuraMind") in <!-- legacy-name: ok -->
+  its current wording.
+- **Every remaining "AuraMind" is now BonaMind:** <!-- legacy-name: ok -->
+  - the HTML shell, the iOS permission strings and the Windows app description;
+  - the payment emails (`api/stripe-webhook.ts`), the reminder push title, the
+    `User-Agent` and the server logs.
+  - The dashboard header and the loading screen built the wordmark from two
+    spans (`Aura<span>Mind</span>`), so a plain text search never found them.
+  - The watch app name, its complication and sync text, the Siri description,
+    the Android eyebrows ("CREATE WITH LINNEA") and the Play description
+    (its privacy link pointed at the dead `auramind.app`). <!-- legacy-name: ok -->
+  - Art: the Windows installer sidebar (`generate-assets.ps1` →
+    `nsis-sidebar.bmp`) and the Play feature graphic were regenerated.
+  - **Play screenshots** are now real app screens. The old set was web pages
+    and static mockups showing AuraMind. <!-- legacy-name: ok -->
+    `scripts/capture-android-screenshots.mjs` drives a development debug build
+    on an emulator through Chrome DevTools to each sample-data screen
+    (`/__e2e/android?screen=…`). It captures them at 1080×1920 in demo mode.
+    The harness now passes the real top-bar title (`AndroidMobileTopBar`
+    `title`), which read "BONAMIND" there before. Rebuild with
+    `npm run build:android` afterwards, so a direct Gradle build can't pick up
+    the development bundle.
+  - The landing page and share previews say "BonaMind builds your course".
+    A first-time visitor hasn't met Prof. Linnea yet.
+- **Avatar files:**
+  - `public/favicons,logos/prof-aura-*` is now `prof-linnea-*`, and
+    `scripts/generate-android-assets.mjs` reads the new names;
+  - `store/graphics/prof-aura-variant-*` is now `prof-linnea-variant-*`.
+- **Guards:**
+  - `src/__tests__/visibleBrand.test.ts` fails on standalone "AuraMind", <!-- legacy-name: ok -->
+    "Prof. Aura" or a standalone "Aura". Uses that never meant the tutor are <!-- legacy-name: ok -->
+    kept on a short list, each with a reason: the font names, two music tracks,
+    the focus-aura glow and the top league tier.
+  - The web guard also scans the native code (Java, Kotlin, Swift, Rust), the
+    watch app, the Windows asset script and the Play listing text. It catches
+    all-caps forms and the dead `auramind.app` domain. <!-- legacy-name: ok -->
+  - `api/tests/brandCopy.test.ts` does the same for the API.
+- **Windows auto-update** now points at `shipking-ai/BonaMind` releases.
+- **Unchanged:** stored chat history still says "Prof. Aura" where it was <!-- legacy-name: ok -->
+  written that way. Code names (`ProfAura*`, `Aura*` plugins) change in PR3. <!-- legacy-name: ok -->
+
+## 2026-10-13 - BonaMind rename, PR1: stored data moves to new names
+
+Spec `docs/superpowers/specs/2026-10-13-bonamind-rename-design.md`; plan
+`docs/superpowers/plans/2026-10-13-bonamind-rename.md` (PR1 = Tasks 1–6). The
+GitHub repo is now `shipking-ai/BonaMind`; the old URL redirects.
+
+- **Web storage.** `public/storage-migrate.js` is a classic script, loaded
+  first in `index.html`, so it runs before every module. A first import in
+  `index.tsx` would not, because the bundler runs shared chunks ahead of the
+  entry. It moves every localStorage key that starts with `auramind` + <!-- legacy-name: ok -->
+  `_ - . :` to `bonamind` + the same rest.
+  - A key that already exists under the new name wins.
+  - If a write fails, the old value goes back under its old name.
+  - The marker `bonamind_storage_migrated_v1` is set only when every key moved.
+  - Capacitor Preferences gets the async twin (`migrateLegacyKeysAsync`) from
+    `NativeRuntime`. The code itself reads and writes only the new names.
+- **Offline reviews.** `src/services/offline/offlineDb.ts` merges
+  `auramind-offline` into `bonamind-offline`, by key and only where the key is <!-- legacy-name: ok -->
+  missing, under a Web Lock. It then removes the copied records from the old
+  database. It **never deletes a database**: a delete blocked by another tab
+  stays queued, wipes the database when that tab closes and hangs every open
+  behind it. That is how the first design lost every queued review.
+- **Push taps.** `pushTapTarget` follows `bonamind://` and `auramind://` links <!-- legacy-name: ok -->
+  through the deep-link allowlist.
+- **Android.** `LegacyPrefs` moves `auramind_spoken_reminder` and the Wear <!-- legacy-name: ok -->
+  `auramind_wear_grade_queue` on first read. `WidgetPrefs.read` lets the widget <!-- legacy-name: ok -->
+  and Quick Settings tile fall back to the old key until the app has run once.
+  CI now runs the phone app's JVM tests (`:app:testDebugUnitTest`).
+- **Links.** Android, iOS, Windows, the web router and `POST /api/push/send`
+  accept both `bonamind://` and `auramind://`. Everything still **sends** <!-- legacy-name: ok -->
+  `auramind://` until PR3. <!-- legacy-name: ok -->
+- **Also renamed.** The iOS Siri keys (`bonamind_widget_due`/`_deck`/
+  `_pending_route`) and the `bonamind_ci_*` keys `mobile-ios.yml` reads. The
+  `robots.txt` sitemap now points at `https://www.bonamind.app`.
 
 ---
 
@@ -751,7 +1466,7 @@ Service, server push sparks) is explicitly out of scope.
   gently.
 - **Surface 3: interleaved sessions** — `services/memory/sessionComposer.ts`
   (pure) mixes ≤20% near-due cards from OTHER decks into the study queue at
-  expanding gaps; wired into `StudyModePage` behind `auramind_sparksEnabled`.
+  expanding gaps; wired into `StudyModePage` behind `bonamind_sparksEnabled`.
   Gap base scales with queue size so the ratio is actually reachable; the
   last insertion only happens while a full gap can still be honored (no
   tail-bunching).
@@ -799,7 +1514,7 @@ the moment credentials arrive. Nothing else in the code changes when they do.
   fill with corpses that slow every future send. Fails closed:
   unconfigured → `configured: false` report, zero network calls.
 - **`POST /api/push/send`** — admin-only (same `app_metadata` role gate as
-  every privileged route), zod-validated (`auramind://` links only, caps on  
+  every privileged route), zod-validated (`auramind://` links only, caps on <!-- legacy-name: ok -->
   title/body/userIds). Used for admin-triggered sends and manual testing.
 - **Daily due-card reminders** — cron job 4 on the existing
   `/api/cron/dunning` run (14:00 UTC in vercel.json): users with cards due in
@@ -815,7 +1530,7 @@ the moment credentials arrive. Nothing else in the code changes when they do.
 1. Firebase console → project + Android app `com.bonamind.app` (debug build
    uses `com.bonamind.app.debug` — register it too if pushes are wanted in
    debug).
-2. `google-services.json` → `auramind-gemini/android/app/` and rebuild. The
+2. `google-services.json` → `bonamind-web/android/app/` and rebuild. The
    gradle plugin applies itself when the file exists (already wired in
    `app/build.gradle`).
 3. Service account with `firebase-messaging(sender)` → key JSON → set
@@ -1000,11 +1715,11 @@ design language and the capabilities only iOS has.
 - **Study, two ways** — the card can be a *deck* (swipe to grade) or a
   *notebook* page, chosen by the learner rather than by us.
 - **Chat that isn't a message list.** Three modes: Talk, Notebook and Cards.
-- **Siri** — `ios/App/App/AuraMindIntents.swift` exposes "Quiz me" and "Cards
+- **Siri** — `ios/App/App/BonaMindIntents.swift` exposes "Quiz me" and "Cards
   due" through `AppShortcutsProvider`. The spoken due count comes from what the
   app last published, so it's stale until the app has been opened once.
-- **Live Activity + Dynamic Island** — `AuraLiveActivityPlugin.swift` and the
-  `AuraMindWidgets` extension (`StudySessionAttributes`,
+- **Live Activity + Dynamic Island** — `BonaLiveActivityPlugin.swift` and the
+  `BonaMindWidgets` extension (`StudySessionAttributes`,
   `StudySessionLiveActivity`). Requested with `pushType: nil`; see the trap.
 - **Native dictation** — `SFSpeechRecognizer` behind the same Web Speech shape
   the Android plugin uses, so `useVoiceStudy` is untouched on both.
@@ -1043,7 +1758,7 @@ them is additive — absent the API, the app is exactly what it was.
   streak from the app, deduped, and `WindowsWidgetSync` mounts it next to
   `MemorySpark`. The manifest `widgets` member and `workbox.importScripts` are
   wired in `lib/pwa.ts`.
-- **Android 16 Live Updates (#91).** `AuraLiveUpdatePlugin.java` posts the
+- **Android 16 Live Updates (#91).** `BonaLiveUpdatePlugin.java` posts the
   session as a promoted ongoing notification: `Notification.ProgressStyle` with
   a segment per card, points for the ones still to come back, and
   `setShortCriticalText` for the count. Verified on a real Android 17 emulator
@@ -1070,7 +1785,7 @@ changes (no Mac)" above. The `server_url` input turns it into a live-reload
 shell that loads the web app from a URL, which makes iteration a refresh
 instead of a 15-minute round trip.
 
-Run 35805655820 on `main`: both jobs green, `BonaMind-ios-unsigned-ipa`, 70 MB.
+Run 35805655820 on `main`: both jobs green, `bonamind-ios-unsigned-ipa`, 70 MB.
 
 ---
 
@@ -1160,6 +1875,376 @@ Full suite 553 green at the time.
   and lock-screen layout, and push-driven updates. There is no `simctl` API to
   enable Live Activities on a simulator, so CI cannot close this. Tracked with
   the TestFlight work.
-- **Trap for the next person:** `auramind_ci_live_session` is **not** a
+- **Trap for the next person:** `bonamind_ci_live_session` is **not** a
   boolean — `LiveActivityDriver` writes `session-mounted:<path>`. Comparing it
   to `true` fails every run. The other five keys are `"true"`/`"false"`.
+
+---
+
+## 2026-10-11 - Native app, part 1 (#156)
+
+A real native app (React Native + Expo), not a web wrapper, beside the
+Capacitor builds. Spec and plan:
+`docs/superpowers/specs/2026-10-08-bonamind-native-app-part1-design.md`,
+`docs/superpowers/plans/2026-10-08-bonamind-native-app-part1.md`.
+
+### What shipped
+
+- **`packages/core` (`@bonamind/core`)** — platform-free TypeScript shared by
+  the website and the app: domain types, FSRS scheduling (moved from the
+  website; golden fixtures prove identical output), `planReview`, Supabase
+  queries, an offline outbox, and the Prof. Linnea streaming client. Linked
+  with `file:` so each app keeps its own lockfile. The website's old
+  `services/study/fsrs.ts`/`srs.ts` are one-line re-exports.
+- **`mobile/`** — Expo SDK 57 / RN 0.86, dark-only "Aurora + Paper" design,
+  native tabs (Liquid Glass on iOS 26), Today / Courses / Search / You,
+  swipe study session, Prof. Linnea sheet, SQLite cache + outbox so study
+  works offline. iOS bundle id `com.bonamind.app`; Android keeps
+  `com.auramind.app` so it can replace the Capacitor app as an update.
+- **CI** — `mobile.yml` (type-check, lint, tests), a `core` job in `ci.yml`,
+  and manual `mobile-builds.yml` (unsigned IPA for Sideloadly, Maestro e2e).
+
+### Running it on a phone (Expo Go)
+
+`mobile/.env.local` (git-ignored) holds the four public `EXPO_PUBLIC_*`
+values copied from `bonamind-web/.env`. Then, inside `mobile/`:
+`npx expo login` once, `npx expo start --go`, scan the QR code with the iPhone
+camera. Google sign-in can't work in Expo Go (it uses its own `exp://` scheme
+instead of `bonamind://`); email + password and email codes do.
+
+### Found on the first real-device run (all fixed on the PR)
+
+Blank launch when signed out, no button responding, and a human check that
+kept restarting. Each is a trap above ("`Stack.Protected` drops a redirect",
+"A root gesture recognizer eats every tap", "Turnstile retries itself").
+
+After sign-in worked (same day): **Start review** opened a black screen
+("`isFetchedAfterMount` can wait forever"), and Prof. Linnea never answered,
+with her messages drawn over the sheet header ("A cross-host redirect strips
+the API token", "The AI proxy reports failures inside a 200 stream",
+"`formSheet` with detents collapses a flex layout"). The study screen now
+shows `LoadingScreen` (`mobile/src/design/components/LoadingScreen.tsx`)
+while it fetches: the prism logo drawn in Skia, a light comet running its
+outline, a breathing core, orbiting sparks, and a rotating status line. It is
+still under Reduce Motion. The Send button is disabled while Linnea answers.
+
+2026-10-12: swiping a card didn't move to the next one. See the trap "A swipe
+that 'does nothing' on the study card". The card hint now reads "Tap or
+swipe to reveal" (`e2e/core-loop.yaml` taps that text).
+
+### Known gaps
+
+- **Device clock skew** isn't handled: a phone clock running ahead writes
+  future `last_reviewed` values, and the conflict rule then refuses website
+  updates to those cards until real time catches up. Needs a server time
+  reference.
+- **Retention** is the website default (85%); the website stores it per
+  browser, so the phone can't read the user's choice.
+- **Unverified on hardware:** Liquid Glass, frame rates, haptics, Reduce
+  Motion, the swipe study loop, offline sync. `mobile-builds.yml` has never
+  run.
+
+### Next
+
+Rename pass (AuraMind → BonaMind and Prof. Aura → Prof. Linnea in the existing <!-- legacy-name: ok -->
+code, `auramind_*` storage keys), then part 3 (classes — done 2026-10-19), part 4 (billing + <!-- legacy-name: ok -->
+reminders — done 2026-10-20), part 5 (iOS-only features), part 6 (stores). Part 2 is below.
+
+---
+
+## 2026-10-12 - Native app, part 2: create a course on the phone
+
+Spec `docs/superpowers/specs/2026-10-12-bonamind-native-app-part2-create-design.md`,
+plan `docs/superpowers/plans/2026-10-12-bonamind-native-app-part2.md`.
+
+### What shipped
+
+- **Four sources:** topic, link (web page or YouTube transcript), PDF (≤ 3 MB),
+  photos (1–5 pages, camera or library). The sizes are Quick ~10, Standard ~20
+  and Deep ~35 cards. Then a review deck (swipe left to remove with Undo,
+  right to keep, hold to edit, rename) and save. The flow is reached from the
+  Courses header **+** or Today's empty state.
+- **`@bonamind/core/src/create/`:** `splitSource` (6,000-character pieces, at
+  most 8, because `/api/ai/chat` caps a message at 8,000), the prompts,
+  `parseCards` (it never throws and dedupes), and `buildCourse` (a busy or
+  unparseable piece is retried once, then skipped; rate limits wait 3 s and
+  8 s; a 402 aborts; offline stops with `partial` so the build can resume).
+  `createCourse` lives in `src/data/queries.ts`: it inserts the deck, then all
+  cards with the same initial FSRS and personalized difficulty as the website,
+  and deletes the deck if the cards fail.
+- **API:** `POST /api/extract/document` (`unpdf`) and `POST /api/extract/image`
+  (Gemini's OpenAI-compatible endpoint with `image_url` data URIs). Both are
+  signed-in and entitled (402) and sit in the `ai` rate-limit bucket.
+  `_providers.ts` gained `providerByName`.
+- **App (`mobile/src/create/`):** source readers (`expo-document-picker`,
+  `expo-file-system/legacy`, `expo-image-picker`, `expo-image-manipulator`,
+  `expo-clipboard`), `ask` (45 s timeout), and a zustand build store that lives
+  outside the screens (leaving the sheet doesn't cancel; going offline pauses
+  and resumes from the last finished piece). Then the New course sheet, the
+  live building view (prism, real steps, cards landing on paper), the review
+  deck and the ready screen (confetti, Study now).
+
+### Traps found here
+
+- **Core has no DOM or Node types.** `AbortSignal` and `setTimeout` don't
+  type-check in `packages/core`. Use structural types (`AbortLike`) and reach
+  timers through `globalThis`.
+- **A brand guard scans core's comments.** `test/brandNames.test.ts` failed on
+  a comment naming the `bonamind-web` folder. Refer to "the website"
+  instead.
+- **`expo install --check` moves after any install.** Adding modules pulled a
+  newer SDK 57 patch list. Six existing packages had to be bumped to keep it
+  clean.
+- **`task-done` and pipes.** Piping the test runner through `grep` hides its
+  exit code, so a failing suite got recorded as passing once. Never pipe the
+  runner in a gate command.
+- **A sentence regex that consumes text drops it.** `/[^.!?]+[.!?]+(?=\s|$)/`
+  silently skipped everything before "3.14", "e.g." or "U.S.". That hit every
+  link, because `/api/fetch-url` collapses a page into one paragraph.
+  `splitSource` now splits without consuming text (`replace(/([.!?])\s+/g,
+  '$1\0')`, with no lookbehind, for Hermes). A test joins the pieces back and
+  checks that no characters were lost.
+- **NetInfo calls a new listener at once.** It can also report "connected"
+  while requests fail. A "resume when online" listener therefore fired
+  immediately and looped, leaking a listener each turn. The build store
+  resumes once per pause, after 2 s, and skips `isInternetReachable ===
+  false`. The jest mock now calls listeners on subscribe, like the library.
+- **Tabs stay mounted.** The Courses screen read `justCreated` once at mount
+  and never saw a course made from its own **+**. It now subscribes.
+
+### Review follow-ups (all fixed on the PR, 2026-10-12)
+
+The final review's 11 minor items are fixed, each with a test:
+- **Errors:** a fully rate-limited build reports `rate_limited`, not `empty`.
+- **Topic builds:** they pause offline and resume. Prompts are capped
+  (topic 200 characters, avoid list 3,000) so the proxy's silent
+  8,000-character cut can't drop the JSON rules.
+- **Progress:** it never counts past the target.
+- **Photos:** they're size-checked before upload (1.5 MB each, 3 MB in all),
+  with photo-specific wording.
+- **Link field:** the clipboard fills it once per visit to Link.
+- **Review deck:** editing a card no longer remounts it.
+- **Titles:** a blank title saves as the one the course was made with.
+- **Store:** a stale source read can't hijack a newer build.
+- **Closing the sheet:** it clears the build on unmount, so it no longer
+  flashes.
+- **Dev server:** `api/server.js` parses JSON bodies up to 5 MB. Express's
+  100 KB default returned 413 for every real PDF or photo.
+
+### Owner check
+
+Outstanding item 12 above covers deploying, `GEMINI_API_KEY` and one course
+per source on the phone. Vercel has no `GEMINI_API_KEY` (2026-10-12), so
+photos go through Groq. Its free tier caps that model at ~1,000 output tokens
+per minute (requests use `max_tokens: 900`), so a dense multi-page photo set
+can come back partial and back-to-back photo courses can hit a 429 ("give it a
+minute"). Adding a free Gemini key (aistudio.google.com/apikey) makes Gemini
+the first choice. Planned: on-device text recognition (Apple Vision / ML Kit)
+once the app moves off Expo Go to development builds; it's free, offline and
+private, with the server as the fallback.
+
+## 2026-10-19 - Native app, part 3: classes verified end-to-end, on the web
+
+The classes port (the website's classrooms, into the native app) is now
+verified as a real E2E run driven through the Expo app itself, served by
+Expo's web target, using the app's own `/e2e/session?rt=` adoption screen
+(`EXPO_PUBLIC_E2E=true`). Pushed 2026-10-21 as `96566e36..b7b41d86 main ->
+main` (bypassing branch protection with the site credential; all five
+workflows green on the push, including Mobile iOS at 14m):
+
+- `1e081199` feat(mobile): quiz assignments and progress in classes — teacher
+  assigns a deck or a quiz, students accept decks (server-side copy) and take
+  server-graded quizzes (`get_quiz_questions`/`submit_quiz_attempt`), teacher
+  and student dashboards count completed/started from `assignment_progress`.
+- `295e0874` fix(mobile): make the app usable on web — secureStorage's dual
+  backend, sqlite wasm + COOP/COEP headers in Metro, three `.web.tsx` Skia
+  stand-ins (aurora, confetti, loading), `fetchMyRole` filtered by user, and
+  a web fallback for the study card.
+- `c0526c45` fix(mobile): class page polish — shared `LOADING_LINES`, a
+  `['classroom-progress']` invalidation when a study session closes, and
+  "No students yet." instead of "0 of 0 completed · 0 started".
+- `3db642a4` feat(mobile-e2e): seed-students script for a mixed roster —
+  creates `e2e-student-N@example.com` (idempotent), joins by code, and
+  fabricates believable progress (one completes deck + quiz, one reviews 3
+  cards, one just joins). Tokens go to `GITHUB_OUTPUT` (masked) or `--out`
+  NDJSON for `/e2e/session?rt=`. Verified live: the class showed "2 of 4
+  completed · 3 started" (deck) and "2 of 4 completed · 2 started" (quiz)
+  with a 5-person roster.
+- Type-check clean; lint 0 errors (20 warnings); mobile jest steady at
+  34 suites / 183 tests.
+
+### Traps found here
+
+- **RNGH 2.32.0 + react-native-web freezes on press.** The old
+  `Gesture.Race(Pan, Exclusive(Long, Tap))` hung the tab the moment a press
+  began (even `1+1` in evaluate timed out). The fix is the platform branch in
+  `CardStack.tsx` (`GESTURE_CARD`): native keeps gestures, web gets a plain
+  Pressable + `RatingBar`. Don't try to tune thresholds.
+- **`classroom_memberships` RLS lets a member read every row of the class** —
+  any unfiltered role query with `limit(1)` will once hand the caller the
+  teacher's row. Always filter by `user_id` (`fetchMyRole`).
+- **`classroom_roster` names come from `user_profiles.full_name`** and fall
+  back to the UUID; accounts created without onboarding show raw ids until
+  `user_profiles` is upserted.
+- **`card_reviews` no longer has `UNIQUE(card_id)`** (20260916000000 widened
+  the idempotency key to user+card+reviewed_at): seeded review events are
+  plain INSERTs; re-runs add events but progress counts DISTINCT card_id.
+- **jest after heavy browser automation:** a first run can report failing
+  suites with zero failing tests (resource contention). Rerun before
+  caring; the steady state here is 34/34 suites, 183/183 tests.
+- **The rename guard (`packages/core/test/brandNames.test.ts`) scans
+  `mobile/src` too.** It rejected a doc comment that cited the website file
+  by its legacy repo path (`bonamind-web/src/lib/…`); comments must avoid
+  the folder name — markdown files keep the `<!-- legacy-name: ok -->`
+  convention, code has no loophole. The guard allows only the Android
+  package id `com.auramind.app`.
+- **Driving the web app in a browser tool:** most react-native-web buttons
+  react to synthetic `pointerdown`/`pointerup`/`click`, but quiz choices
+  only to plain `el.click()`; `preview_snapshot` times out on this app
+  (read state via evaluate); hidden tabs freeze rAF, so exit animations
+  leave ghost nodes that can shadow `querySelector`.
+
+## 2026-10-20 - Native app, part 4: billing + review reminders
+
+The last user-visible gap against the website: the You screen now knows the
+plan, and the app has its own local daily reminder. All local on `main` this
+date (push together with CI; `npx expo install expo-notifications` added
+`expo-notifications@~57.0.23`).
+
+- `mobile/src/data/subscription.ts` — `fetchSubscription`, `startCheckout`,
+  `startPortal`, plus the pure `subscriptionLine`/`needsUpgrade` mapping the
+  card renders. Every call posts the bearer to the deployed routes
+  (`/api/subscription`, `/api/stripe/checkout`, `/api/stripe/portal`) with an
+  8s AbortController timeout; any failure degrades to "Status could not be
+  checked" — never a fake paywall. Entitlement stays on the server side
+  (`app_metadata` via the service role); the app only shows what it is told.
+- `mobile/src/you/YouScreen.tsx` — Subscription card (plan, status line,
+  grace date for `past_due`), Upgrade (annual price id, fallback monthly)
+  opens the hosted checkout in the system browser, "Manage billing" only when
+  `session.user.user_metadata.stripe_customer_id` exists, and a react-query
+  refetch whenever the app returns to the foreground (the checkout finishes
+  in a browser while the app was paused). `past_due` shows only Manage
+  billing — a second checkout while repairing payment would double-bill.
+- `mobile/src/reminders/reminders.ts` — one daily local notification
+  ("Your review queue is ready") via the SDK 57 daily trigger
+  (`{ type: SchedulableTriggerInputTypes.DAILY, hour, minute: 0 }`),
+  cancel-then-reschedule on every change, provisional iOS permission counts
+  as granted, every failure path collapses to `'unsupported'` so scheduling
+  can never block the app. Rows are hidden on web (`Platform.OS === 'web'`;
+  there the module degrades silently). Remote push stays out (needs Firebase
+  credentials — see the outstanding human list).
+- `mobile/src/design/settings.ts` — persisted `reminderEnabled` +
+  `reminderHour` (default 09:00; hour choices 7/9/12/18/21) in
+  `bonamind.settings`.
+- `mobile/.env` is not committed (root `.gitignore` blocks every `.env*`);
+  the price ids ship to builds through the env block of
+  `.github/workflows/mobile-builds.yml` instead (public-by-design; the
+  website ships them to every browser). Without them a local build shows
+  "no subscription price configured" on Upgrade.
+- Tests: `src/data/__tests__/subscription.test.ts` (status mapping, timeout,
+  checkout/portal round trips), `src/reminders/__tests__/reminders.test.ts`
+  (trigger shape, denial/provisional, web no-op), and the YouScreen suite
+  extended to 12 tests through a `QueryClientProvider` wrapper. Type-check
+  clean; lint 0 errors (23 warnings); jest 36 suites / 209 tests.
+
+### Verified live, against the deployed API (2026-10-21)
+
+- `POST /api/subscription` with a minted e2e-student-1 bearer →
+  `{"subscribed":false,"status":"none","plan":"Starter"}`.
+- `POST /api/stripe/checkout` with a throwaway account + the annual price id
+  → 200 and a `checkout.stripe.com` URL; the server then pre-arms
+  `app_metadata` to `subscription_status: "trialing"` with `trial_armed_at`.
+  The throwaway was wiped and deleted, so no production account carries the
+  state. Root `STRIPE_SECRET_KEY` is **live mode**; the deployed key behaves
+  the same.
+- Wrong price id → clean 400 "Checkout price check failed…" (mode/client
+  mismatch message straight from the handler).
+
+### Traps found here
+
+- **An interrupted `npx expo install` leaves a half-extracted package.** The
+  first expo install crashed with npm 11's `EALLOWSCRIPTS` (project-scoped
+  installs refuse `--allow-scripts`; the machine's global allow-list is for
+  tool packages). `package.json` was already edited but `node_modules` was
+  half-written: `expo-notifications` shipped without several `build/*.js`
+  files, and Metro 500'd every bundle with "Unable to resolve module
+  ./unregisterForNotificationsAsync". Deleting the package folder and
+  running plain `npm install` fixed it — no lockfile change needed.
+- **Vercel's CORS list does not include Expo web dev origins.**
+  `api/_middleware.ts` allows the website, `https://localhost`,
+  `capacitor://localhost`, `https://tauri.localhost` — *not*
+  `http://localhost:8081`. In the Metro browser preview the deployed API 403s
+  preflight; that is why the You card shows "Status could not be checked"
+  there while a native device reaches it fine. Verify API behavior with a
+  native-like bearer call, not the preview tab.
+- **`admin.updateUserById({ app_metadata: {} })` MERGES, it does not
+  replace.** A clean wipe needs `app_metadata: { subscription_status: null,
+  trial_armed_at: null }` (or delete the user). Likewise `generateLink` and
+  `verifyOtp({ type: 'magiclink', token_hash })` is the only reliable way to
+  mint server-side sessions in this supabase-js — there is no
+  `admin.generateAccessToken`.
+- **Expo Go note:** local notifications keep working in Expo Go (Android
+  remote push is what SDK 53 removed), but the module still needs a session
+  restart after install; a running Metro must be restarted once after adding
+  the dependency, or every bundle 404/500s until you do.
+- **The checkout success lands on the website** (`/dashboard?payment=...`),
+  not in the app — the foreground refetch in YouScreen exists precisely for
+  the user swiping back into the app.
+
+
+## 2026-10-21 - The web folder is `bonamind-web/` now
+
+`auramind-gemini/` was renamed to `bonamind-web/` (same contents, same git
+history). 186 path references were rewritten across the build, CI, deploy,
+API and test tooling; the only old-name references left are intentional (see
+below). Verified locally before pushing: web type-check, lint, 117 suites /
+874 tests, production `vite build`; `packages/core` 16/99; `api` 27/189;
+`node scripts/check-brand.mjs` clean.
+
+What changed (the ones that actually break if missed):
+
+- `vercel.json` (build/dev commands + `outputDirectory`), root `package.json`
+  scripts, `run-migrations.js`, `api/server.js` (serves `dist` locally),
+  `api/scripts/verify-launch.mjs`.
+- Seven workflows: `ci.yml`, `deploy.yml`, `desktop-windows.yml`,
+  `migration-drift.yml`, `mobile-android.yml`, `mobile-ios.yml`,
+  `scheduled-checks.yml` — `cd`, `working-directory`, cache-dependency,
+  artifact and path-filter entries.
+- `.vercelignore` and root `.gitignore` — silent breakage: stale paths stop
+  excluding `dist/`, `android/`, `ios/`, `src-tauri/`, so deploy uploads and
+  the index bloat.
+- `.github/dependabot.yml` — the web npm updates point at the directory.
+- Repo-relative paths inside tests: `linkSenders.test.ts` (scan roots),
+  `supabaseContract.test.ts` (`SRC_DIR`), `bugFixRegression.test.ts` labels.
+  These resolve from `__dirname`, so a stale literal silently scans nothing
+  or fails.
+- `scripts/check-brand.mjs` allowlist (the legacy-names module path) and its
+  test fixture; the PR template, keystore notes, and the living docs.
+
+Deliberately still saying the old name:
+
+- The **Vercel project** stays `auramind-gemini` (`vercel link --project=...`);
+  renaming the folder does not rename the project, and renaming the project
+  would mean a new project + domain rewiring.
+- `com.auramind.app` (Play Store updates, Windows identity), `auramind_*` <!-- legacy-name: ok -->
+  storage keys, the `auramind://` deep-link acceptance, and the local Supabase <!-- legacy-name: ok -->
+  `project_id` (renaming it would start a fresh local DB stack).
+- `docs/superpowers/**` dated records, and the `auramind-gemini` brand-guard
+  token that lets them pass.
+
+Traps found here:
+
+- Rename on Windows with `git mv`, never in Explorer — ignored directories
+  (`node_modules`, `dist`, `src-tauri/target`) move with the folder; if a dev
+  server holds a file the move fails halfway.
+- Delete `node_modules/.vite`, `dist`, and the Android `build/`/`.gradle`
+  caches after the move (they embed absolute paths). `src-tauri/target`
+  (11.6 GB here) was left in place: it is gitignored and cargo re-fingerprints
+  on the path change, at the cost of a slower next desktop build.
+- The first Vercel deploy after the rename is a cold build; the project's
+  Root Directory is the repo root, so only `vercel.json` needed editing.
+- The in-folder `.gitignore` had `auramind-gemini/fastlane/...` patterns,
+  which never matched anything (relative to the folder, they pointed at
+  `bonamind-web/auramind-gemini/...`); they are now `fastlane/...`.
+- PowerShell 5.1's `Get-Content`/`Set-Content` round-trip rewrites UTF-8 as
+  ANSI (mojibake in every dash). Edit big UTF-8 files with Node or the editor.

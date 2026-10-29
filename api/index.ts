@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { sendEmail as sendEmailViaResend, sendCustomEmail } from './_lib/emails.js';
 import { isEntitled, readSubscriptionStatus, isEntitledWithRoleAccess } from './_lib/entitlement.js';
 import { isPushConfigured, readPushConfig, sendPushToUsers } from './_lib/push.js';
+import { decodeBase64Limited, imageText, isPdf, MAX_DOCUMENT_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, pdfText, VisionError } from './_lib/extract.js';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';
 
@@ -57,6 +58,7 @@ const RATE_LIMIT_BUCKETS: Record<string, 'default' | 'ai' | 'auth'> = {
   search: 'ai',
   'fetch-url': 'ai',
   'fetch-youtube-transcript': 'ai',
+  extract: 'ai',
   stripe: 'auth',
 };
 
@@ -297,7 +299,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     const body: Record<string, unknown> = {
       status: 'ok',
-      service: 'auramind-api',
+      service: 'bonamind-api',
       version: '2.0.0',
       timestamp: Date.now(),
       // Surfaced so uptime monitoring can catch the silent-degradation case:
@@ -374,6 +376,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return await handleFetchUrl(req, res);
       case 'fetch-youtube-transcript':
         return await handleFetchYouTubeTranscript(req, res);
+      case 'extract':
+        return await handleExtract(req, res, action);
       case 'cron':
         return await handleCron(req, res, action);
       case 'push':
@@ -751,13 +755,16 @@ async function handleAdminHealth(req: VercelRequest, res: VercelResponse, supaba
       // Test 3: Check webhook endpoint exists
       try {
         const webhooks = await stripe.webhookEndpoints.list({ limit: 10 });
-        const auramindWebhook = webhooks.data.find(
-          (w: any) => w.url?.includes('auramind') || w.url?.includes('stripe-webhook'),
+        const appWebhook = webhooks.data.find(
+          (w: any) =>
+            w.url?.includes('bonamind') ||
+            w.url?.includes('auramind') || // legacy-name: ok (endpoint registered before the rename)
+            w.url?.includes('stripe-webhook'),
         );
-        results.webhookConfigured = !!auramindWebhook;
-        if (auramindWebhook) {
-          results.webhookUrl = auramindWebhook.url;
-          results.webhookEnabled = auramindWebhook.enabled_events?.length > 0;
+        results.webhookConfigured = !!appWebhook;
+        if (appWebhook) {
+          results.webhookUrl = appWebhook.url;
+          results.webhookEnabled = appWebhook.enabled_events?.length > 0;
         }
       } catch (err: any) {
         results.errors.push(`Webhook check failed: ${err.message}`);
@@ -770,7 +777,7 @@ async function handleAdminHealth(req: VercelRequest, res: VercelResponse, supaba
           currency: 'usd',
           // NOTE: do not pass payment_method_types — dynamic payment methods
           // must stay enabled (stripe-best-practices: omit unless Terminal).
-          description: 'AuraMind health check — test payment (not charged)',
+          description: 'BonaMind health check — test payment (not charged)',
           metadata: { source: 'health_check', timestamp: new Date().toISOString() },
         });
         results.testPaymentIntentCreated = paymentIntent.status === 'requires_payment_method';
@@ -1886,7 +1893,7 @@ async function handleAdminBulk(req: VercelRequest, res: VercelResponse, supabase
       return json(res, 200, {
         success: true,
         format: fmt,
-        filename: `auramind-users-export-${new Date().toISOString().slice(0, 10)}.${fmt}`,
+        filename: `bonamind-users-export-${new Date().toISOString().slice(0, 10)}.${fmt}`,
         data: output,
         count: allUsers.length,
       });
@@ -2070,7 +2077,10 @@ const PushSendSchema = z.object({
   link: z
     .string()
     .max(200)
-    .refine((v) => v.startsWith('auramind://'), { message: 'link must be an auramind:// deep link' })
+    // The pre-rename scheme stays accepted: installed apps and old links send it.
+    .refine((v) => v.startsWith('bonamind://') || v.startsWith('auramind://'), { // legacy-name: ok
+      message: 'link must be a bonamind:// deep link',
+    })
     .optional(),
 });
 
@@ -2144,7 +2154,7 @@ async function runDueReminderPushes(supabase: any) {
   const report = await sendPushToUsers(
     supabase,
     userIds,
-    { title: 'AuraMind', body: 'Cards are coming due — a short session keeps them fresh.', link: 'auramind://app/dashboard' },
+    { title: 'BonaMind', body: 'Cards are coming due — a short session keeps them fresh.', link: 'bonamind://app/dashboard' },
   );
   return {
     configured: true,
@@ -2154,6 +2164,68 @@ async function runDueReminderPushes(supabase: any) {
     pruned: report.pruned,
     skipped: report.skipped,
   };
+}
+
+// --- Course-creation extraction (native app): PDF and photo -> text ---
+
+/**
+ * POST /api/extract/document { name, data } and /api/extract/image { images }.
+ * Signed-in and entitled callers only: both spend compute or model budget on
+ * an upload, exactly like the AI endpoints.
+ */
+async function handleExtract(req: VercelRequest, res: VercelResponse, action: string) {
+  if (req.method !== 'POST') return json(res, 405, { error: 'Method not allowed' });
+  if (action !== 'document' && action !== 'image') return json(res, 404, { error: 'Unknown extract action' });
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return json(res, 401, { error: 'Missing authorization' });
+  const { createClient } = await import('@supabase/supabase-js');
+  const supabase = createClient(process.env.SUPABASE_URL || '', process.env.SUPABASE_SERVICE_ROLE_KEY || '');
+  const { data: { user } } = await supabase.auth.getUser(String(authHeader).replace(/^Bearer\s+/i, '').trim());
+  if (!user) return json(res, 401, { error: 'Invalid token' });
+  if (!isEntitledWithRoleAccess(user)) {
+    return json(res, 402, { error: 'A subscription is required to create courses.', code: 'subscription_required' });
+  }
+
+  if (action === 'image') return extractImages(req, res);
+
+  const parsed = validateBody(res, z.object({ name: z.string().max(255), data: z.string().min(1) }), req.body);
+  if (!parsed.ok) return;
+  const bytes = decodeBase64Limited(parsed.data.data, MAX_DOCUMENT_BYTES);
+  if (bytes === 'too_large') return json(res, 413, { error: 'That PDF is too big (3 MB max).', code: 'too_large' });
+  if (!bytes || !isPdf(bytes)) return json(res, 415, { error: 'That file is not a PDF.', code: 'not_pdf' });
+
+  let result: { text: string; pages: number };
+  try {
+    result = await pdfText(bytes);
+  } catch {
+    return json(res, 422, { error: 'That PDF could not be read.', code: 'no_text' });
+  }
+  if (!result.text) return json(res, 422, { error: 'That PDF has no text (it may be scanned images).', code: 'no_text' });
+  const title = parsed.data.name.replace(/\.[^.]+$/, '').trim() || 'Your PDF';
+  return json(res, 200, { success: true, data: { text: result.text, title, pages: result.pages } });
+}
+
+/** The image half of handleExtract, after auth and entitlement. */
+async function extractImages(req: VercelRequest, res: VercelResponse) {
+  const images = (req.body as { images?: unknown } | undefined)?.images;
+  if (!Array.isArray(images) || images.length < 1 || images.length > MAX_IMAGES || !images.every((i) => typeof i === 'string' && i)) {
+    return json(res, 400, { error: `Send 1 to ${MAX_IMAGES} images.`, code: 'bad_request' });
+  }
+  for (const image of images as string[]) {
+    const bytes = decodeBase64Limited(image, MAX_IMAGE_BYTES);
+    if (bytes === 'too_large') return json(res, 413, { error: 'A photo is too big (1.5 MB max).', code: 'too_large' });
+    if (!bytes) return json(res, 400, { error: 'A photo is not valid base64.', code: 'bad_request' });
+  }
+  try {
+    const text = await imageText(images as string[]);
+    return json(res, 200, { success: true, data: { text } });
+  } catch (e) {
+    if (e instanceof VisionError && e.code === 'no_text') {
+      return json(res, 422, { error: 'No text found in those photos.', code: 'no_text' });
+    }
+    return json(res, 503, { error: 'Reading photos is unavailable right now.', code: 'unavailable' });
+  }
 }
 
 // --- URL extraction endpoints (used by GeneratorPage) ---
@@ -2283,7 +2355,7 @@ async function handleFetchUrl(req: VercelRequest, res: VercelResponse) {
   let response: Response;
   try {
     response = await fetch(guard.url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AuraMind/1.0)' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BonaMind/1.0)' },
       signal: AbortSignal.timeout(15000),
       redirect: 'follow',
     });
@@ -2362,7 +2434,7 @@ async function handleFetchYouTubeTranscript(req: VercelRequest, res: VercelRespo
   let pageHtml = '';
   try {
     const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AuraMind/1.0)' },
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; BonaMind/1.0)' },
       signal: AbortSignal.timeout(10000),
     });
     pageHtml = await pageRes.text();

@@ -2,7 +2,7 @@
 
 This doc is the single-page checklist for everything you, the maintainer,
 must provision *outside* the codebase before the first production cut of
-AuraMind. Pair it with the M5 platform hardening + the brand surface
+BonaMind. Pair it with the M5 platform hardening + the brand surface
 shipped in `lib/branding.ts`.
 
 **Android is the only wired release pipeline.** `mobile-android.yml`
@@ -12,7 +12,7 @@ there is no signed iOS release or TestFlight job yet. `desktop-windows.yml`
 builds the Windows app and drafts a GitHub release on `desktop-v*` tags (see
 `DEPLOYMENT.md`); it is not in the Microsoft Store.
 
-Run `node scripts/check-mobile-env.js` (from `auramind-gemini/`) to see
+Run `node scripts/check-mobile-env.js` (from `bonamind-web/`) to see
 which secrets are missing. Items marked **🟠 MUST provision** block the
 store upload they name; **🟡 optional** items unlock better UX but a
 build still works without them.
@@ -33,7 +33,7 @@ These are consumed by workflows that exist in `.github/workflows/`.
 |--------------------------------------|--------------------|--------------|
 | 🟠 `ANDROID_KEYSTORE_B64`            | mobile-android.yml | Android release keystore (base64) |
 | 🟠 `ANDROID_KEYSTORE_PASSWORD`       | mobile-android.yml | Android keystore password |
-| 🟠 `ANDROID_KEY_ALIAS`               | mobile-android.yml | Android key alias (e.g. `auramind-release`) |
+| 🟠 `ANDROID_KEY_ALIAS`               | mobile-android.yml | Android key alias (e.g. `auramind-upload`) |
 | 🟠 `ANDROID_KEY_PASSWORD`            | mobile-android.yml | Android key password |
 | 🟠 `PLAY_STORE_SERVICE_ACCOUNT_JSON` | mobile-android.yml | Google Play API service-account JSON |
 | 🟠 `VERCEL_TOKEN`                    | deploy.yml         | Web deploy to Vercel |
@@ -57,7 +57,7 @@ and TestFlight need an Apple Developer Program membership first (see
 ### 2.1 Create the app record
 
 1. https://play.google.com/console → All apps → Create app.
-2. App name: AuraMind
+2. App name: BonaMind
 3. Default language: English (United States)
 4. App or game → App
 5. Free or paid: Free
@@ -87,7 +87,7 @@ The circle of trust:
 `store/android/listings/en-US/full_description.txt` syncs on every CI
 build. The values map (Play → mint → asciidoc):
 
-- **App name**: 30 char cap, exact "AuraMind"
+- **App name**: 30 char cap, exact "BonaMind"
 - **Short description**: 80 char cap
 - **Full description**: 4000 char cap
 - **App icon**: 512×512 PNG (also auto-generates adaptive from supplied
@@ -99,7 +99,7 @@ build. The values map (Play → mint → asciidoc):
 
 ## 3. Pre-flight check (everything in one place)
 
-From `auramind-gemini/scripts/check-mobile-env.js`:
+From `bonamind-web/scripts/check-mobile-env.js`:
 
 ```bash
 # Android only (cheapest minimal check):

@@ -1,0 +1,41 @@
+/**
+ * Rate one card: FSRS schedule, persist, review history, offline queue.
+ * The study screen's semantics in one place so Quick Review and memory
+ * sparks can't drift from it. Never throws: a failed write must not trap the
+ * user on a card.
+ */
+import type { Card, Rating } from '../../types';
+import { planReview } from '@bonamind/core';
+import { cardReviewsService } from '../database/modules/cardReviewsService';
+import { persistReview } from './persistReview';
+import { analyticsService } from '../analytics/analyticsService';
+
+export async function rateCard(input: {
+  card: Card;
+  rating: Rating;
+  userId: string | null | undefined;
+  surface: string;
+}): Promise<Partial<Card>> {
+  const { card, rating, userId, surface } = input;
+  const now = Date.now();
+  // Shared with the native app: one definition of "rating -> schedule".
+  const { update: planned, record } = planReview(card, rating, now);
+  const res = record.srsResult;
+  const update: Partial<Card> = { ...planned };
+
+  // Queued when offline or when the write fails; never throws.
+  await persistReview({ cardId: card.id, rating, srsResult: res, update, userId, reviewedAt: now });
+  if (userId) {
+    cardReviewsService
+      .recordReview({
+        userId,
+        cardId: card.id,
+        rating,
+        srsResult: { interval: res.interval, repetition: res.repetition, easeFactor: res.easeFactor, fsrsState: res.fsrsState },
+        reviewedAt: now,
+      })
+      .catch(() => { /* fire-and-forget */ });
+  }
+  analyticsService.track('card_rated', { cardId: card.id, surface, rating });
+  return update;
+}

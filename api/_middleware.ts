@@ -95,6 +95,11 @@ const RATE_LIMITS = {
   auth: { max: 10, window: 60 * 1000 }, // 10 auth requests per minute
 };
 
+// HTTP-Referer and X-Title: Windows app 2.3.4 and earlier send them on AI
+// requests (OpenRouter attribution). Not listing them failed the preflight
+// from https://tauri.localhost, so no course could be generated there.
+const CORS_ALLOW_HEADERS = 'Content-Type, Authorization, X-Requested-With, HTTP-Referer, X-Title';
+
 /**
  * Apply security headers and rate limiting. Returns true if the request
  * should continue to the handler. Returns false if a response was already
@@ -115,7 +120,7 @@ export async function applyMiddleware(
     // Standalone dev server: permissive CORS.
     res.setHeader('Access-Control-Allow-Origin', process.env.ALLOWED_ORIGIN || '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Headers', CORS_ALLOW_HEADERS);
     res.setHeader('Access-Control-Max-Age', '86400');
   } else {
     // Production: only the website and the three apps.
@@ -124,7 +129,7 @@ export async function applyMiddleware(
     if (CORS_ORIGINS.has(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+      res.setHeader('Access-Control-Allow-Headers', CORS_ALLOW_HEADERS);
       res.setHeader('Access-Control-Max-Age', '86400');
     }
   }

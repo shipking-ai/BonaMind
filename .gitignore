@@ -59,7 +59,7 @@ coverage/
 openswarm/
 
 # Rust build artifacts
-auramind-gemini/src-tauri/target/
+bonamind-web/src-tauri/target/
 
 # Python bytecode
 __pycache__/
@@ -82,7 +82,7 @@ tsc.out
 /public/
 /src-components/
 
-# Lottie animation source (kept in auramind-gemini/public/lottie/)
+# Lottie animation source (kept in bonamind-web/public/lottie/)
 *.jsonl
 
 # IDE / agent tooling
@@ -99,12 +99,12 @@ opencode.json
 .kimchi/
 
 # Local verify-build output
-auramind-gemini/dist-verify/
+bonamind-web/dist-verify/
 .vercel
 .env*
 # Build-mode overrides that hold only public API origins, never secrets.
-!auramind-gemini/.env.mobile
-!auramind-gemini/.env.desktop
+!bonamind-web/.env.mobile
+!bonamind-web/.env.desktop
 
 # Root-level design reference media (screenshots/video of the landing page)
 /landing-*.png

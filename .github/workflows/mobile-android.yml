@@ -51,7 +51,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: auramind-gemini
+        working-directory: bonamind-web
 
     steps:
       - uses: actions/checkout@v7
@@ -65,7 +65,7 @@ jobs:
           # android-build job already uses 22.x; this keeps them aligned.
           node-version: '22.x'
           cache: 'npm'
-          cache-dependency-path: auramind-gemini/package-lock.json
+          cache-dependency-path: bonamind-web/package-lock.json
 
       - name: Setup Java JDK 21
         uses: actions/setup-java@v6
@@ -173,7 +173,7 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           cd android
-          ./gradlew --no-daemon bundleRelease
+          ./gradlew --no-daemon bundleRelease --stacktrace
           ls -lh app/build/outputs/bundle/release/
 
       - name: Verify AAB is signed
@@ -186,9 +186,9 @@ jobs:
           name: android-release-aab
           # Repo-root relative on purpose: defaults.run.working-directory
           # applies to `run:` steps only, never to `uses:` actions, so this
-          # needs the auramind-gemini/ prefix that the Play upload step below
+          # needs the bonamind-web/ prefix that the Play upload step below
           # already has.
-          path: auramind-gemini/android/app/build/outputs/bundle/release/app-release.aab
+          path: bonamind-web/android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 30
           if-no-files-found: error
 
@@ -198,14 +198,14 @@ jobs:
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
           packageName: com.auramind.app
-          releaseFiles: auramind-gemini/android/app/build/outputs/bundle/release/app-release.aab
+          releaseFiles: bonamind-web/android/app/build/outputs/bundle/release/app-release.aab
           # `track` is deprecated in r0adkll/upload-google-play and prints
           # "'track' is deprecated and will be removed in a future release.
           # Please migrate to 'tracks'". `tracks` is the same option as a list;
           # Play rejects a release that names more than one track, so the list
           # always holds exactly the single value chosen in the input above.
           tracks: ${{ inputs.track || 'internal' }}
-          mappingFile: auramind-gemini/android/app/build/outputs/mapping/release/mapping.txt
+          mappingFile: bonamind-web/android/app/build/outputs/mapping/release/mapping.txt
           whatsNewDirectory: store/android/changelogs
           status: ${{ github.event.inputs.status || 'draft' }}
 

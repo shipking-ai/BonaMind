@@ -13,7 +13,7 @@ if (!process.env.NODE_ENV) {
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const distDir = path.resolve(__dirname, '..', 'auramind-gemini', 'dist');
+const distDir = path.resolve(__dirname, '..', 'bonamind-web', 'dist');
 const hasStaticBuild = fs.existsSync(distDir);
 
 const app = express();
@@ -22,7 +22,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({
   origin: process.env.ALLOWED_ORIGIN
     ? process.env.ALLOWED_ORIGIN.split(',').map(o => o.trim())
-    : ['http://localhost:5173', 'http://localhost:3000', 'https://auramind.app'],
+    : ['http://localhost:5173', 'http://localhost:3000', 'https://bonamind.app', 'https://www.bonamind.app'],
   credentials: true,
 }));
 
@@ -31,7 +31,9 @@ app.use(cors({
 // serializing the JSON body would break signature verification.
 app.use('/api/stripe-webhook', express.raw({ type: '*/*' }), webhookHandler);
 
-app.use(express.json());
+// Course creation uploads PDFs and photos as base64 JSON (up to ~4 MB);
+// Express's default 100 KB limit rejected them on the dev server.
+app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // AI proxy router — also mounted before the Vercel catch-all so streaming
@@ -94,7 +96,7 @@ app.use('/api', async (req, res) => {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'auramind-api', version: '2.0.0', timestamp: Date.now() });
+  res.json({ status: 'ok', service: 'bonamind-api', version: '2.0.0', timestamp: Date.now() });
 });
 
 // In production, serve the built frontend from dist/
@@ -106,13 +108,13 @@ if (hasStaticBuild) {
   });
 } else {
   app.get('/', (req, res) => {
-    res.json({ status: 'ok', service: 'auramind-api', version: '2.0.0' });
+    res.json({ status: 'ok', service: 'bonamind-api', version: '2.0.0' });
   });
 }
 
 const server = app.listen(PORT, () => {
   const mode = hasStaticBuild ? 'production' : 'development';
-  console.log(`AuraMind API server (${mode}) running on http://localhost:${PORT}`);
+  console.log(`BonaMind API server (${mode}) running on http://localhost:${PORT}`);
   console.log(`API endpoints available at http://localhost:${PORT}/api/*`);
   if (hasStaticBuild) {
     console.log(`Frontend being served from ${distDir}`);
@@ -121,7 +123,7 @@ const server = app.listen(PORT, () => {
 
 server.on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
-    console.error(`\n[FATAL] Port ${PORT} is already in use — another AuraMind process may be running.`);
+    console.error(`\n[FATAL] Port ${PORT} is already in use — another BonaMind process may be running.`);
     console.error(`        Stop it (or set PORT to a free port) and restart the API. Exiting.`);
     process.exit(1);
   }

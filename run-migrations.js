@@ -1,5 +1,5 @@
 /**
- * AuraMind — Supabase Migration Runner (M6.5 hardened)
+ * BonaMind — Supabase Migration Runner (M6.5 hardened)
  *
  * Usage:
  *   node run-migrations.js                          # apply via linked CLI session
@@ -256,7 +256,7 @@ for (const entry of ALL_SQL_FILES) {
       ? `npx supabase db query --db-url "${DB_URL}" -f "${filePath}"`
       : `npx supabase db query --linked -f "${filePath}"`;
     execSync(cmd, {
-      cwd: path.join(__dirname, 'auramind-gemini'),
+      cwd: path.join(__dirname, 'bonamind-web'),
       stdio: ['pipe', 'pipe', 'pipe'],
       timeout: 120000,
       encoding: 'utf-8',

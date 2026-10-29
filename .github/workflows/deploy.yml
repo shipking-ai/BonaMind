@@ -18,16 +18,16 @@ jobs:
         with:
           node-version: '22.x'
           cache: 'npm'
-          cache-dependency-path: auramind-gemini/package-lock.json
+          cache-dependency-path: bonamind-web/package-lock.json
 
       - name: Install dependencies
         run: |
-          cd auramind-gemini
+          cd bonamind-web
           npm ci
 
       - name: Build project
         run: |
-          cd auramind-gemini
+          cd bonamind-web
           npm run build
 
       - name: Install Vercel CLI

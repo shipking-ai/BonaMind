@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * verify-launch — pre-launch gate check for AuraMind.
+ * verify-launch — pre-launch gate check for BonaMind.
  *
  * Runs the checks from STRIPE_LAUNCH_CHECKLIST.md as a single command so a
  * misconfigured launch can't slip through silently:
@@ -29,7 +29,7 @@ import { fileURLToPath } from 'url';
 import Stripe from 'stripe';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CLIENT_ENV_PATH = path.resolve(__dirname, '..', '..', 'auramind-gemini', '.env');
+const CLIENT_ENV_PATH = path.resolve(__dirname, '..', '..', 'bonamind-web', '.env');
 
 const failures = [];
 const passes = [];
@@ -50,7 +50,7 @@ function readEnvFile(filePath) {
 }
 
 const api = process.env; // api/.env loaded by dotenv/config
-// Client env comes from auramind-gemini/.env, with any VITE_* env vars set in
+// Client env comes from bonamind-web/.env, with any VITE_* env vars set in
 // the shell (e.g. CI) taking precedence — the .env file doesn't exist in CI.
 const client = {
   ...readEnvFile(CLIENT_ENV_PATH),
@@ -60,7 +60,7 @@ const client = {
 };
 
 const OFFLINE = process.argv.includes('--offline');
-console.log(`AuraMind pre-launch verification${OFFLINE ? ' (offline — no Stripe API calls)' : ''}\n`);
+console.log(`BonaMind pre-launch verification${OFFLINE ? ' (offline — no Stripe API calls)' : ''}\n`);
 
 // ── 1. API env ─────────────────────────────────────────────────────────────
 const secretKey = api.STRIPE_SECRET_KEY || '';

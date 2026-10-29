@@ -19,7 +19,7 @@
 
 </div>
 
-An **adaptive AI learning system** — turn anything you're studying (a PDF, a video, a lecture, a topic) into a personalized course of cards, lessons, and quizzes. FSRS spaced repetition (the official `ts-fsrs`, FSRS-6) schedules your reviews; Prof. Aura, the AI tutor, remembers what you actually struggle with — weak cards, concepts, retention, and past conversations — and teaches to those gaps. Freemium via Stripe, all in one repo.
+An **adaptive AI learning system** — turn anything you're studying (a PDF, a video, a lecture, a topic) into a personalized course of cards, lessons, and quizzes. FSRS spaced repetition (the official `ts-fsrs`, FSRS-6) schedules your reviews; Prof. Linnea, the AI tutor, remembers what you actually struggle with — weak cards, concepts, retention, and past conversations — and teaches to those gaps. Freemium via Stripe, all in one repo.
 
 > **Status:** v2.0.0 · web deployed via Vercel · Android in Google Play
 > closed testing · iOS builds (unsigned) in CI · Windows app (Tauri 2) built
@@ -32,9 +32,9 @@ An **adaptive AI learning system** — turn anything you're studying (a PDF, a v
 ## ✅ What's in here
 
 - **Web app** — React 19 + Vite 8 + Tailwind 4, served by Vercel (PWA with offline support).
-- **Android app** — a first-class Capacitor 8 build (`auramind-gemini/android/`) generated from the same React source, with a native bottom nav, status-bar/back-button handling, haptics, local reminders, and system sharing.
-- **iOS app** — a Capacitor 8 project (`auramind-gemini/ios/`) that the `Mobile iOS` workflow builds unsigned and runs in a simulator. Not yet signed or on TestFlight.
-- **Windows app** — a Tauri 2 shell (`auramind-gemini/src-tauri/`) around the bundled web build, with signed auto-updates from GitHub Releases. Built by the `Desktop Windows` workflow; release steps in [DEPLOYMENT.md](./DEPLOYMENT.md#windows-app-tauri-2).
+- **Android app** — a first-class Capacitor 8 build (`bonamind-web/android/`) generated from the same React source, with a native bottom nav, status-bar/back-button handling, haptics, local reminders, and system sharing.
+- **iOS app** — a Capacitor 8 project (`bonamind-web/ios/`) that the `Mobile iOS` workflow builds unsigned and runs in a simulator. Not yet signed or on TestFlight.
+- **Windows app** — a Tauri 2 shell (`bonamind-web/src-tauri/`) around the bundled web build, with signed auto-updates from GitHub Releases. Built by the `Desktop Windows` workflow; release steps in [DEPLOYMENT.md](./DEPLOYMENT.md#windows-app-tauri-2).
 - **Backend** — Vercel serverless functions under `/api`.
 - **Database** — Supabase (Postgres) with append-only migrations in `./supabase/migrations/`.
 
@@ -60,7 +60,7 @@ An **adaptive AI learning system** — turn anything you're studying (a PDF, a v
    npm install
 
    # Install frontend dependencies
-   cd auramind-gemini
+   cd bonamind-web
    npm install
    cd ..
    ```
@@ -69,7 +69,7 @@ An **adaptive AI learning system** — turn anything you're studying (a PDF, a v
 
    Copy the example environment file:
    ```bash
-   cp auramind-gemini/.env.example auramind-gemini/.env
+   cp bonamind-web/.env.example bonamind-web/.env
    ```
 
    Then fill in your keys. Supabase is required; AI, Stripe, email, and
@@ -122,7 +122,7 @@ BonaMind-App-2/
 │   ├── routes/               # Express routes
 │   ├── scripts/              # One-off verification/launch scripts
 │   └── tests/                # API tests
-├── auramind-gemini/          # Frontend React application (web + Android)
+├── bonamind-web/          # Frontend React application (web + Android)
 │   ├── src/
 │   │   ├── components/       # React components (incl. native/ for Android)
 │   │   ├── pages/            # Route pages
@@ -212,14 +212,14 @@ Authentication → Attack Protection, since Supabase verifies the token.
 ### Local Build
 
 ```bash
-cd auramind-gemini
+cd bonamind-web
 npm run build
 ```
 
 ### Android Build
 
 ```bash
-cd auramind-gemini
+cd bonamind-web
 npm run build:apk:debug      # debug APK (assembleDebug)
 npm run build:aab:release    # release AAB (requires signing env vars)
 ```
@@ -277,7 +277,7 @@ The product name and the domain are separate concerns:
 
 | What | Where it lives | How to change it |
 |---|---|---|
-| Display name | `auramind-gemini/app-identity.ts` | Edit `APP_NAME`, then `npm run brand:sync` |
+| Display name | `bonamind-web/app-identity.ts` | Edit `APP_NAME`, then `npm run brand:sync` |
 | Domain | `APP_ORIGIN` env var (API), `SITE_URL` in `src/lib/seo.ts` (web) | Set the env var, update the constant |
 
 `APP_ORIGIN` is the one that matters operationally. It feeds the CORS
@@ -303,14 +303,14 @@ Add a 301 from the old domain to the new one so shared links keep working.
 ### Run Tests
 
 ```bash
-cd auramind-gemini
+cd bonamind-web
 npm test
 ```
 
 ### Type Checking
 
 ```bash
-cd auramind-gemini
+cd bonamind-web
 npm run type-check
 ```
 
@@ -367,7 +367,7 @@ ORDER  BY applied_at DESC;
 
 ## 🎨 Features
 
-- **AI tutor (Prof. Aura)** — a conversational coach that remembers your weak cards, concepts, retention, and past conversations, then teaches to the gaps.
+- **AI tutor (Prof. Linnea)** — a conversational coach that remembers your weak cards, concepts, retention, and past conversations, then teaches to the gaps.
 - **AI generation** — turn a topic, PDF, video, URL, or voice memo into flashcards, quizzes, and narrated slides.
 - **FSRS spaced repetition** — reviews scheduled by the official `ts-fsrs` (FSRS-6), not a fixed interval.
 - **Classroom portal** — teachers create classes, students join with a 6-character code, and teachers assign decks and graded quizzes and track per-student progress.
@@ -399,14 +399,14 @@ If you encounter build errors:
 
 ```bash
 # Clear cache and reinstall
-cd auramind-gemini
+cd bonamind-web
 rm -rf node_modules package-lock.json
 npm install
 ```
 
 ### Environment Variables Not Loading
 
-- Ensure your `.env` file is in the `auramind-gemini/` directory
+- Ensure your `.env` file is in the `bonamind-web/` directory
 - Restart the development server after changing environment variables
 - Variables must start with `VITE_` **and** be listed in `CLIENT_ENV` (`src/lib/env.ts`) to be available in the browser
 
