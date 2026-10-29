@@ -16,8 +16,11 @@ appId: ${APP_ID}
     when:
       platform: iOS
     commands:
-      - launchApp:
-          clearState: true
+      # No clearState: the simulator is fresh every dispatch (freshly
+      # installed app, no session to clear), and Maestro wipes iOS app state
+      # by reinstalling, REPLACING the data container — that deletes the
+      # planted token file before the app ever gets to read it.
+      - launchApp
       # The welcome screen adopts the token the workflow wrote into the app
       # container (src/e2e/FileAdopt.tsx); no system sheet can block it, so
       # Today is the only thing left to wait for.
