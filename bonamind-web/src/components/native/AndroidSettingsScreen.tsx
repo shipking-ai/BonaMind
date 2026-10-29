@@ -27,6 +27,8 @@ import { useAppPreference } from "../../lib/appPreferences";
 import { hapticSelection, hapticSuccess, hapticTap, hapticWarning } from "./androidHaptics";
 import { userService } from "../../services/user/userService";
 import { analyticsService } from "../../services/analytics/analyticsService";
+import { buildDataExport, downloadTextFile, type RowsClient } from "../../services/data/dataExportService";
+import { requireSupabase } from "../../services/database/supabase";
 import { useReminderSync } from "../../hooks/useReminderSync";
 import { useVoiceOptions } from "../../hooks/useVoiceOptions";
 import { BonaSpeech } from "../../lib/bonaSpeech";
@@ -429,23 +431,29 @@ export default function AndroidSettingsScreen() {
     }
   };
 
-  const exportData = () => {
-    const values = Object.keys(localStorage)
+  const exportData = async () => {
+    if (!userId) {
+      toast.error("You need to be signed in to export your data.");
+      return;
+    }
+    const localPreferences = Object.keys(localStorage)
       .filter((key) => key.startsWith("bonamind_"))
       .reduce<Record<string, string | null>>(
         (all, key) => ({ ...all, [key]: localStorage.getItem(key) }),
         {},
       );
-    const url = URL.createObjectURL(
-      new Blob([JSON.stringify(values, null, 2)], { type: "application/json" }),
-    );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `bonamind-settings-${Date.now()}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-    hapticSuccess();
-    toast.success("Settings exported");
+    try {
+      const bundle = await buildDataExport(userId, localPreferences, requireSupabase() as unknown as RowsClient);
+      downloadTextFile(
+        JSON.stringify(bundle, null, 2),
+        `bonamind-export-${Date.now()}.json`,
+        "application/json",
+      );
+      hapticSuccess();
+      toast.success("Data exported");
+    } catch {
+      toast.error("Export failed — try again.");
+    }
   };
 
   const clearLocalData = () => {
