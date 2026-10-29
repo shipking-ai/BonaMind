@@ -155,7 +155,6 @@ export interface UserIntegrations {
   anki?: AnkiIntegration;
   obsidian?: ObsidianIntegration;
   quizlet?: QuizletIntegration;
-  schoology?: SchoologyIntegration;
 }
 
 export interface NotionIntegration {
@@ -182,14 +181,6 @@ export interface QuizletIntegration {
   connected: boolean;
   username?: string;
   connectedAt?: number;
-}
-
-export interface SchoologyIntegration {
-  connected: boolean;
-  consumerKey?: string;
-  accessToken?: string;
-  connectedAt?: number;
-  disconnectedAt?: number;
 }
 
 

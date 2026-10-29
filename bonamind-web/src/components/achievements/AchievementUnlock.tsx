@@ -863,7 +863,7 @@ export const ACHIEVEMENTS: Record<string, Achievement> = {
   PROFILE_LINK: {
     id: 'profile_link',
     title: 'Connected',
-    description: 'Link your Schoology or Notion account',
+    description: 'Link your Notion account',
     icon: 'medal',
     rarity: 'rare',
     xpReward: 75,
