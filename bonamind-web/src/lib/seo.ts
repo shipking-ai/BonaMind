@@ -126,6 +126,9 @@ export function setJsonLd(data: Record<string, any>): void {
  * Default JSON-LD for BonaMind
  */
 export function setDefaultJsonLd(): void {
+  // No rating summary on purpose: there are no store or review-export
+  // ratings to verify, and a made-up count is a false claim search engines
+  // penalise (Google rich-results guidelines).
   setJsonLd({
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
@@ -138,11 +141,6 @@ export function setDefaultJsonLd(): void {
       '@type': 'Offer',
       price: '0',
       priceCurrency: 'USD',
-    },
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: '4.8',
-      ratingCount: '1250',
     },
   });
 }
