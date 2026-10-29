@@ -60,8 +60,7 @@ const CLIENT_ENV: Readonly<Record<string, string | undefined>> = {
   // no provider key at all; AI goes through /api/ai, which uses the
   // server-side GROQ_API_KEY.
   //
-  //   VITE_GROQ_API_KEY, VITE_GEMINI_API_KEY,
-  //   VITE_SCHOOLOGY_CONSUMER_KEY, VITE_SCHOOLOGY_CONSUMER_SECRET
+  //   VITE_GROQ_API_KEY, VITE_GEMINI_API_KEY
   //
   // A `import.meta.env.DEV ? ... : ''` guard was tried here first and did NOT
   // work — the literal still reached the bundle. Omission is the only

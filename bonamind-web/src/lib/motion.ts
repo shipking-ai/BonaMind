@@ -33,7 +33,7 @@ export function getPageTransitionVariant(pathname: string): PageTransitionVarian
   if (pathname.startsWith("/dashboard") || pathname.startsWith("/study")) {
     return "lite";
   }
-  if (pathname.startsWith("/auth/callback") || pathname.startsWith("/auth/schoology")) {
+  if (pathname.startsWith("/auth/callback")) {
     return "none";
   }
   return "full";

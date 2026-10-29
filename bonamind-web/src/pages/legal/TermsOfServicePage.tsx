@@ -188,7 +188,6 @@ const sections = [
         </p>
         <ul className="list-disc pl-5 space-y-1.5 text-[#9090A8]">
           <li><strong className="text-[#F0EFFE]">Notion:</strong> Import content from Notion via OAuth. Notion's terms apply to data accessed through this integration.</li>
-          <li><strong className="text-[#F0EFFE]">Schoology:</strong> Import courses and materials via OAuth. Schoology's terms apply to data accessed through this integration.</li>
           <li><strong className="text-[#F0EFFE]">Obsidian:</strong> Import markdown files from Obsidian vaults. Requires user-initiated file upload.</li>
           <li><strong className="text-[#F0EFFE]">Anki:</strong> Import Anki deck files (APKG format) via user-initiated file upload.</li>
         </ul>
