@@ -1,8 +1,19 @@
 import { supabase } from '../supabase';
+import { fetchAllPages, type RowsClient } from '../pagedFetch';
 import { Deck } from '../../../types';
 import { ensureUserSynced } from '../syncUser';
 import { cachedDecks, lastOwnerId, setCachedDecks, setLastOwnerId } from './cache';
 import { parseIsoToMsOrNow } from '../../../lib/timestamps';
+
+/** The raw `decks` columns the read mapper touches. */
+interface DeckRow {
+    id: string;
+    name: string;
+    description: string;
+    created_at: string | null;
+    is_sample: boolean | null;
+    source_label: string | undefined;
+}
 
 export const deckService = {
     async fetchDecks(userId: string): Promise<Deck[]> {
@@ -17,34 +28,60 @@ export const deckService = {
             return cachedDecks;
         }
 
-        const { data, error } = await supabase
-            .from('decks')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: true });
+        // The decks themselves must page too: a heavy library can exceed the
+        // 1000-row request cap, and the old single request silently dropped
+        // whole decks past it.
+        let deckRows: DeckRow[];
+        try {
+            deckRows = (await fetchAllPages(
+                supabase as unknown as RowsClient,
+                'decks',
+                '*',
+                q => q.eq('user_id', userId).order('created_at', { ascending: true }),
+            )) as unknown as DeckRow[];
+        } catch (err) {
+            console.error('Error fetching decks:', err);
+            throw err;
+        }
 
-        if (error) {
-            console.error('Error fetching decks:', error);
-            throw error;
+        // Deck counts summed in the database instead of loading one row per
+        // card: the previous count read could truncate at 1000 rows and a
+        // long .in() list could exceed URL limits. Prefer the
+        // deck_card_counts RPC (migration 20261029120000); while it is not
+        // applied yet, fall back to a paged deck_id count.
+        const deckIds = deckRows.map(d => String(d.id));
+        let cardCounts: Record<string, number> = {};
+        if (deckIds.length > 0) {
+            const rpc = await supabase.rpc('deck_card_counts' as never, { p_deck_ids: deckIds } as never);
+            const grouped = (rpc.data ?? null) as { deck_id: string; cards: number }[] | null;
+            if (!rpc.error && grouped) {
+                cardCounts = grouped.reduce((acc: Record<string, number>, row) => {
+                    acc[row.deck_id] = Number(row.cards);
+                    return acc;
+                }, {});
+            } else {
+                // No order was present before; paging needs one for stable windows.
+                const counted = (await fetchAllPages(
+                    supabase as unknown as RowsClient,
+                    'cards',
+                    'deck_id',
+                    q => q.in('deck_id', deckIds).order('deck_id', { ascending: true }),
+                )) as unknown as { deck_id: string }[];
+                cardCounts = counted.reduce((acc: Record<string, number>, card) => {
+                    const id = String(card.deck_id);
+                    acc[id] = (acc[id] ?? 0) + 1;
+                    return acc;
+                }, {});
+            }
         }
         
-        const { data: cardsData } = await supabase
-            .from('cards')
-            .select('deck_id')
-            .in('deck_id', (data ?? []).map(d => d.id));
-        
-        const cardCounts = (cardsData ?? []).reduce((acc: any, card: any) => {
-            acc[card.deck_id] = (acc[card.deck_id] || 0) + 1;
-            return acc;
-        }, {});
-        
-        const res = (data ?? []).map(d => ({
+        const res = deckRows.map(d => ({
             id: d.id,
             title: d.name,
             description: d.description,
             // Read-side TIMESTAMPTZ normalization for decks.created_at.
             createdAt: parseIsoToMsOrNow(d.created_at),
-            cardCount: cardCounts[d.id] || 0,
+            cardCount: cardCounts[String(d.id)] || 0,
             isSample: d.is_sample || false,
             sourceLabel: d.source_label
         }));
