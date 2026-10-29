@@ -1,9 +1,34 @@
 import { supabase } from '../supabase';
+import { fetchAllPages, type RowsClient } from '../pagedFetch';
 import { Card } from '../../../types';
+import type { CardCitation, CardSourceType } from '@bonamind/core';
 import { ensureUserSynced } from '../syncUser';
 import { cachedCards, lastOwnerId, setCachedCards, setLastOwnerId } from './cache';
 import { applyPersonalizedDifficultyInit } from '../../study/fsrs';
 import { toIsoOrUndef, parseIsoToMsOrNow, parseIsoToMsOrUndef } from '../../../lib/timestamps';
+
+/** The raw `cards` columns the read mapper touches. */
+interface CardRow {
+    id: string;
+    front: string;
+    back: string;
+    // NOT NULL per 20260709_core_tables.sql.
+    deck_id: string;
+    image: string | null;
+    next_review: string | null;
+    interval: number | null;
+    ease_factor: number | null;
+    repetition: number | null;
+    lapses: number | null;
+    understanding_level: number | null;
+    last_reviewed: string | null;
+    source_type: string | null;
+    source_label: string | null;
+    citations: CardCitation[] | null;
+    trust_score: number | null;
+    verified: boolean | null;
+    fsrs_state: unknown;
+}
 
 // ---------------------------------------------------------------
 // Pure mapper extracted for test coverage. StudyModePage.handleRate
@@ -132,23 +157,30 @@ export const cardService = {
             return cachedCards;
         }
 
-        const { data, error } = await supabase
-            .from('cards')
-            .select('*')
-            .eq('user_id', userId)
-            .order('id', { ascending: true });
-
-        if (error) {
-            console.error('Error fetching cards:', error);
+        // PostgREST caps a single request at 1000 rows: the unpaged read
+        // silently truncated big libraries. Walk .range() pages until a
+        // short one arrives (the id order makes the windows deterministic).
+        let rows: CardRow[];
+        try {
+            rows = (await fetchAllPages(
+                supabase as unknown as RowsClient,
+                'cards',
+                '*',
+                q => q.eq('user_id', userId).order('id', { ascending: true }),
+            )) as unknown as CardRow[];
+        } catch (err) {
+            console.error('Error fetching cards:', err);
             return [];
         }
 
-        const res = (data ?? []).map(c => ({
+        const res = rows.map(c => ({
             id: c.id,
             front: c.front,
             back: c.back,
             deckId: c.deck_id,
-            image: c.image,
+            // Nullable column, optional field: normalize so the mapped row
+            // matches the Card type (null would leak into UI as a literal).
+            image: c.image ?? undefined,
             // Read-side TIMESTAMPTZ normalization: PG returns ISO 8601 strings;
             // the in-memory `Card` type expects ms-epoch numbers so due-date
             // comparison (`c.nextReview <= Date.now()`) keeps working.
@@ -160,13 +192,13 @@ export const cardService = {
             // 20260718 migration added cards.lapses (times forgotten); the
             // tutor's "weak spots" context and weak-card badges depend on it.
             lapses: c.lapses ?? undefined,
-            understandingLevel: c.understanding_level,
+            understandingLevel: c.understanding_level ?? undefined,
             lastReviewed: parseIsoToMsOrUndef(c.last_reviewed),
-            sourceType: c.source_type,
-            sourceLabel: c.source_label,
-            citations: c.citations,
-            trustScore: c.trust_score,
-            verified: c.verified,
+            sourceType: (c.source_type ?? undefined) as CardSourceType | undefined,
+            sourceLabel: c.source_label ?? undefined,
+            citations: c.citations ?? undefined,
+            trustScore: c.trust_score ?? undefined,
+            verified: c.verified ?? undefined,
             fsrsState: c.fsrs_state ? (typeof c.fsrs_state === 'string' ? JSON.parse(c.fsrs_state) : c.fsrs_state) : undefined
         }));
 
