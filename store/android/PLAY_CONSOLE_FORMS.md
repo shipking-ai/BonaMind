@@ -30,6 +30,8 @@ progress, crash logs, billing metadata via Stripe).
 | Product interaction (PostHog) | Yes | Analytics |
 | Purchase history (billing metadata) | Yes | App functionality — subscriptions |
 | **Audio** (voice/transcript) | Yes, **shared off-device** | App functionality |
+| **Text** (chat messages, deck/card context) | Yes, **shared off-device** | App functionality |
+| **Images** (photos added to build a course) | Yes, **shared off-device** | App functionality |
 
 Audio disclosure — two features send audio or transcripts off-device:
 
@@ -42,10 +44,26 @@ Audio disclosure — two features send audio or transcripts off-device:
    (`src/services/voice/speechEngine.ts`); the WebView's speech provider
    processes spoken answers to text. No transcript is retained beyond the
    study session.
+3. **Text — chat and card content**: chat messages with Prof. Linnea, and
+   the deck/card text a feature needs (course generation, her study
+   answers), leave the device through our server to the selected AI
+   provider (Groq, Cerebras, Google Gemini or OpenRouter per
+   `api/_providers.ts`). Disclose as **Text → collected, shared** with
+   app functionality; no ad or tracking use.
+4. **Images — course source photos**: photos a user adds to build a course
+   ("turn these notes into a deck") go through our server to a vision
+   model for text extraction (`api/_lib/extract.ts`, Gemini with Groq
+   fallback). Disclose as **Images → collected, shared** with app
+   functionality; the extracted text becomes deck content in the user's
+   own account.
 
-Declare **Audio → collected, shared, transient** (not stored long-term) and
-encrypt-in-transit = Yes, deletion mechanism = Yes (account deletion in
-Settings + 30-day server retention noted in the Terms).
+Audio, text and images leave the device through our server. The AI proxy
+uses a transient upstream request for each turn but keeps usage logs in
+`chat_logs` on the user's own account row: for chat, the messages sent and
+a ≤500-character response preview; for transcriptions, a ≤200-character
+transcript preview. Disclose accordingly (data is collected, not merely
+forwarded). Encryption in transit = Yes, deletion mechanism = Yes
+(account deletion in Settings).
 
 ## App content → Ads
 

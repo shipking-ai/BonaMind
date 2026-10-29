@@ -1,4 +1,4 @@
-• Prof. Linnea now runs ON YOUR PHONE — private on-device AI works offline, no servers, no data leaving your device.
+• Prof. Linnea can now run fully on-device — pick Settings → AI engine → On-device (offline) and her chats stay off the cloud (Chrome/Edge with WebGPU). By default she still answers through our server.
 • Voice study mode — study hands-free with spoken answers.
 • Smarter FSRS scheduling — your deck adapts to how *you* remember.
 • Faster deck creation — drop a PDF and watch BonaMind build flashcards.
