@@ -860,14 +860,6 @@ export const ACHIEVEMENTS: Record<string, Achievement> = {
     rarity: 'common',
     xpReward: 25,
   },
-  PROFILE_LINK: {
-    id: 'profile_link',
-    title: 'Connected',
-    description: 'Link your Schoology or Notion account',
-    icon: 'medal',
-    rarity: 'rare',
-    xpReward: 75,
-  },
 
   // ── Special (5 new) ──
   NIGHT_OWL: {
