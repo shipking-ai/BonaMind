@@ -18,6 +18,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { DEFAULT_WEIGHTS } from '@bonamind/core';
 import { Gauge } from '@/components/icons';
 
 export type PacingMode = 'auto' | 'easier' | 'harder';
@@ -53,10 +54,15 @@ function writeStoredMode(mode: PacingMode): void {
   }
 }
 
-function targetForMode(mode: PacingMode, profileCenter: number | null): number | null {
-  if (mode === 'auto' || profileCenter === null) return null;
-  if (mode === 'easier') return clamp(profileCenter + 1.0, 1, 10);
-  if (mode === 'harder') return clamp(profileCenter - 1.0, 1, 10);
+export function targetForMode(mode: PacingMode, profileCenter: number | null): number | null {
+  if (mode === 'auto') return null;
+  // FSRS difficulty runs 1 (easiest) → 10 (hardest): a higher target means
+  // shorter intervals. So Gentler must bias DOWN and Firmer UP, starting
+  // from the tuned profile center — or the FSRS default W[4] when the
+  // user has no tuned profile yet (header promise, not a dead option).
+  const center = profileCenter ?? DEFAULT_WEIGHTS[4];
+  if (mode === 'easier') return clamp(center - 1.0, 1, 10);
+  if (mode === 'harder') return clamp(center + 1.0, 1, 10);
   return null;
 }
 
