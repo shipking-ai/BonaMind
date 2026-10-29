@@ -37,7 +37,24 @@ appId: ${APP_ID}
 - repeat:
     times: 3
     commands:
-      - tapOn: "Tap or swipe to reveal"
+      # The "Tap or swipe to reveal" hint is a plain gray Text that the iOS
+      # 26.4 simulator's accessibility tree intermittently omits TWICE: not
+      # in the findable tree at snapshot time (Maestro "Element not found"),
+      # while the failure screenshot shows it plainly on screen. The card
+      # itself is the tap target, so on iOS tap the card directly by point
+      # (~50%, 40% — blank card area above the question text). Android's
+      # text tap is green; leave it alone.
+      - runFlow:
+          when:
+            platform: iOS
+          commands:
+            - tapOn:
+                point: "50%, 40%"
+      - runFlow:
+          when:
+            platform: Android
+          commands:
+            - tapOn: "Tap or swipe to reveal"
       - swipe:
           direction: RIGHT
           duration: 300
@@ -49,7 +66,17 @@ appId: ${APP_ID}
 - repeat:
     times: 2
     commands:
-      - tapOn: "Tap or swipe to reveal"
+      - runFlow:
+          when:
+            platform: iOS
+          commands:
+            - tapOn:
+                point: "50%, 40%"
+      - runFlow:
+          when:
+            platform: Android
+          commands:
+            - tapOn: "Tap or swipe to reveal"
       - swipe:
           direction: RIGHT
           duration: 300
