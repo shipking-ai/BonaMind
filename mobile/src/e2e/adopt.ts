@@ -10,7 +10,12 @@ import { getSupabase } from '../data/supabase';
 const adopted = new Set<string>();
 
 export async function adoptRuntimeSession(rt: string) {
-  if (adopted.has(rt)) return;
+  // Already adopted: the token is rotated and unusable, but the deep link
+  // still parked us on the e2e route, so go back to Today.
+  if (adopted.has(rt)) {
+    router.replace('/today');
+    return;
+  }
   adopted.add(rt);
   await getSupabase().auth.refreshSession({ refresh_token: rt });
   router.replace('/today');

@@ -83,6 +83,8 @@ jobs:
       EXPO_PUBLIC_E2E: 'true'
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       E2E_EMAIL: ${{ secrets.E2E_EMAIL_IOS }}
+      # The XCTest driver start on CI runners is flaky; give it ten minutes.
+      MAESTRO_DRIVER_STARTUP_TIMEOUT: '600000'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -136,6 +138,7 @@ jobs:
       EXPO_PUBLIC_E2E: 'true'
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       E2E_EMAIL: ${{ secrets.E2E_EMAIL_ANDROID }}
+      MAESTRO_DRIVER_STARTUP_TIMEOUT: '600000'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
