@@ -14,7 +14,7 @@ import { env } from '../env';
 import { signInWithApple } from './apple';
 import { signInWithGoogle } from './oauth';
 import { TurnstileGate } from './TurnstileGate';
-import { ClipboardAdopt } from '../e2e/ClipboardAdopt';
+import { FileAdopt } from '../e2e/FileAdopt';
 
 export const SIGN_IN_COPY: Record<SignInError | 'no_captcha', string> = {
   invalid_credentials: "That email and password don't match. Try again or use a code.",
@@ -77,7 +77,7 @@ export function WelcomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      {env.e2e && <ClipboardAdopt />}
+      {env.e2e && <FileAdopt />}
       <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Animated.View entering={reduce ? undefined : FadeIn.duration(900)} style={styles.brand}>

@@ -16,19 +16,9 @@ appId: ${APP_ID}
       platform: iOS
     commands:
       - launchApp
-      # Only reached on the rare path where the session was lost and the
-      # welcome screen adopts the clipboard again: wait for its paste sheet,
-      # then confirm it (see core-loop). The happy path never shows welcome.
-      - repeat:
-          times: 10
-          while:
-            visible: "Continue with email"
-          commands:
-            - waitForAnimationToEnd:
-                timeout: 3000
-      - tapOn:
-          text: "^Allow Paste$"
-          optional: true
+      # The core loop left the session in the keychain (same simulator), so a
+      # plain launch lands on Today; welcome only shows on the rare lost
+      # session and reads the token file like the core loop does.
 - runFlow:
     when:
       platform: Android

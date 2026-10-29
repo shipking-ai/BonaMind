@@ -114,8 +114,11 @@ jobs:
         id: session
         working-directory: mobile
         run: node e2e/reseed.mjs && node e2e/mint-session.mjs
-      - name: Plant the session link on the simulator clipboard
-        run: printf 'bonamind://e2e/session?rt=%s' "${{ steps.session.outputs.rt }}" | xcrun simctl pbcopy "$DEVICE"
+      - name: Plant the runtime token in the app container
+        run: |
+          C=$(xcrun simctl get_app_container "$DEVICE" com.bonamind.app data)
+          mkdir -p "$C/Documents"
+          printf '%s' "${{ steps.session.outputs.rt }}" > "$C/Documents/e2e-rt.txt"
       - name: Run the core loop
         working-directory: mobile
         run: maestro test -e APP_ID=com.bonamind.app -e RT=${{ steps.session.outputs.rt }} --test-output-dir ../e2e-ios e2e/core-loop.yaml

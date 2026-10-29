@@ -2,12 +2,13 @@
 # offline mid-session on Android) -> celebration. verify-reviews.mjs then
 # checks the server received exactly those 5 reviews.
 #
-# iOS signs in through the clipboard-adopt hook (src/e2e/ClipboardAdopt.tsx):
-# the workflow plants bonamind://e2e/session?rt=… on the simulator clipboard
-# (xcrun simctl pbcopy) and the app adopts it on the welcome screen. openLink
-# cannot sign iOS in: iOS 26 gates cold custom-scheme deep links behind a
-# system "Open in 'BonaMind'?" sheet whose Open button drops the URL in CI
-# (mobile-dev-inc/Maestro#2610, unfixed). Android has no such sheet, so the
+# iOS signs in through the token-file hook (src/e2e/FileAdopt.tsx): the
+# workflow writes the minted refresh token into the app's sandboxed
+# Documents and the app adopts it on the welcome screen. openLink cannot
+# sign iOS in: iOS 26 gates cold custom-scheme deep links behind a system
+# "Open in 'BonaMind'?" sheet whose Open button drops the URL in CI
+# (mobile-dev-inc/Maestro#2610, unfixed), and the clipboard alternative
+# stalls on the paste-permission sheet. Android has no such sheet, so the
 # deep link signs it in directly.
 appId: ${APP_ID}
 ---
@@ -17,22 +18,9 @@ appId: ${APP_ID}
     commands:
       - launchApp:
           clearState: true
-      # The cold welcome screen adopts the planted clipboard session
-      # (src/e2e/ClipboardAdopt.tsx). iOS interposes a paste-permission sheet
-      # over it, and a system sheet hides the app's own tree from the
-      # snapshot, so wait until "Continue with email" either vanishes
-      # (sign-in went through) or is hidden by the sheet, then confirm the
-      # sheet if it is indeed up.
-      - repeat:
-          times: 30
-          while:
-            visible: "Continue with email"
-          commands:
-            - waitForAnimationToEnd:
-                timeout: 3000
-      - tapOn:
-          text: "^Allow Paste$"
-          optional: true
+      # The welcome screen adopts the token the workflow wrote into the app
+      # container (src/e2e/FileAdopt.tsx); no system sheet can block it, so
+      # Today is the only thing left to wait for.
 - runFlow:
     when:
       platform: Android
