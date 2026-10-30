@@ -588,16 +588,19 @@ async function handleAdminUtility(req: VercelRequest, res: VercelResponse, supab
 
       let { data, error } = await supabase.auth.admin.createUser(userPayload);
 
-      // If user already exists from a previous scan, delete and retry once
+      // An email that already exists belongs to whoever registered it —
+      // a real person on this service. It is NEVER deleted here; we simply
+      // refuse, and the caller picks another address.
       if (error && (error.message?.includes('already') || error.status === 422)) {
-        try {
-          const { data: existingUsers } = await supabase.auth.admin.listUsers();
-          const existing = existingUsers?.users?.find((u: any) => u.email === email);
-          if (existing) await supabase.auth.admin.deleteUser(existing.id);
-        } catch { /* best effort */ }
-        const retry = await supabase.auth.admin.createUser(userPayload);
-        data = retry.data;
-        error = retry.error;
+        await logAuditEvent(supabase, {
+          actorEmail: requestingUser.email || 'admin',
+          action: 'Test user creation refused',
+          category: 'user',
+          targetEmail: email,
+          details: `Email ${email} already exists; nothing was deleted`,
+          severity: 'warning',
+        });
+        return json(res, 409, { error: 'User already exists. Nothing was deleted; pick a fresh test address.' });
       }
 
       if (error) throw error;
