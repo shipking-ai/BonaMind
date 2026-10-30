@@ -6,6 +6,7 @@ import { Confetti } from '../design/components/Confetti';
 import { PrimaryButton } from '../design/components/PrimaryButton';
 import { haptic } from '../design/haptics';
 import { useMotion } from '../design/motion';
+import { env } from '../env';
 import { colors, fonts, space } from '../design/tokens';
 
 const DIGIT_HEIGHT = 64;
@@ -16,6 +17,10 @@ export function Celebration({ fromStreak, toStreak, line, onDone }: { fromStreak
   const { reduce } = useMotion();
   const roll = useSharedValue(0);
   useEffect(() => {
+    // Bridged-async module calls (haptics among them) have stalled the
+    // JS bridge indefinitely on the iOS 26.4 CI simulator — right when the
+    // accessibility tree is read — so e2e skips the celebratory haptic.
+    if (env.e2e) return;
     haptic('success');
     if (toStreak === fromStreak) return;
     roll.set(reduce ? -DIGIT_HEIGHT : withDelay(ROLL_DELAY_MS, withSpring(-DIGIT_HEIGHT, { damping: 11, stiffness: 120 })));
