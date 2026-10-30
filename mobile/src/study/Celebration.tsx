@@ -37,7 +37,11 @@ export function Celebration({ fromStreak, toStreak, line, onDone }: { fromStreak
   if (e2e) {
     return (
       <View style={styles.wrap} testID="celebration-e2e">
-        <View style={styles.streakRow} accessible accessibilityLabel={`${toStreak} day streak`}>
+        {/* NO accessible+accessibilityLabel on this row in e2e: flattened
+            groups expose only the group's label to XCUITest on iOS 26.4,
+            which the engine's text matcher reportedly doesn't see — plain
+            Text children match reliably (as every other screen's asserts do). */}
+        <View style={styles.streakRow}>
           <Text style={styles.digit}>{toStreak}</Text>
           <Text style={styles.unit}>day streak</Text>
         </View>
