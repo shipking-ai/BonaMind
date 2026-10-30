@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { gotoApp } from './gotoApp';
 
 /**
  * Landing hero aurora E2E — same contract as aurora.spec.ts (measure, don't
@@ -12,7 +13,7 @@ test.describe('landing hero motion', () => {
   test.use({ reducedMotion: 'no-preference' });
 
   test('hero blobs respond to scroll with depth parallax + hue drift', async ({ page }) => {
-    await page.goto('/');
+    await gotoApp(page, '/');
     await page.waitForSelector('section.relative.pt-32');
 
     const readLayers = () =>
@@ -62,7 +63,7 @@ test.describe('landing hero motion (reduced)', () => {
   });
 
   test('reduced motion renders the hero fully static', async ({ page }) => {
-    await page.goto('/');
+    await gotoApp(page, '/');
     await page.waitForSelector('section.relative.pt-32');
     const readLayers = () =>
       page.evaluate(() => {

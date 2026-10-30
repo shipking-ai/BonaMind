@@ -145,17 +145,28 @@ setDefaultJsonLd();
 
 // Connection status monitoring
 let isCurrentlyOnline = isOnline();
+
+const syncQueuedReviews = () => {
+  if (!getAppPreference('bonamind_autoSync', true)) return;
+  syncOfflineData()
+    .then(result => {
+      if (result.synced > 0 || result.dropped > 0) {
+        console.warn(`[Sync] Synced offline items (${result.synced} succeeded, ${result.failed} failed, ${result.dropped} dropped)`);
+      }
+    })
+    .catch(err => console.warn('[Sync] Offline sync failed:', err));
+};
+
+// Reviews queued in a previous session (closed while offline) would
+// otherwise wait for an `online` event that never comes once the app is
+// opened with a connection.
+if (isCurrentlyOnline) syncQueuedReviews();
+
 onConnectionChange(
   () => {
     isCurrentlyOnline = true;
     console.warn('[Network] Connection restored');
-    const autoSync = getAppPreference('bonamind_autoSync', true);
-    if (!autoSync) return;
-    syncOfflineData().then(result => {
-      if (result.synced > 0) {
-        console.warn(`[Sync] Synced offline items (${result.synced} succeeded, ${result.failed} failed)`);
-      }
-    });
+    syncQueuedReviews();
   },
   () => {
     isCurrentlyOnline = false;

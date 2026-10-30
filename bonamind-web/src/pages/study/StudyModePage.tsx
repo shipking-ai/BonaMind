@@ -23,7 +23,8 @@ import {
   updateSessionLiveUpdate,
   endSessionLiveUpdate,
 } from '../../lib/sessionLiveUpdate';
-import { isOnline, queueCardReview, getCachedDecks, getCachedCards } from '../../services/offline/offlineStudyService';
+import { isOnline, getCachedDecks, getCachedCards } from '../../services/offline/offlineStudyService';
+import { persistReview } from '../../services/study/persistReview';
 import { applyPersonalizedDifficultyInit } from '../../services/study/fsrs';
 import { Rating } from '../../types';
 import type { StudySession, Card, Deck } from '../../types';
@@ -391,33 +392,26 @@ export default function StudyModePage() {
       const res = calculateSRS(biased.card, rating, personalization.weights, targetRetention);
       // Single round-trip: schedule writes and bias writes travel together so
       // the two never race against stale row reads.
+      const reviewedAt = Date.now();
       const update: Partial<Card> = {
         interval: res.interval,
         repetition: res.repetition,
         easeFactor: res.easeFactor,
-        nextReview: Date.now() + res.interval * 86400000,
-        lastReviewed: Date.now(),
+        nextReview: reviewedAt + res.interval * 86400000,
+        lastReviewed: reviewedAt,
       };
-      if (biased.applied && biased.card.fsrsState) {
-        update.fsrsState = biased.card.fsrsState;
+      // The post-review FSRS state (stability, difficulty) is what the next
+      // review schedules from. It used to be written only on a card's first
+      // review — and then as the pre-review biased state — so every later
+      // review rescheduled from the same stale state. res.fsrsState already
+      // carries the first-review bias, since it was computed from biased.card.
+      if (res.fsrsState) {
+        update.fsrsState = res.fsrsState;
       }
-      // Persist the review to the offline queue BEFORE attempting the network
-      // write, whenever the device reports no connection.
-      //
-      // dbService.updateCard() swallows a failed Supabase write and returns the
-      // in-memory optimistic card, so the caller cannot tell a successful save
-      // from a lost one. Offline, that meant a full study session advanced
-      // normally on screen and every review was discarded on reload — the worst
-      // possible failure for a spaced-repetition app. The rating is only known
-      // here, which is why the queueing lives at the call site.
-      if (!isOnline()) {
-        try {
-          await queueCardReview(currentCard.id, rating, res);
-        } catch (queueErr) {
-          console.warn('[StudyMode] Could not queue review for later sync:', queueErr);
-        }
-      }
-      await dbService.updateCard(currentCard.id, update);
+      // Queued for sync when offline, or when the write fails while online —
+      // otherwise a lost save looked like a successful one and the review
+      // vanished on reload, the worst failure for a spaced-repetition app.
+      await persistReview({ cardId: currentCard.id, rating, srsResult: res, update, userId, reviewedAt });
       // Optimistically mirror the write into the workspace cards-cache so the
       // dashboard widgets (StudyOverview's "Studied today" stat, the deck
       // bucketing on CardsDecks, etc.) reflect the new lastReviewed IMMEDIATELY
@@ -436,7 +430,8 @@ export default function StudyModePage() {
       // FSRS v5 Rating.EASY (=5) writes that were silently rejected by
       // the old `rating <= 4` check.
       if (userId) {
-        const reviewedAt = Date.now();
+        // Same reviewedAt as the queued copy, so a replay of this review
+        // lands on the same history row instead of adding a second one.
         // JSON.stringify drops `undefined` keys on the wire, so assign
         // fsrsState directly rather than guarding with a ternary. Cleaner
         // diff; identical payload.

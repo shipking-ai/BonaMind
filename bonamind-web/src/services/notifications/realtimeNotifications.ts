@@ -116,6 +116,9 @@ export function getConnectionStatus(): RealtimeConnectionStatus {
 }
 
 // ─── Event handlers ─────────────────────────────────────────────────────
+// Every action opens the dashboard: it carries the stats and streak, and there
+// is no separate analytics, leagues or streak route (those paths used to fall
+// through NovaHub's catch-all to the landing page).
 
 function handleStudySessionEvent(payload: RealtimeNotificationPayload): void {
   const cards = payload.cards_studied ?? 0;
@@ -126,7 +129,7 @@ function handleStudySessionEvent(payload: RealtimeNotificationPayload): void {
     title: 'Study Session Complete',
     description: `${cards} cards reviewed in ${duration} min · ${accuracy}% accuracy`,
     type: 'success',
-    actionUrl: '/dashboard/analytics',
+    actionUrl: '/dashboard',
     actionLabel: 'View Stats',
   });
 }
@@ -139,8 +142,8 @@ function handleLeagueEvent(payload: RealtimeNotificationPayload): void {
     title: 'League Progress',
     description: `You earned ${xp} XP this week (Tier ${tier})`,
     type: 'info',
-    actionUrl: '/dashboard/leagues',
-    actionLabel: 'View League',
+    actionUrl: '/dashboard',
+    actionLabel: 'Open Dashboard',
   });
 }
 
@@ -165,7 +168,7 @@ function handleStreakEvent(payload: RealtimeNotificationPayload): void {
     title: titles[streak] || `${streak}-Day Streak!`,
     description: 'Amazing consistency — keep the momentum going',
     type: 'success',
-    actionUrl: '/dashboard/streak',
+    actionUrl: '/dashboard',
     actionLabel: 'View Streak',
   });
 }

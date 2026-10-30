@@ -622,6 +622,12 @@ const AppContent = ({ onUserRoleChange }: { onUserRoleChange: (role: UserRole) =
   useEffect(() => {
     if (!userId) return;
     return registerWorkspaceRefresh(async () => {
+      // dbService answers from its module cache while the owner is
+      // unchanged, so without this a "refresh" re-read the same stale lists:
+      // pull-to-refresh showed nothing new, and a deck created server-side
+      // (a forked marketplace deck, an accepted class deck) stayed invisible
+      // until a full reload.
+      dbService.clearCache();
       const { decks: fetchedDecks, cards: fetchedCards } = await loadWorkspaceData(userId);
       setDecks(fetchedDecks);
       setCards(fetchedCards);

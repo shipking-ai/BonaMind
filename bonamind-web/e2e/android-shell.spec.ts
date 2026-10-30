@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { gotoApp } from "./gotoApp";
 
 const screens = ["home", "library", "study", "generator", "settings"] as const;
 
@@ -17,7 +18,7 @@ test.describe("Android Prism shell", () => {
 
   for (const screen of screens) {
     test(`${screen} surface keeps the Android shell contract`, async ({ page }) => {
-      await page.goto(`/__e2e/android?screen=${screen}`);
+      await gotoApp(page, `/__e2e/android?screen=${screen}`);
       await expect(page.getByTestId("android-preview-shell")).toBeVisible();
       await expect(page.locator(".android-mobile-topbar")).toBeVisible();
       await expect(page.locator(".android-mobile-bottom-nav")).toBeVisible();
@@ -42,12 +43,12 @@ test.describe("Android Prism shell", () => {
   test("Android preview has a distinct visual surface from the desktop landing page", async ({
     page,
   }) => {
-    await page.goto("/__e2e/android?screen=home");
+    await gotoApp(page, "/__e2e/android?screen=home");
     const androidBackground = await page
       .locator('[data-testid="android-preview-shell"]')
       .evaluate((element) => getComputedStyle(element).backgroundImage);
 
-    await page.goto("/");
+    await gotoApp(page, "/");
     const desktopBackground = await page
       .locator("body")
       .evaluate((element) => getComputedStyle(element).backgroundImage);

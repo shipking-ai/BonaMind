@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { gotoApp } from './gotoApp';
 import { execSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -53,9 +54,9 @@ try {
   /* best effort — beforeAll will report real failures */
 }
 
-function seed(email: string, state: string, fresh: boolean) {
+function seed(email: string, state: string, fresh: boolean, withSubscription = false) {
   execSync(
-    `node scripts/e2e-seed-session.mjs --email ${email} --name "${state}" --base-url http://localhost:3001${fresh ? ' --fresh' : ''}`,
+    `node scripts/e2e-seed-session.mjs --email ${email} --name "${state}" --base-url http://localhost:3001${fresh ? ' --fresh' : ''}${withSubscription ? ' --with-subscription' : ''}`,
     { cwd: APP_DIR, stdio: 'inherit', timeout: 120_000 },
   );
 }
@@ -93,7 +94,7 @@ test.describe('fresh account — onboarding flow', () => {
   test('visiting /onboarding shows the role step', async ({ page }) => {
     const { pageErrors, consoleErrors } = trackErrors(page);
 
-    await page.goto('/onboarding');
+    await gotoApp(page, '/onboarding');
     await expect(page.getByRole('heading', { name: /what brings you here/i })).toBeVisible({
       timeout: 20_000,
     });
@@ -113,7 +114,7 @@ test.describe('fresh account — onboarding flow', () => {
     test.setTimeout(120_000);
     const { pageErrors, consoleErrors } = trackErrors(page);
 
-    await page.goto('/onboarding');
+    await gotoApp(page, '/onboarding');
     await expect(page.getByRole('heading', { name: /what brings you here/i })).toBeVisible({
       timeout: 20_000,
     });
@@ -142,14 +143,16 @@ test.describe('onboarded account — gate skips the flow', () => {
   test.skip(!canSeedSessions, SEED_SKIP_REASON);
 
   test.beforeAll(async () => {
-    seed(DONE.email, DONE.state, false);
+    seed(DONE.email, DONE.state, false, true);
   });
 
   test.use({ storageState: DONE.state });
 
   test('/onboarding bounces a finished account to /dashboard', async ({ page }) => {
-    await page.goto('/onboarding');
+    await gotoApp(page, '/onboarding');
     await page.waitForURL(/\/dashboard/, { timeout: 20_000 });
-    await expect(page.locator('body')).toContainText(/aura/i, { timeout: 20_000 });
+    await expect(page.getByRole('button', { name: 'Dashboard', exact: true })).toBeVisible({
+      timeout: 20_000,
+    });
   });
 });
