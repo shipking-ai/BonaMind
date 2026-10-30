@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../services/database/supabase';
+import { capturedOAuthUrl } from '../../lib/oauthUrlHygiene';
 import { hasCompletedOnboarding } from '../../lib/onboardingGate';
 import { Loader2, Check, AlertTriangle } from '@/components/icons';
 
@@ -14,14 +15,17 @@ const CallbackPage: React.FC = () => {
     let cancelled = false;
 
     const handleOAuthCallback = async () => {
-      // Check for recovery (password reset) flow
-      const hashParams = new URLSearchParams(location.hash.replace('#', ''));
-      const isRecovery = hashParams.get('type') === 'recovery';
+      // The pre-scrub copy of the URL (see oauthUrlHygiene): the token bytes
+      // the flow travels in were wiped from the address bar at boot so no
+      // telemetry snapshot can ever hold them. This page consumes the copy.
+      const source = capturedOAuthUrl() || window.location.search + window.location.hash;
 
-      // Check for error in the URL hash or query (e.g. ?error=access_denied)
-      const params = new URLSearchParams(
-        location.hash.replace('#', '') + '&' + location.search.replace('?', ''),
-      );
+      // Benign navigation hints (code/type/error descriptions) — never:
+      // with a PKCE client, tokens do not belong in the URL and the page
+      // below does not read any access_token/refresh_token from it.
+      const params = new URLSearchParams(source.replace(/^[^?#]*/, ''));
+      const isRecovery = params.get('type') === 'recovery';
+
       const oauthError = params.get('error');
       const errorDescription = params.get('error_description');
 
@@ -42,28 +46,10 @@ const CallbackPage: React.FC = () => {
       }
 
       try {
-        // Handle password recovery flow
-        if (isRecovery) {
-          const accessToken = hashParams.get('access_token');
-          const refreshToken = hashParams.get('refresh_token');
-          if (accessToken) {
-            const { error: setError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken || '',
-            });
-            if (!setError && !cancelled) {
-              setStatus('success');
-              setTimeout(() => navigate('/reset-password?mode=update', { replace: true }), 800);
-              return;
-            }
-          }
-          // Fallback: try standard exchange
-        }
-
-        // exchangeCodeForSession() is the recommended PKCE callback handler.
-        // It parses the OAuth code from the URL hash/query and establishes a session.
+        // exchangeCodeForSession() is the PKCE callback handler. It parses
+        // the code from the captured URL and establishes a session.
         const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(
-          location.search || location.hash,
+          source.replace(/^[^?#]*/, ''),
         );
 
         if (exchangeError) {
@@ -99,13 +85,16 @@ const CallbackPage: React.FC = () => {
 
         if (data?.session && !cancelled) {
           setStatus('success');
-          // A fresh signup that confirmed their email lands on onboarding for
-          // the role + topic step before the plan; returning users skip it.
+          // A recovery link lands on the password-change screen; a fresh
+          // signup that confirmed their email goes to onboarding for the
+          // role + topic step before the plan; returning users skip it.
           const metadata = data.session.user?.user_metadata;
           setTimeout(
             () =>
               navigate(
-                hasCompletedOnboarding(metadata) ? '/dashboard' : '/onboarding',
+                isRecovery
+                  ? '/reset-password?mode=update'
+                  : hasCompletedOnboarding(metadata) ? '/dashboard' : '/onboarding',
                 { replace: true },
               ),
             800,

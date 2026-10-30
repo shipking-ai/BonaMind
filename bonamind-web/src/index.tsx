@@ -57,6 +57,11 @@ const ReactQueryDevtools =
     : null;
 import { queryClient } from './lib/queryClient';
 
+// OAuth tokens leave the address bar BEFORE any telemetry initializes
+// (Sentry breadcrumbs and PostHog pageviews snapshot the location).
+import { captureAndScrubOAuthUrl } from './lib/oauthUrlHygiene';
+captureAndScrubOAuthUrl();
+
 // Initialize Sentry (no-op if DSN not configured)
 initSentry();
 
