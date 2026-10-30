@@ -84,8 +84,11 @@ export function useMultiplayerStudy(opts: Options): MultiplayerState {
       return;
     }
 
+    // Private channel: the deck's owner or anyone on a public deck may
+    // watch/speak on study:<deckId>, enforced by realtime RLS
+    // (20261030000000) instead of trusting the unguessable id.
     const channel = requireSupabase().channel(channelName, {
-      config: { presence: { key: currentUserId }, broadcast: { ack: false } },
+      config: { presence: { key: currentUserId }, broadcast: { ack: false }, private: true },
     });
     channelRef.current = channel;
     subscribedRef.current = false;
