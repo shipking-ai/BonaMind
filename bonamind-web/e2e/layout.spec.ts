@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { gotoApp } from './gotoApp';
 
 test.describe('Layout regression tests', () => {
   test.describe('Landing page hero', () => {
     test('hero section has max-width constraint and centered content', async ({ page }) => {
-      await page.goto('/');
+      await gotoApp(page, '/');
       const heading = page.locator('h1').first();
       await expect(heading).toBeVisible({ timeout: 15_000 });
 
@@ -23,8 +24,7 @@ test.describe('Layout regression tests', () => {
     });
 
     test('hero heading and CTA button are visible', async ({ page }) => {
-      await page.goto('/');
-      await page.waitForLoadState('networkidle');
+      await gotoApp(page, '/');
 
       const heading = page.locator('h1').first();
       await expect(heading).toBeVisible();
@@ -36,13 +36,12 @@ test.describe('Layout regression tests', () => {
 
   test.describe('Auth page form', () => {
     test('auth page renders a centered card layout', async ({ page }) => {
-      await page.goto('/auth');
+      await gotoApp(page, '/auth');
       // NOTE: 'networkidle' never fires here — the Turnstile widget holds a
       // long-lived challenges.cloudflare.com connection (and its challenge
       // fetch can hang outright in sandboxed networks). These tests assert
       // layout, so domcontentloaded + explicit locator waits are the
       // correct readiness signal.
-      await page.waitForLoadState('domcontentloaded');
 
       const formCard = page.locator('.max-w-sm').first();
       await expect(formCard).toBeVisible({ timeout: 10_000 });
@@ -57,9 +56,8 @@ test.describe('Layout regression tests', () => {
     });
 
     test('auth page has email and password fields', async ({ page }) => {
-      await page.goto('/auth');
+      await gotoApp(page, '/auth');
       // Same Turnstile caveat as above: never networkidle on this page.
-      await page.waitForLoadState('domcontentloaded');
 
       await expect(page.locator('input[type="email"]').first()).toBeVisible({ timeout: 10_000 });
       await expect(page.locator('input[type="password"]').first()).toBeVisible();
@@ -69,8 +67,7 @@ test.describe('Layout regression tests', () => {
 
   test.describe('Landing page navigation', () => {
     test('nav bar is visible and contains key links', async ({ page }) => {
-      await page.goto('/');
-      await page.waitForLoadState('networkidle');
+      await gotoApp(page, '/');
 
       const nav = page.locator('nav').first();
       await expect(nav).toBeVisible();
@@ -83,8 +80,7 @@ test.describe('Layout regression tests', () => {
     });
 
     test('nav stays fixed at top after scroll', async ({ page }) => {
-      await page.goto('/');
-      await page.waitForLoadState('networkidle');
+      await gotoApp(page, '/');
 
       const nav = page.locator('nav').first();
       await expect(nav).toBeVisible();
@@ -112,8 +108,7 @@ test.describe('Layout regression tests', () => {
     ]) {
       test(`pricing plan renders without overflow on ${label}`, async ({ page }) => {
         await page.setViewportSize({ width, height });
-        await page.goto('/#pricing');
-        await page.waitForLoadState('networkidle');
+        await gotoApp(page, '/#pricing');
 
         await page.evaluate(() => {
           document.getElementById('pricing')?.scrollIntoView({ behavior: 'instant' });
@@ -146,8 +141,7 @@ test.describe('Layout regression tests', () => {
 
     test('pricing states the trial instead of a free tier', async ({ page }) => {
       await page.setViewportSize({ width: 1280, height: 800 });
-      await page.goto('/#pricing');
-      await page.waitForLoadState('networkidle');
+      await gotoApp(page, '/#pricing');
 
       const pricing = page.locator('#pricing');
       await expect(pricing).toContainText('7 days free');

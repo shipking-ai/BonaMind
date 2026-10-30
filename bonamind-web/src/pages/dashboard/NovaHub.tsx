@@ -106,7 +106,9 @@ const NovaHub: React.FC<NovaHubProps> = (props) => {
             <Route path="/settings" element={isWindows ? <WindowsSettings /> : isIOS ? <IOSSettingsScreen /> : resolveDashboardSurface(isMobileApp, '/settings') === 'android-settings' ? <AndroidSettingsScreen /> : <SettingsPage />} />
             {/* The full settings page, reached from the iPhone's Settings screen. */}
             <Route path="/settings/all" element={<SettingsPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            {/* Unknown dashboard paths land on the dashboard home. An absolute
+                "/" here sent a signed-in user out to the marketing page. */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </Suspense>
       </NovaDashboardShell>

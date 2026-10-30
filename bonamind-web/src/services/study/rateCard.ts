@@ -6,9 +6,8 @@
  */
 import type { Card, Rating } from '../../types';
 import { planReview } from '@bonamind/core';
-import { dbService } from '../database/dbService';
 import { cardReviewsService } from '../database/modules/cardReviewsService';
-import { isOnline, queueCardReview } from '../offline/offlineStudyService';
+import { persistReview } from './persistReview';
 import { analyticsService } from '../analytics/analyticsService';
 
 export async function rateCard(input: {
@@ -24,12 +23,8 @@ export async function rateCard(input: {
   const res = record.srsResult;
   const update: Partial<Card> = { ...planned };
 
-  // Same reason as the study screen: updateCard() swallows a failed write,
-  // so offline the only durable record is the queue.
-  if (!isOnline()) {
-    try { await queueCardReview(card.id, rating, res); } catch { /* best effort */ }
-  }
-  try { await dbService.updateCard(card.id, update); } catch { /* keep the user moving */ }
+  // Queued when offline or when the write fails; never throws.
+  await persistReview({ cardId: card.id, rating, srsResult: res, update, userId, reviewedAt: now });
   if (userId) {
     cardReviewsService
       .recordReview({

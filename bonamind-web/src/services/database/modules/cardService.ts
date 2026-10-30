@@ -271,7 +271,12 @@ export const cardService = {
         return savedCards;
     },
 
-    async updateCard(id: string, updates: CardUpdateInput): Promise<Card> {
+    /**
+     * With `strict`, a failed write throws even when the optimistic cache
+     * update succeeded. Review callers pass it so a save that never reached
+     * the server can be queued for sync instead of silently lost.
+     */
+    async updateCard(id: string, updates: CardUpdateInput, opts: { strict?: boolean } = {}): Promise<Card> {
         if (!supabase) throw new Error('Supabase not initialized');
 
         // Single source of truth for the JS->DB mapping (also exported for
@@ -320,7 +325,7 @@ export const cardService = {
         if (error) {
             // Don't block the study session; keep the optimistic update in cache.
             console.warn('Supabase updateCard failed (keeping optimistic update):', error);
-            if (!optimisticCard) throw error;
+            if (!optimisticCard || opts.strict) throw error;
             return optimisticCard;
         }
 
@@ -344,7 +349,7 @@ export const cardService = {
                 authUid: session?.user?.id ?? null,
                 hasAuthToken: !!session?.access_token,
             });
-            if (!optimisticCard) throw new Error(`Card ${id} not found or not updatable`);
+            if (!optimisticCard || opts.strict) throw new Error(`Card ${id} not found or not updatable`);
             return optimisticCard;
         }
 

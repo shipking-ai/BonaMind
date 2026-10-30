@@ -64,7 +64,7 @@ export const LegalFooter: React.FC<LegalFooterProps> = ({
             )}
           </div>
         </div>
-        <div className="text-[10px] text-[#3A3A4F]">{LEGAL_COPYRIGHT_LINE}</div>
+        <div className="text-[10px] text-[#8A8AA3]">{LEGAL_COPYRIGHT_LINE}</div>
       </div>
     </div>
   );
