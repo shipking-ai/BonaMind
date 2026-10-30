@@ -126,6 +126,15 @@ jobs:
       - name: Verify the server got exactly 5 reviews
         working-directory: mobile
         run: node e2e/verify-reviews.mjs "${{ steps.session.outputs.since }}" "${{ steps.session.outputs.user }}" 5
+      - name: Mint and plant a fresh token for the course-creation flow
+        id: session2
+        working-directory: mobile
+        run: node e2e/mint-session.mjs
+      - name: Replant the runtime token in the app container
+        run: |
+          C=$(xcrun simctl get_app_container "$DEVICE" com.bonamind.app data)
+          mkdir -p "$C/Documents"
+          printf '%s' "${{ steps.session2.outputs.rt }}" > "$C/Documents/e2e-rt.txt"
       - name: Open the course-creation sheet (device crash guard)
         working-directory: mobile
         run: maestro test -e APP_ID=com.bonamind.app -e RT=${{ steps.session.outputs.rt }} --test-output-dir ../e2e-ios e2e/create-sheet.yaml
