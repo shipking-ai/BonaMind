@@ -17,6 +17,40 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';
 // only be written with the service-role key (i.e. by this API).
 const ADMIN_ROLES = new Set(['owner', 'ceo', 'admin']);
 
+// Grants follow a rank matrix: a staff account may only manage roles strictly
+// below its own and never mint a role at or above its own rank. The operator
+// account (ADMIN_EMAIL) outranks the table and stays untouchable through this
+// API, so a plain admin can never promote anyone (least of all themselves)
+// into ceo or owner.
+const ROLE_RANK: Record<string, number> = {
+  user: 0,
+  tester: 1,
+  employee: 2,
+  admin: 3,
+  ceo: 4,
+  owner: 5,
+};
+
+function actorRank(user: { email?: string | null; app_metadata?: Record<string, unknown> }): number {
+  if (ADMIN_EMAIL && user.email === ADMIN_EMAIL) return ROLE_RANK.owner + 1;
+  const role = user.app_metadata?.role;
+  return typeof role === 'string' ? (ROLE_RANK[role] ?? 0) : 0;
+}
+
+function roleChangeAllowed(
+  requestingUser: { email?: string | null; app_metadata?: Record<string, unknown> },
+  targetUser: { email?: string | null; app_metadata?: Record<string, unknown> },
+  newRole: string,
+): boolean {
+  // The operator account's own record is never modifiable via this API.
+  if (ADMIN_EMAIL && targetUser.email === ADMIN_EMAIL) return false;
+  const rank = actorRank(requestingUser);
+  const targetRole = typeof targetUser.app_metadata?.role === 'string'
+    ? (targetUser.app_metadata?.role as string)
+    : 'user';
+  return rank > (ROLE_RANK[targetRole] ?? 0) && rank > (ROLE_RANK[newRole] ?? 0);
+}
+
 function isAdminUser(user: { email?: string | null; app_metadata?: Record<string, unknown> } | null | undefined): boolean {
   if (!user) return false;
   if (ADMIN_EMAIL && user.email === ADMIN_EMAIL) return true;
@@ -436,6 +470,10 @@ async function handleAdmin(req: VercelRequest, res: VercelResponse, action?: str
 
       const { data: targetUser } = await supabase.auth.admin.getUserById(targetUserId);
       if (!targetUser?.user) return json(res, 404, { error: 'User not found' });
+      // Rank matrix: minting an admin is at-or-above a plain admin's rank.
+      if (!roleChangeAllowed(user, targetUser.user, makeAdmin ? 'admin' : 'user')) {
+        return json(res, 403, { error: 'Not allowed to change this role' });
+      }
 
       const oldRole = targetUser.user.app_metadata?.role || 'user';
       await supabase.auth.admin.updateUserById(targetUserId, {
@@ -501,6 +539,11 @@ async function handleAdminUtility(req: VercelRequest, res: VercelResponse, supab
       const { data: userData } = await supabase.auth.admin.getUserById(targetUserId);
       if (!userData?.user) return json(res, 404, { error: 'User not found' });
       if (userData.user.email === ADMIN_EMAIL) return json(res, 403, { error: 'Cannot change owner' });
+      // Rank matrix (see roleChangeAllowed): an admin can only operate on
+      // accounts and roles strictly below their own rank.
+      if (!roleChangeAllowed(requestingUser, userData.user, role || 'user')) {
+        return json(res, 403, { error: 'Not allowed to change this role' });
+      }
 
       const oldRole = userData.user.app_metadata?.role || 'user';
       await supabase.auth.admin.updateUserById(targetUserId, {
