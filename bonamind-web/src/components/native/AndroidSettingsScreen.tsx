@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Bell,
@@ -42,6 +42,7 @@ import {
 import { deleteAvatar, uploadAvatar } from "../../services/user/avatarService";
 import ProfLinneaAvatar from "../bonamind/ProfLinneaAvatar";
 import { DeleteAccountModal } from "../settings/DeleteAccountModal";
+import { deleteAllRemoteSessions } from "../../services/chatSessionService";
 import type { UserProfile } from "../../types";
 
 type StoredValue<T> = [T, (value: T | ((previous: T) => T)) => void];
@@ -301,6 +302,19 @@ export default function AndroidSettingsScreen() {
   const [biometricDetail, setBiometricDetail] = useState<string | null>(null);
   const { getAvailability, authenticate } = useBiometricAuth();
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  /**
+   * Turning history saving off must ask about the server copies (#216):
+   * switching off only clears local ones, so the remote sessions in
+   * ai_chat_sessions would silently live on. Deleting is best-effort.
+   */
+  const handleSaveChatHistoryChange = useCallback((next: boolean) => {
+    const wasOn = saveChatHistory;
+    setSaveChatHistory(next);
+    if (wasOn && !next && window.confirm('Also delete your saved chats from your account?')) {
+      void deleteAllRemoteSessions().catch(() => undefined);
+    }
+  }, [saveChatHistory, setSaveChatHistory]);
 
   // Resolve the biometric detail line once: "Fingerprint" when ready,
   // "Add a fingerprint in system Settings" when not enrolled, and nothing
@@ -873,7 +887,7 @@ export default function AndroidSettingsScreen() {
         <AndroidSettingRow label="Save chat history" detail="Keep conversations on this device">
           <AndroidToggle
             value={saveChatHistory}
-            onChange={setSaveChatHistory}
+            onChange={handleSaveChatHistoryChange}
             label="Save chat history"
           />
         </AndroidSettingRow>
