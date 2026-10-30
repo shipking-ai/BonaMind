@@ -534,7 +534,7 @@ export default function AndroidSettingsScreen() {
             ref={fileRef}
             type="file"
             className="sr-only"
-            accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+            accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
             onChange={(event) => {
               const file = event.target.files?.[0];
               if (file) void handleAvatar(file);
