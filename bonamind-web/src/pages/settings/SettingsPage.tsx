@@ -28,6 +28,7 @@ import {
   type MfaFactor,
 } from '../../services/auth/mfaService';
 import type { UserProfile } from '../../types';
+import { deleteAllRemoteSessions } from '../../services/chatSessionService';
 import { DesktopSettingsSection } from '../../desktop/DesktopSettingsSection';
 
 type MfaStep =
@@ -389,6 +390,19 @@ export default function SettingsPage() {
     navigate('/reset-password');
   }, [navigate]);
 
+  /**
+   * Turning history saving off must ask about the server copies (#216):
+   * switching off only clears local ones, so the remote sessions in
+   * ai_chat_sessions would silently live on. Deleting is best-effort.
+   */
+  const handleSaveChatHistoryChange = useCallback((next: boolean) => {
+    const wasOn = saveChatHistory;
+    setSaveChatHistory(next);
+    if (wasOn && !next && window.confirm('Also delete your saved chats from your account?')) {
+      void deleteAllRemoteSessions().catch(() => undefined);
+    }
+  }, [saveChatHistory, setSaveChatHistory]);
+
   const handleManageSubscription = useCallback(async () => {
     try {
       // If the user already has a Stripe customer, open the billing portal
@@ -724,7 +738,7 @@ export default function SettingsPage() {
             </SettingRow>
             <div className="border-t border-[#2A2A3A]/30" />
             <SettingRow label="Save AI chat history">
-              <Toggle label="Save AI chat history" on={saveChatHistory} onChange={setSaveChatHistory} />
+              <Toggle label="Save AI chat history" on={saveChatHistory} onChange={handleSaveChatHistoryChange} />
             </SettingRow>
           </div>
         </div>

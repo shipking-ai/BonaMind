@@ -270,7 +270,40 @@ export async function deleteRemoteSession(id: string): Promise<void> {
   }
   const { userId } = await getAuthedUserId();
   if (!userId) return;
-  await supabase.from('ai_chat_sessions').delete().eq('id', canonical).eq('user_id', userId);
+  const { error } = await supabase
+    .from('ai_chat_sessions')
+    .delete()
+    .eq('id', canonical)
+    .eq('user_id', userId);
+  // Surface failures so callers that await (the bulk wipe) can count only
+  // real deletions; callers that fire-and-forget already .catch().
+  if (error) throw error;
+}
+
+/**
+ * Delete every remote chat session for the signed-in user — the "Also delete
+ * your saved chats from your account?" path when chat history saving is
+ * switched off. Walks fetchRemoteSessions in pages of `limit` and deletes
+ * each row; one failing delete must not stop the sweep, and a full page is
+ * re-fetched until a short one says the table is empty for this user.
+ * Returns how many rows were actually deleted.
+ */
+export async function deleteAllRemoteSessions(limit = 50): Promise<number> {
+  let deleted = 0;
+  for (;;) {
+    const sessions = await fetchRemoteSessions(limit);
+    if (sessions.length === 0) break;
+    for (const session of sessions) {
+      try {
+        await deleteRemoteSession(session.id);
+        deleted++;
+      } catch {
+        // A single stuck row must not strand the rest.
+      }
+    }
+    if (sessions.length < limit) break;
+  }
+  return deleted;
 }
 
 /**
