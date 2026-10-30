@@ -953,9 +953,7 @@ function AvatarEditor({
     }
     await onChangeRef.current(result.url);
     toast.success(
-      file.type === 'image/gif' || file.type === 'image/svg+xml'
-        ? 'Animated avatar saved.'
-        : 'Avatar saved.',
+      file.type === 'image/gif' ? 'Animated avatar saved.' : 'Avatar saved.',
     );
   }, [userId]);
 
@@ -1053,7 +1051,7 @@ function AvatarEditor({
             <input
               ref={inputRef}
               type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml,image/avif"
+              accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0];
