@@ -8,6 +8,7 @@ import Animated, { FadeIn, LinearTransition, useAnimatedStyle, withSpring, withT
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../data/auth';
 import { useSync } from '../data/sync';
+import { env } from '../env';
 import { AuroraBackground } from '../design/components/AuroraBackground';
 import { GlassButton } from '../design/components/GlassButton';
 import { PrimaryButton } from '../design/components/PrimaryButton';
@@ -57,9 +58,18 @@ function SourceTile({ label, symbol, tint, selected, onPress }: { label: string;
     transform: [{ scale: reduce ? 1 : withSpring(selected ? 1.04 : 1, spring('pop')) }],
     borderColor: withTiming(selected ? tint : colors.hairline, { duration: 200 }),
   }));
+  // E2E bisect (crash guard, 2026-10-30): the /create sheet aborts inside a
+  // per-frame worklet on the iOS 26.4 CI simulator (SIGABRT via a frame
+  // callback, 3/3 runs). This tile's animated style is the first suspect:
+  // withTiming across two color STRINGS is the only color animation on the
+  // screen. In e2e the worklet is detached from the view entirely, so its
+  // frame callbacks never run; production keeps the animation.
+  const e2eTile = env.e2e
+    ? [styles.tile, selected && styles.tileOn, selected ? { borderColor: tint } : { borderColor: colors.hairline }]
+    : [styles.tile, selected && styles.tileOn, lift];
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected }} onPress={onPress} style={styles.tileHit}>
-      <Animated.View style={[styles.tile, selected && styles.tileOn, lift]}>
+      <Animated.View style={e2eTile}>
         <SymbolView name={symbol} size={22} tintColor={tint} />
         <Text style={styles.tileLabel}>{label}</Text>
       </Animated.View>
