@@ -206,7 +206,7 @@ function CreateForm() {
       </View>
       <Animated.View
         key={`${kind}:${pasting}`}
-        entering={enter}
+        entering={env.e2e || reduce ? undefined : enter}
         // E2E bisect (crash guard): LinearTransition is the only layout
         // worklet in the app and runs only on this screen; layout
         // transitions evaluate per-frame worklets through the same
@@ -247,7 +247,10 @@ export function CreateScreen() {
   }, []);
   return (
     <View style={styles.sheet}>
-      <AuroraBackground intensity={0.4} />
+      {/* E2E bisect: the only per-frame worklets left on this screen (the
+          second Skia canvas + its withRepeat-driven derived values) —
+          detached under e2e while the abort is hunted. */}
+      {!env.e2e && <AuroraBackground intensity={0.4} />}
       <View style={styles.grabber} />
       <SafeAreaView style={styles.fill} edges={['bottom']}>
         <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
