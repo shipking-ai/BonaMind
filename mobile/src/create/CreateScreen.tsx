@@ -8,7 +8,6 @@ import Animated, { FadeIn, LinearTransition, useAnimatedStyle, withSpring, withT
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../data/auth';
 import { useSync } from '../data/sync';
-import { env } from '../env';
 import { AuroraBackground } from '../design/components/AuroraBackground';
 import { GlassButton } from '../design/components/GlassButton';
 import { PrimaryButton } from '../design/components/PrimaryButton';
@@ -58,18 +57,9 @@ function SourceTile({ label, symbol, tint, selected, onPress }: { label: string;
     transform: [{ scale: reduce ? 1 : withSpring(selected ? 1.04 : 1, spring('pop')) }],
     borderColor: withTiming(selected ? tint : colors.hairline, { duration: 200 }),
   }));
-  // E2E bisect (crash guard, 2026-10-30): the /create sheet aborts inside a
-  // per-frame worklet on the iOS 26.4 CI simulator (SIGABRT via a frame
-  // callback, 3/3 runs). This tile's animated style is the first suspect:
-  // withTiming across two color STRINGS is the only color animation on the
-  // screen. In e2e the worklet is detached from the view entirely, so its
-  // frame callbacks never run; production keeps the animation.
-  const e2eTile = env.e2e
-    ? [styles.tile, selected && styles.tileOn, selected ? { borderColor: tint } : { borderColor: colors.hairline }]
-    : [styles.tile, selected && styles.tileOn, lift];
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected }} onPress={onPress} style={styles.tileHit}>
-      <Animated.View style={e2eTile}>
+      <Animated.View style={[styles.tile, selected && styles.tileOn, lift]}>
         <SymbolView name={symbol} size={22} tintColor={tint} />
         <Text style={styles.tileLabel}>{label}</Text>
       </Animated.View>
@@ -204,17 +194,7 @@ function CreateForm() {
       <View style={styles.grid}>
         {SOURCES.map((s) => <SourceTile key={s.kind} {...s} selected={kind === s.kind} onPress={() => choose(s.kind)} />)}
       </View>
-      <Animated.View
-        key={`${kind}:${pasting}`}
-        entering={env.e2e || reduce ? undefined : enter}
-        // E2E bisect (crash guard): LinearTransition is the only layout
-        // worklet in the app and runs only on this screen; layout
-        // transitions evaluate per-frame worklets through the same
-        // batchinator the /create SIGABRT escapes from. Detached under
-        // e2e while the offending worklet is hunted; production keeps it.
-        layout={env.e2e || reduce ? undefined : LinearTransition}
-        style={styles.inputArea}
-      >
+      <Animated.View key={`${kind}:${pasting}`} entering={enter} layout={reduce ? undefined : LinearTransition} style={styles.inputArea}>
         {input}
       </Animated.View>
       <View style={styles.stack}>
@@ -247,10 +227,7 @@ export function CreateScreen() {
   }, []);
   return (
     <View style={styles.sheet}>
-      {/* E2E bisect: the only per-frame worklets left on this screen (the
-          second Skia canvas + its withRepeat-driven derived values) —
-          detached under e2e while the abort is hunted. */}
-      {!env.e2e && <AuroraBackground intensity={0.4} />}
+      <AuroraBackground intensity={0.4} />
       <View style={styles.grabber} />
       <SafeAreaView style={styles.fill} edges={['bottom']}>
         <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
