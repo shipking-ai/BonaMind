@@ -204,7 +204,17 @@ function CreateForm() {
       <View style={styles.grid}>
         {SOURCES.map((s) => <SourceTile key={s.kind} {...s} selected={kind === s.kind} onPress={() => choose(s.kind)} />)}
       </View>
-      <Animated.View key={`${kind}:${pasting}`} entering={enter} layout={reduce ? undefined : LinearTransition} style={styles.inputArea}>
+      <Animated.View
+        key={`${kind}:${pasting}`}
+        entering={enter}
+        // E2E bisect (crash guard): LinearTransition is the only layout
+        // worklet in the app and runs only on this screen; layout
+        // transitions evaluate per-frame worklets through the same
+        // batchinator the /create SIGABRT escapes from. Detached under
+        // e2e while the offending worklet is hunted; production keeps it.
+        layout={env.e2e || reduce ? undefined : LinearTransition}
+        style={styles.inputArea}
+      >
         {input}
       </Animated.View>
       <View style={styles.stack}>
