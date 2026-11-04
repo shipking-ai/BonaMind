@@ -6,7 +6,7 @@ import { focusManager, onlineManager, QueryClient, QueryClientProvider } from '@
 import { useFonts } from 'expo-font';
 import { DarkTheme, SplashScreen, Stack, ThemeProvider } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { AppState, StyleSheet } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { initAppData } from '../data/app';
@@ -88,33 +88,43 @@ export default function RootLayout() {
   if (!ready) return null;
   const signedIn = auth.status === 'signed-in';
   const needsOnboarding = signedIn && !hasCompletedOnboarding(auth.session?.user?.user_metadata as Record<string, unknown> | null | undefined);
+
+  // E2E bisect (crash guard, 2026-11-04): the aurora's per-frame worklets
+  // are the only JS the batchinator runs every frame, and the /create modal
+  // push is the only thing that ever coincides badly with them (SIGABRT on
+  // this simulator, the same frame-callback stack every time). Under e2e
+  // the aurora is replaced by a plain surface; production keeps it.
+  const appContent = (
+    <>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
+        <Stack.Protected guard={signedIn && !needsOnboarding}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="study/[deckId]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+          <Stack.Screen
+            name="linnea"
+            // A page sheet, not a detented formSheet: under formSheet the
+            // flex column collapsed and the list drew over the header,
+            // and the transparent sheet let Today show through.
+            options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.night } }}
+          />
+          <Stack.Screen name="create" options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.night } }} />
+        </Stack.Protected>
+        <Stack.Protected guard={!signedIn}>
+          <Stack.Screen name="welcome" />
+        </Stack.Protected>
+        <Stack.Protected guard={signedIn && needsOnboarding}>
+          <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+        </Stack.Protected>
+      </Stack>
+      <Offline userId={auth.userId} />
+    </>
+  );
+
   return (
     <GestureHandlerRootView style={styles.root}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider value={theme}>
-          <AuroraScreen>
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
-              <Stack.Protected guard={signedIn && !needsOnboarding}>
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="study/[deckId]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
-                <Stack.Screen
-                  name="linnea"
-                  // A page sheet, not a detented formSheet: under formSheet the
-                  // flex column collapsed and the list drew over the header,
-                  // and the transparent sheet let Today show through.
-                  options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.night } }}
-                />
-                <Stack.Screen name="create" options={{ presentation: 'modal', contentStyle: { backgroundColor: colors.night } }} />
-              </Stack.Protected>
-              <Stack.Protected guard={!signedIn}>
-                <Stack.Screen name="welcome" />
-              </Stack.Protected>
-              <Stack.Protected guard={signedIn && needsOnboarding}>
-                <Stack.Screen name="onboarding" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
-              </Stack.Protected>
-            </Stack>
-            <Offline userId={auth.userId} />
-          </AuroraScreen>
+          {env.e2e ? <View style={styles.root}>{appContent}</View> : <AuroraScreen>{appContent}</AuroraScreen>}
         </ThemeProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
