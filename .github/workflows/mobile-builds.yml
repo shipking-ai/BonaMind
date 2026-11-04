@@ -102,14 +102,22 @@ jobs:
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
       - name: Build and install on a simulator
         working-directory: mobile
+        env:
+          # DIAGNOSTIC (crash hunt): a Debug bundle logs uncaught worklet JS
+          # errors to the device log, which Release Hermes swallows. Revert
+          # to Release once the /create abort's JS error is captured.
+          # FORCE_BUNDLING: Debug otherwise loads JS from a Metro dev server,
+          # which CI doesn't run.
+          XCODE_CONFIGURATION: Debug
+          FORCE_BUNDLING: 'true'
         run: |
           npx expo prebuild --platform ios --clean --no-install && (cd ios && pod install)
-          xcodebuild -workspace ios/BonaMind.xcworkspace -scheme BonaMind -configuration Release \
+          xcodebuild -workspace ios/BonaMind.xcworkspace -scheme BonaMind -configuration $XCODE_CONFIGURATION \
             -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO build | tail -5
           DEVICE=$(xcrun simctl list devices available -j | node -e "const d=JSON.parse(require('fs').readFileSync(0)).devices;console.log(Object.values(d).flat().find(x=>/^iPhone \d+ Pro$/.test(x.name)).udid)")
           xcrun simctl boot "$DEVICE" && xcrun simctl bootstatus "$DEVICE" -b
-          xcrun simctl install "$DEVICE" build/Build/Products/Release-iphonesimulator/BonaMind.app
+          xcrun simctl install "$DEVICE" build/Build/Products/$XCODE_CONFIGURATION-iphonesimulator/BonaMind.app
           echo "DEVICE=$DEVICE" >> "$GITHUB_ENV"
       - name: Reseed and mint a session for the test account
         id: session
