@@ -34,7 +34,11 @@ appId: ${APP_ID}
     when:
       platform: iOS
     commands:
-      - tapOn: "Courses"
+      # ^Courses$ anchors to the TAB LABEL — a bare "Courses" also matches
+      # the "Your courses" section header on Today (that section exists on
+      # the post-core-loop Today screen), which navigates nowhere.
+      - tapOn:
+          text: "^Courses$"
       - tapOn: "New course"
 - runFlow:
     when:
