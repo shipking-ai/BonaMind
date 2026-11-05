@@ -282,7 +282,7 @@ directly. There is a regression test asserting the forged value is ignored.
 
 The plan **label** follows the same rule. Every screen that shows a plan
 reads `UserProfile.plan`, which comes from `resolvePlan()` in
-`auramind-gemini/src/lib/subscriptionPlan.ts` (app_metadata only), and
+`bonamind-web/src/lib/subscriptionPlan.ts` (app_metadata only), and
 `/api/subscription` derives its `plan` from the status. Don't read
 `user_metadata.plan` or `user_profiles.plan` for display: the first is
 self-set, the second is never updated by billing, and the two showed the
