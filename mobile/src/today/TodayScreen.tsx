@@ -21,7 +21,7 @@ export function TodayScreen() {
   const { reduce } = useMotion();
   const now = useNow();
   const decks = useDecks(userId).data ?? [];
-  const cards = useCards(userId).data ?? [];
+  const cards = useCards(userId, { refetchOnMount: 'always' }).data ?? [];
   const sessions = useSessions(userId).data ?? [];
   const s = summarizeToday(decks, cards, sessions, new Date(now));
   const rise = (i: number) => (reduce ? undefined : FadeInDown.delay(i * STAGGER_MS).springify().damping(14).stiffness(160));
