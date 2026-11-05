@@ -162,7 +162,7 @@ describe('a human must apply the migration', () => {
       path.resolve(__dirname, '../../../supabase/migrations/20261029120000_deck_card_counts.sql'),
       'utf8',
     );
-    expect(sql).toMatch(/create or replace function public\.deck_card_counts/);
+    expect(sql).toMatch(/CREATE OR REPLACE FUNCTION public.deck_card_counts/);
     expect(sql).toMatch(/security invoker/);
     expect(sql).toMatch(/revoke execute .* from public, anon/);
     expect(sql).toMatch(/grant execute .* to authenticated/);

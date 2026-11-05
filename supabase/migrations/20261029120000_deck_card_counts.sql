@@ -11,7 +11,7 @@
 -- a user counts only their own rows because the filter pins auth.uid().
 -- Following the executor-lockdown convention, grants are explicit.
 
-create or replace function public.deck_card_counts(p_deck_ids uuid[])
+CREATE OR REPLACE FUNCTION public.deck_card_counts(p_deck_ids uuid[])
 returns table (deck_id uuid, cards bigint)
 language sql
 stable
@@ -27,3 +27,10 @@ $$;
 
 revoke execute on function public.deck_card_counts(uuid[]) from public, anon;
 grant execute on function public.deck_card_counts(uuid[]) to authenticated;
+
+INSERT INTO schema_migrations (version, description)
+VALUES (
+  '20261029120000_deck_card_counts',
+  'deck_card_counts() groups per-deck card counts in Postgres so the settings path no longer fetches one row per card'
+)
+ON CONFLICT (version) DO NOTHING;
