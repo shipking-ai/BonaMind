@@ -1,7 +1,6 @@
 import type { Card } from '../../types';
 import { calculateSRS } from '../../services/study/srs';
-import { dbService } from '../../services/database/dbService';
-import { isOnline, queueCardReview } from '../../services/offline/offlineStudyService';
+import { persistReview } from '../../services/study/persistReview';
 import { cardReviewsService } from '../../services/database/modules/cardReviewsService';
 import { wireRatingToAppRating, type GradeResult } from './wearPayload';
 
@@ -34,22 +33,19 @@ export async function applyWatchGrade(args: {
 
   const rating = wireRatingToAppRating(grade.rating);
   const res = calculateSRS(card, rating, args.weights ?? [], args.targetRetention ?? 0.85);
+  const reviewedAt = Date.now();
   const update: Partial<Card> = {
+    // interval was missing, so a watch grade moved next_review but left the
+    // stored interval at its old value.
+    interval: res.interval,
     repetition: res.repetition,
     easeFactor: res.easeFactor,
-    nextReview: Date.now() + res.interval * 86400000,
-    lastReviewed: Date.now(),
+    nextReview: reviewedAt + res.interval * 86400000,
+    lastReviewed: reviewedAt,
   };
   if (res.fsrsState) update.fsrsState = res.fsrsState;
 
-  if (!isOnline()) {
-    try {
-      await queueCardReview(card.id, rating, res);
-    } catch {
-      // non-blocking
-    }
-  }
-  await dbService.updateCard(card.id, update);
+  await persistReview({ cardId: card.id, rating, srsResult: res, update, userId, reviewedAt });
   cardReviewsService.recordReview({
     userId,
     cardId: card.id,
@@ -60,7 +56,7 @@ export async function applyWatchGrade(args: {
       easeFactor: res.easeFactor,
       fsrsState: res.fsrsState,
     },
-    reviewedAt: Date.now(),
+    reviewedAt,
   }).catch(() => {});
   return { applied: true };
 }

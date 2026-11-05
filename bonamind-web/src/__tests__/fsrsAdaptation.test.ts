@@ -99,3 +99,14 @@ describe('applyPersonalizedDifficultyInit', () => {
     expect(result.card.fsrsState?.lastReview).toBe(1_700_000_000_000);
   });
 });
+
+describe('countReviews', () => {
+  it('counts every review and treats only Again as a lapse', async () => {
+    const { countReviews } = await import('../services/study/fsrsAdaptation');
+    // Again 0, Hard 3, Good 4, Easy 5; malformed rows are skipped.
+    expect(countReviews([{ rating: 0 }, { rating: 3 }, { rating: 4 }, { rating: 5 }, { rating: null }, {}])).toEqual({
+      reviewed: 4,
+      correct: 3,
+    });
+  });
+});

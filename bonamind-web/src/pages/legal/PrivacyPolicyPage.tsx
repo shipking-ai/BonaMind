@@ -302,7 +302,7 @@ export default function PrivacyPolicyPage(): React.ReactElement {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-[#0A0A0F]/80 backdrop-blur-xl border-b border-[#2A2A3A]/50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
-          <Link to="/" className="p-2 -ml-2 text-[#7A7A96] hover:text-[#F0EFFE] rounded-lg transition-colors">
+          <Link to="/" aria-label="Back to BonaMind" className="p-2 -ml-2 text-[#7A7A96] hover:text-[#F0EFFE] rounded-lg transition-colors">
             <ArrowLeft size={18} />
           </Link>
           <div>

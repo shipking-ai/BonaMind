@@ -8,6 +8,18 @@
 
 import { Card, Deck } from '../../types';
 import { openOfflineDb } from './offlineDb';
+import { buildUpdatePayload } from '../database/modules/cardService';
+import { clearCache } from '../database/modules/cache';
+
+const DAY_MS = 86_400_000;
+
+/**
+ * Postgres codes the record_card_review RPC raises for a review that can
+ * never succeed: card deleted (P0002), card or review not the caller's
+ * (42501), out-of-range rating (22000). Retrying those forever would keep
+ * the item in the queue for good, so they are dropped instead.
+ */
+const PERMANENT_SYNC_ERRORS = new Set(['P0002', '42501', '22000']);
 
 const DECKS_STORE = 'decks';
 const CARDS_STORE = 'cards';
@@ -107,9 +119,21 @@ export async function getDueCardsOffline(deckId: string): Promise<Card[]> {
 }
 
 /**
- * Queue a card review for sync when online
+ * Queue a card review for sync when online.
+ *
+ * `reviewedAt` should be the same timestamp the caller writes as
+ * lastReviewed and sends to the review history, so a replay lands on the
+ * same (user_id, card_id, reviewed_at) row instead of duplicating it.
+ * `userId` keeps one account's queued reviews from being replayed under
+ * another account on a shared device.
  */
-export async function queueCardReview(cardId: string, rating: number, srsResult: any): Promise<void> {
+export async function queueCardReview(
+  cardId: string,
+  rating: number,
+  srsResult: any,
+  opts: { userId?: string | null; reviewedAt?: number } = {},
+): Promise<void> {
+  const reviewedAt = opts.reviewedAt ?? Date.now();
   const db = await openDB();
   const tx = db.transaction([CARDS_STORE, SYNC_QUEUE_STORE], 'readwrite');
 
@@ -125,8 +149,8 @@ export async function queueCardReview(cardId: string, rating: number, srsResult:
         interval: srsResult.interval,
         easeFactor: srsResult.easeFactor,
         repetition: srsResult.repetition,
-        nextReview: Date.now() + srsResult.interval * 86400000,
-        lastReviewed: Date.now(),
+        nextReview: reviewedAt + srsResult.interval * DAY_MS,
+        lastReviewed: reviewedAt,
         fsrsState: srsResult.fsrsState || card.fsrsState,
       });
     }
@@ -135,10 +159,10 @@ export async function queueCardReview(cardId: string, rating: number, srsResult:
   // Add to sync queue
   const syncStore = tx.objectStore(SYNC_QUEUE_STORE);
   await syncStore.put({
-    id: `${cardId}_${Date.now()}`,
+    id: `${cardId}_${reviewedAt}`,
     type: 'card_review',
-    data: { cardId, rating, srsResult },
-    timestamp: Date.now(),
+    data: { cardId, rating, srsResult, userId: opts.userId ?? null },
+    timestamp: reviewedAt,
     retryCount: 0,
   });
 
@@ -209,8 +233,16 @@ export async function clearOfflineCache(userId: string): Promise<void> {
     }
   };
 
-  // Clear sync queue
-  await tx.objectStore(SYNC_QUEUE_STORE).clear();
+  // Clear this user's queued reviews only — another account's unsynced
+  // reviews on the same device exist nowhere else.
+  const syncRequest = tx.objectStore(SYNC_QUEUE_STORE).openCursor();
+  syncRequest.onsuccess = (event) => {
+    const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+    if (cursor) {
+      if (cursor.value?.data?.userId === userId) cursor.delete();
+      cursor.continue();
+    }
+  };
 
   await new Promise<void>((resolve, reject) => {
     tx.oncomplete = () => resolve();
@@ -218,49 +250,137 @@ export async function clearOfflineCache(userId: string): Promise<void> {
   });
 }
 
+async function bumpRetryCount(item: SyncQueueItem): Promise<void> {
+  const db = await openDB();
+  const tx = db.transaction(SYNC_QUEUE_STORE, 'readwrite');
+  tx.objectStore(SYNC_QUEUE_STORE).put({ ...item, retryCount: (item.retryCount ?? 0) + 1 });
+  await new Promise<void>((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 /**
- * Sync all queued offline data to Supabase
+ * Replay one queued review: the history row first, then the card's schedule.
+ *
+ * The schedule write is what makes an offline session count. Recording only
+ * the history row (as this used to) left `cards.next_review` at its old
+ * value, so every card studied offline came back due on the next load.
+ * The update is guarded on last_reviewed, the same rule the native app uses
+ * (packages/core pushReview): a review that reached the server from another
+ * device after this one was made is never overwritten by the older replay.
  */
-export async function syncOfflineData(): Promise<{ synced: number; failed: number }> {
+async function syncCardReview(supabase: any, item: SyncQueueItem): Promise<void> {
+  const reviewedAt = item.timestamp ?? Date.now();
+  const reviewedAtIso = new Date(reviewedAt).toISOString();
+  const srsResult = item.data.srsResult ?? {};
+
+  // Replay the ORIGINAL review timestamp: it is stable across retries, so a
+  // re-flush after a partial failure hits the (user_id, card_id, reviewed_at)
+  // idempotency key and no-ops instead of duplicating the review.
+  const { error: rpcError } = await supabase.rpc('record_card_review', {
+    p_card_id: item.data.cardId,
+    p_rating: item.data.rating,
+    p_srs_result: srsResult,
+    p_srs_algorithm: item.data.srsAlgorithm ?? 'fsrs',
+    p_reviewed_at: reviewedAtIso,
+    // p_user_id omitted — the RPC fills it from auth.uid().
+  });
+  if (rpcError) throw rpcError;
+
+  // Items queued before the schedule fields were captured have nothing to
+  // apply; the history row above is all they carry.
+  if (typeof srsResult.interval !== 'number' || !Number.isFinite(srsResult.interval)) return;
+
+  const payload = buildUpdatePayload({
+    interval: srsResult.interval,
+    repetition: srsResult.repetition,
+    easeFactor: srsResult.easeFactor,
+    nextReview: reviewedAt + srsResult.interval * DAY_MS,
+    lastReviewed: reviewedAt,
+    ...(srsResult.fsrsState ? { fsrsState: srsResult.fsrsState } : {}),
+  });
+  const { error: updateError } = await supabase
+    .from('cards')
+    .update(payload)
+    .eq('id', item.data.cardId)
+    .or(`last_reviewed.is.null,last_reviewed.lt.${reviewedAtIso}`);
+  if (updateError) throw updateError;
+}
+
+let syncInFlight: Promise<{ synced: number; failed: number; dropped: number }> | null = null;
+
+/**
+ * Sync all queued offline data to Supabase.
+ *
+ * Needs a signed-in session: without one the RPC rejects every review as
+ * "anonymous" (42501), which would read as a permanent failure and drop the
+ * queue. Items another account queued on this device are left for that
+ * account to sync.
+ */
+export function syncOfflineData(): Promise<{ synced: number; failed: number; dropped: number }> {
+  if (!syncInFlight) {
+    syncInFlight = runSync().finally(() => {
+      syncInFlight = null;
+    });
+  }
+  return syncInFlight;
+}
+
+async function runSync(): Promise<{ synced: number; failed: number; dropped: number }> {
+  const result = { synced: 0, failed: 0, dropped: 0 };
   const items = await getPendingSyncItems();
-  if (items.length === 0) return { synced: 0, failed: 0 };
+  if (items.length === 0) return result;
 
   const { supabase } = await import('../database/supabase');
-  let synced = 0;
-  let failed = 0;
+  if (!supabase) return result;
+  const { data } = await supabase.auth.getSession();
+  const currentUserId = data.session?.user?.id;
+  if (!currentUserId) return result;
 
-  for (const item of items) {
+  // Oldest first, so when one card was reviewed twice offline the later
+  // review is the schedule that sticks.
+  const ordered = [...items].sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0));
+
+  for (const item of ordered) {
+    const owner = item.data?.userId;
+    if (owner && owner !== currentUserId) continue;
     try {
       if (item.type === 'card_review') {
-        // Route through the SECURITY DEFINER `record_card_review` RPC
-        // instead of a REST upsert. The RPC's authorization de-couples
-        // JWT↔row coupling that the dropped 1-hour UPDATE policy used
-        // to enforce; the offline queue can carry an item without
-        // user_id (the RPC fills it in from auth.uid() server-side).
-        //
-        // Replay the ORIGINAL review timestamp: it is stable across
-        // retries, so a re-flush after a partial failure hits the
-        // (user_id, card_id, reviewed_at) idempotency key and no-ops
-        // instead of duplicating the review.
-        const { error } = await (supabase as any).rpc('record_card_review', {
-          p_card_id: item.data.cardId,
-          p_rating: item.data.rating,
-          p_srs_result: item.data.srsResult ?? {},
-          p_srs_algorithm: item.data.srsAlgorithm ?? 'fsrs',
-          p_reviewed_at: new Date(item.timestamp ?? Date.now()).toISOString(),
-          // p_user_id intentionally omitted — let server-side
-          // auth.uid() populate the row owner.
-        });
-        if (error) throw error;
+        await syncCardReview(supabase, item);
       }
       await clearSyncItem(item.id);
-      synced++;
-    } catch {
-      failed++;
+      result.synced++;
+    } catch (err) {
+      const code = (err as { code?: string } | null)?.code;
+      if (code && PERMANENT_SYNC_ERRORS.has(code)) {
+        console.warn(`[Sync] Dropping queued review for card ${String(item.data?.cardId).slice(0, 8)}… (${code})`);
+        await clearSyncItem(item.id).catch(() => undefined);
+        result.dropped++;
+      } else {
+        await bumpRetryCount(item).catch(() => undefined);
+        result.failed++;
+      }
     }
   }
 
-  return { synced, failed };
+  // The in-memory deck/card cache still holds the pre-sync schedule.
+  if (result.synced > 0) clearCache();
+  return result;
+}
+
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Sync again shortly. Used when a review failed to save while the device was
+ * online: no `online` event will fire to trigger the normal sync.
+ */
+export function scheduleOfflineSync(delayMs = 30_000): void {
+  if (retryTimer) return;
+  retryTimer = setTimeout(() => {
+    retryTimer = null;
+    if (isOnline()) void syncOfflineData();
+  }, delayMs);
 }
 
 /**

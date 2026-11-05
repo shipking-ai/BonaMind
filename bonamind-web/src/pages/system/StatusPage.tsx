@@ -165,7 +165,7 @@ const StatusPage: React.FC = () => {
           </div>
           <p className="text-[#7A7A96] text-[11px] mt-4 leading-relaxed">
             Experiencing an issue not shown here? Contact{' '}
-            <a href="mailto:hello@bonamind.app" className="text-[#8B5CF6] hover:text-[#7C3AED]">hello@bonamind.app</a>.
+            <a href="mailto:hello@bonamind.app" className="text-[#8B5CF6] underline underline-offset-2 hover:text-[#7C3AED]">hello@bonamind.app</a>.
           </p>
         </div>
       </div>

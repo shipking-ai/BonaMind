@@ -16,6 +16,7 @@ import { QuizTakeDialog } from "../../components/classroom/QuizTakeDialog";
 import { classroomService } from "../../services/classroom/classroomService";
 import { assignmentService } from "../../services/classroom/assignmentService";
 import { useDashboardWorkspace } from "../../contexts/DashboardWorkspaceContext";
+import { refreshWorkspace } from "../../lib/workspaceRefresh";
 import {
   classroomColorClasses,
   classroomRoleLabel,
@@ -260,6 +261,9 @@ export function ClassDetailPage() {
     try {
       const { deckId } = await assignmentService.acceptClassDeck(assignment.id);
       await assignmentService.recordProgress(assignment.id, { localDeckId: deckId });
+      // The copy was made server-side; reload so the study screen (and the
+      // library) can find it instead of bouncing back to /dashboard/study.
+      await refreshWorkspace();
       toast.success("Deck added to your library — starting now");
       workspace.startStudyForDeck(deckId);
       void load();

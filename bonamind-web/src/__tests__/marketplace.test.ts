@@ -23,6 +23,7 @@ import {
   listPublicDecks,
   mapPublicDeckRow,
 } from '../services/decks/marketplaceService';
+import { cachedDecks, setCachedDecks, setLastOwnerId } from '../services/database/modules/cache';
 
 beforeEach(() => {
   rpc.mockReset();
@@ -110,6 +111,16 @@ describe('forkPublicDeck', () => {
     expect(rpc).toHaveBeenCalledWith('fork_public_deck', { p_deck_id: 'd1' });
     // The old client-side copy read and wrote cards directly.
     expect(from).not.toHaveBeenCalled();
+  });
+
+  it('drops the cached deck list so the forked deck is visible', async () => {
+    setCachedDecks([]);
+    setLastOwnerId('u1');
+    rpc.mockResolvedValue({ data: 'new-deck', error: null });
+
+    await forkPublicDeck('d1');
+
+    expect(cachedDecks).toBeNull();
   });
 
   it('surfaces server errors (e.g. deck no longer public)', async () => {

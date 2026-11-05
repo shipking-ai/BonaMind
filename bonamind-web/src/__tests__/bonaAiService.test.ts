@@ -139,3 +139,38 @@ describe('bonaAiService', () => {
     expect(reply.length).toBeGreaterThan(0);
   });
 });
+
+describe('streamChatCompletion', () => {
+  const streamOf = (chunks: Uint8Array[]) => {
+    let i = 0;
+    return {
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      body: {
+        getReader: () => ({
+          read: async () => (i < chunks.length ? { done: false, value: chunks[i++] } : { done: true, value: undefined }),
+        }),
+      },
+    };
+  };
+
+  it('keeps tokens whose SSE line, or a multi-byte character, is split across reads', async () => {
+    const sse =
+      'data: {"choices":[{"delta":{"content":"Photo"}}]}\n' +
+      'data: {"choices":[{"delta":{"content":"synthèse"}}]}\n' +
+      'data: [DONE]\n';
+    const bytes = new TextEncoder().encode(sse);
+    // Cut once inside the first JSON line, and once between the two bytes
+    // of "è" (0xC3 0xA8) in the second.
+    const insideLine = 20;
+    const insideChar = bytes.indexOf(0xc3) + 1;
+    const chunks = [bytes.slice(0, insideLine), bytes.slice(insideLine, insideChar), bytes.slice(insideChar)];
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(streamOf(chunks)));
+
+    const out: string[] = [];
+    for await (const token of client.streamChatCompletion({ messages: [{ role: 'user', content: 'hi' }] })) out.push(token);
+
+    expect(out).toEqual(['Photo', 'synthèse']);
+  });
+});

@@ -48,7 +48,6 @@ import SessionReplayModal from "../study/SessionReplayModal";
 import ReplayEventBridge from "./ReplayEventBridge";
 import ProfLinneaEmptyState from "../ui/ProfLinneaEmptyState";
 import ProfLinnea from "./ProfLinnea";
-import { queueSession } from "../../services/chatSessionService";
 import { buildConceptWeaknesses, cardLapses, WEAK_LAPSE_THRESHOLD } from "../../lib/conceptModel";
 import { buildPriorSessionMemory } from "../../lib/chatMemory";
 import PageShell from "../dashboard/PageShell";
@@ -428,36 +427,10 @@ export default function AIChatPage() {
     }
   };
 
-  // Persist the active chat session to Supabase on every meaningful change.
-  // We piggyback on ConversationHistory's localStorage truth — if the active
-  // session id is known, we mirror it to Supabase via the debounced UPSERT
-  // inside chatSessionService. This is intentionally a separate effect so an
-  // offline user (or one whose Supabase is rate-limited) keeps the local
-  // truth unchanged.
-  const activeSessionIdRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!saveChatHistory || chat.messages.length === 0) return;
-    try {
-      const id = window.localStorage.getItem("bonamind.aurachat.active.v1");
-      if (!id || id === activeSessionIdRef.current) return;
-      activeSessionIdRef.current = id;
-      queueSession({
-        id,
-        title: chat.messages.find((m) => m.role === "user")?.content.slice(0, 80) ?? "New chat",
-        pinned: false,
-        preview: chat.messages[chat.messages.length - 1]?.content.slice(0, 120) ?? "",
-        messages: chat.messages,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        deckName: chat.mode === "companion" ? undefined : context.deckName,
-        mode: chat.mode,
-      }).catch(() => {
-        /* offline or rate-limited; the next change will retry inside the queue */
-      });
-    } catch {
-      /* localStorage unavailable; ignore */
-    }
-  }, [chat.messages, chat.mode, context.deckName, saveChatHistory]);
+  // Supabase sync for chat sessions lives in ConversationHistory, which owns
+  // the session list: it uploads every changed session (not just the first
+  // message of each, as the effect that used to sit here did) and merges
+  // remote sessions back in on open.
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

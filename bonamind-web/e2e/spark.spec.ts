@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { gotoApp } from './gotoApp';
 import { execSync } from 'node:child_process';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -93,7 +94,7 @@ test.describe('memory sparks', () => {
   test('dev force hook fires a pop-up whose front is the seeded card', async ({ page }) => {
     const { pageErrors, consoleErrors } = trackErrors(page);
 
-    await page.goto('/dashboard?sparks=force');
+    await gotoApp(page, '/dashboard?sparks=force');
     const dialog = page.getByRole('dialog', { name: /memory spark/i });
     await expect(dialog).toBeVisible({ timeout: 20_000 });
 
@@ -114,7 +115,7 @@ test.describe('memory sparks', () => {
     test.setTimeout(60_000);
     const { pageErrors, consoleErrors } = trackErrors(page);
 
-    await page.goto('/dashboard?sparks=force');
+    await gotoApp(page, '/dashboard?sparks=force');
     const dialog = page.getByRole('dialog', { name: /memory spark/i });
     await expect(dialog).toBeVisible({ timeout: 20_000 });
 
@@ -146,7 +147,7 @@ test.describe('memory sparks', () => {
     // whatever card it is handed), so the deep-link is unaffected by
     // suppression — that is by design: a user who tapped a notification must
     // land on the card, whether or not a pop-up showed it earlier today.
-    await page.goto(`/dashboard/spark/${luke!.id}`);
+    await gotoApp(page, `/dashboard/spark/${luke!.id}`);
     await expect(page.getByText('Luke?')).toBeVisible({ timeout: 20_000 });
 
     // Reveal + grade returns to /dashboard.

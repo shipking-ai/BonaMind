@@ -452,7 +452,9 @@ export default function DeckDetailRoute() {
               Delete
             </button>
             <button
-              onClick={() => navigate(`/study/${id}`)}
+              // The study screen lives under the dashboard; a bare /study/:id
+              // matched no route and rendered the 404 page.
+              onClick={() => navigate(`/dashboard/study/${id}`)}
               disabled={cards.length === 0}
               className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-primary text-black font-semibold hover:bg-primary/90 disabled:opacity-40 disabled:pointer-events-none"
             >

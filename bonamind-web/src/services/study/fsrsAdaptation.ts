@@ -162,7 +162,9 @@ export async function safeUpsertUserFsrsParams(
 ): Promise<boolean> {
   if (!supabase) return false;
   try {
-    await supabase.rpc('upsert_user_fsrs_params', {
+    // supabase.rpc reports failure in `error` rather than throwing, so the
+    // result has to be checked or a rejected write reads as saved.
+    const { error } = await supabase.rpc('upsert_user_fsrs_params', {
       p_user_id: userId,
       p_weights: JSON.stringify(params.weights),
       p_review_count: params.reviewCountTotal,
@@ -170,6 +172,7 @@ export async function safeUpsertUserFsrsParams(
       p_loss_value: params.lossValue,
       p_profile_label: params.profileLabel,
     });
+    if (error) throw error;
     return true;
   } catch (err) {
     logger.warn('fsrsAdaptation: safeUpsertUserFsrsParams failed', err);
@@ -208,12 +211,20 @@ export async function fetchUserFsrsStats(userId: string) {
   // Previously we called `supabase.rpc('count_user_lapses', ...)` here, but
   // the RPC is not deployed on every Supabase project (it 404s on this one).
   // Lapses live on the cards table as a per-card counter; sum them inline.
-  const [sessions, cardsRes] = await Promise.all([
+  // Review counts come from card_reviews (one row per review since
+  // 20260916000000_card_reviews_history). They used to be summed from
+  // study_sessions.cards_reviewed / cards_correct, legacy columns that
+  // sessionService stopped writing in favour of cards_studied /
+  // correct_answers — so every account read 0 reviews, never reached
+  // FSRS_TUNING_GATE, and personalization never ran. card_reviews also
+  // counts Quick Review, sparks and watch grades, which write no session.
+  const [reviewsRes, cardsRes] = await Promise.all([
     supabase
-      .from('study_sessions')
-      .select('cards_reviewed, cards_correct, started_at')
+      .from('card_reviews')
+      .select('rating')
       .eq('user_id', userId)
-      .gte('started_at', since30),
+      .gte('reviewed_at', since30)
+      .limit(5000),
     supabase
       .from('cards')
       .select('lapses, repetition, last_reviewed')
@@ -221,14 +232,7 @@ export async function fetchUserFsrsStats(userId: string) {
       .limit(500),
   ]);
 
-  const reviewed = (sessions.data ?? []).reduce(
-    (sum: number, s: any) => sum + (s.cards_reviewed ?? 0),
-    0,
-  );
-  const correct = (sessions.data ?? []).reduce(
-    (sum: number, s: any) => sum + (s.cards_correct ?? 0),
-    0,
-  );
+  const { reviewed, correct } = countReviews((reviewsRes.data ?? []) as Array<{ rating?: number | null }>);
 
   // Lapses column may be absent on older schemas — fall back to zero.
   // Uses the same exported sumCardLapses helper the regression tests pin
@@ -293,6 +297,22 @@ export function sumCardLapses(rows: ReadonlyArray<{ lapses?: number | string | n
     if (Number.isFinite(n) && n > 0) total += n;
   }
   return total;
+}
+
+/**
+ * Count reviews and recalls from card_reviews rows. A recall is any rating
+ * above Again (Hard 3, Good 4, Easy 5 on the current surface); Again (0) is
+ * a lapse.
+ */
+export function countReviews(rows: ReadonlyArray<{ rating?: number | null }>): { reviewed: number; correct: number } {
+  let reviewed = 0;
+  let correct = 0;
+  for (const r of rows) {
+    if (typeof r.rating !== 'number' || !Number.isFinite(r.rating)) continue;
+    reviewed++;
+    if (r.rating > 0) correct++;
+  }
+  return { reviewed, correct };
 }
 
 /**

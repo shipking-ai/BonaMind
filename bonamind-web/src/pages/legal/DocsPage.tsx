@@ -228,7 +228,7 @@ export default function DocsPage(): React.ReactElement {
     <div className="min-h-screen bg-[#0A0A0F]">
       <div className="sticky top-0 z-10 bg-[#0A0A0F]/80 backdrop-blur-xl border-b border-[#2A2A3A]/50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
-          <Link to="/" className="p-2 -ml-2 text-[#7A7A96] hover:text-[#F0EFFE] rounded-lg transition-colors">
+          <Link to="/" aria-label="Back to BonaMind" className="p-2 -ml-2 text-[#7A7A96] hover:text-[#F0EFFE] rounded-lg transition-colors">
             <ArrowLeft size={18} />
           </Link>
           <div>
@@ -273,8 +273,8 @@ export default function DocsPage(): React.ReactElement {
               feeling marketing-heavy; the copyright line comes from the
               canonical LEGAL_COPYRIGHT_LINE in lib/branding.ts so any
               future rename touches exactly one file. */}
-          <div className="flex flex-col items-center gap-2 opacity-70">
-            <p className="text-[10px] text-[#3A3A4F] uppercase tracking-[0.2em]">
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-[10px] text-[#8A8AA3] uppercase tracking-[0.2em]">
               {LEGAL_COPYRIGHT_LINE}
             </p>
           </div>

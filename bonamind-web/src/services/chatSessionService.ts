@@ -135,10 +135,16 @@ async function flushQueue(): Promise<void> {
       lastFlushError = REMOTE_UNAVAILABLE;
       return;
     }
-    const rows = draining.map(({ session }) => ({
+    // One row per session: the debounce collects every save of a chat that
+    // is being typed in, and Postgres rejects an upsert that touches the
+    // same row twice ("ON CONFLICT DO UPDATE command cannot affect row a
+    // second time"). The latest save of each session wins.
+    const latest = new Map<string, PersistedSession>();
+    for (const { session } of draining) latest.set(canonicalSessionId(session.id), session);
+    const rows = [...latest.values()].map((session) => ({
       // Migrate local slug-IDs to deterministic UUID-like PKs on first write.
       // Subsequent writes re-use the (now-stored) UUID so duplicates never form.
-      id: isUuidLike(session.id) ? session.id : slugToUuidLike(session.id),
+      id: canonicalSessionId(session.id),
       user_id: userId,
       title: session.title,
       mode: modeToDb(migrateChatMode(session.mode)),
@@ -166,9 +172,9 @@ async function flushQueue(): Promise<void> {
     // Notify local observers that the canonical ids for these sessions
     // may have changed (slug -> UUID). The host renames its in-memory
     // record accordingly so future queueSession calls do the right thing.
-    for (let i = 0; i < rows.length; i++) {
-      const slug = draining[i].session.id;
-      const canonical = rows[i].id;
+    for (const session of latest.values()) {
+      const slug = session.id;
+      const canonical = canonicalSessionId(slug);
       if (slug !== canonical) {
         window.dispatchEvent(new CustomEvent('bonamind:chat-id-migrated', {
           detail: { from: slug, to: canonical },
@@ -205,18 +211,34 @@ function isUuidLike(s: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 }
 
-/** Pull remote sessions down for the current user. */
+/**
+ * The id a session is stored under remotely. Local sessions are minted as
+ * `sess-<ts>-<rand>` slugs and stored remotely under a UUID derived from the
+ * slug, so this is how a local session and its remote row are matched.
+ */
+export function canonicalSessionId(id: string): string {
+  return isUuidLike(id) ? id : slugToUuidLike(id);
+}
+
+/**
+ * Pull remote sessions down for the current user. Returns [] when there is
+ * no backend or no session; throws when the query itself fails, so a caller
+ * can tell "no remote chats" from "could not reach the server".
+ */
 export async function fetchRemoteSessions(limit = 50): Promise<PersistedSession[]> {
   if (!supabase) return [];
   const { userId } = await getAuthedUserId();
   if (!userId) return [];
   const { data, error } = await supabase
     .from('ai_chat_sessions')
-    .select('id, title, mode, deck_id, deck_name, pinned, messages, created_at, updated_at, createdAt, updatedAt')
+    // Only columns that exist: naming the camelCase `createdAt`/`updatedAt`
+    // here made PostgREST reject the whole query, so every fetch returned []
+    // and no chat ever came back on another device.
+    .select('id, title, mode, deck_id, deck_name, pinned, messages, created_at, updated_at')
     .eq('user_id', userId)
     .order('updated_at', { ascending: false })
     .limit(limit);
-  if (error) return [];
+  if (error) throw error;
   return (data ?? []).map((r: any) => ({
     id: r.id,
     title: r.title ?? 'Untitled',
@@ -231,12 +253,50 @@ export async function fetchRemoteSessions(limit = 50): Promise<PersistedSession[
   }));
 }
 
-/** Drop a session remotely. Idempotent: missing rows are a no-op. */
+/**
+ * Drop a session remotely. Accepts the local slug or the remote UUID.
+ * Idempotent: missing rows are a no-op. Any save of the session still
+ * waiting in the debounce queue is cancelled first, or it would re-create
+ * the row a moment after the delete.
+ */
 export async function deleteRemoteSession(id: string): Promise<void> {
   if (!supabase) return;
+  const canonical = canonicalSessionId(id);
+  for (let i = QUEUE.length - 1; i >= 0; i--) {
+    if (canonicalSessionId(QUEUE[i].session.id) === canonical) {
+      QUEUE[i].resolve();
+      QUEUE.splice(i, 1);
+    }
+  }
   const { userId } = await getAuthedUserId();
   if (!userId) return;
-  await supabase.from('ai_chat_sessions').delete().eq('id', id).eq('user_id', userId);
+  await supabase.from('ai_chat_sessions').delete().eq('id', canonical).eq('user_id', userId);
+}
+
+/**
+ * Merge remote sessions into the local list. A session present on both sides
+ * keeps its local id (so the active chat stays selected) and takes whichever
+ * copy was updated last; remote-only sessions are added. Pure, for tests.
+ */
+export function mergeRemoteSessions<T extends PersistedSession>(
+  local: T[],
+  remote: PersistedSession[],
+  toLocal: (remote: PersistedSession) => T,
+): T[] {
+  const byCanonical = new Map(local.map((s) => [canonicalSessionId(s.id), s]));
+  const merged = [...local];
+  for (const r of remote) {
+    const existing = byCanonical.get(canonicalSessionId(r.id));
+    if (!existing) {
+      merged.push(toLocal(r));
+      continue;
+    }
+    if (r.updatedAt > existing.updatedAt) {
+      const idx = merged.indexOf(existing);
+      merged[idx] = { ...toLocal(r), id: existing.id };
+    }
+  }
+  return merged;
 }
 
 export function getLastFlushError(): string | null {

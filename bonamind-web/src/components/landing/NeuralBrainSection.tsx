@@ -187,7 +187,7 @@ export default function NeuralBrainSection() {
             style={{ animation: "ring-rotate 28s linear infinite reverse" }}
           />
 
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[#3A3A4F] text-[10px] tracking-wider uppercase whitespace-nowrap">
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[#8A8AA3] text-[10px] tracking-wider uppercase whitespace-nowrap">
             every card has a decay curve
           </div>
         </div>
