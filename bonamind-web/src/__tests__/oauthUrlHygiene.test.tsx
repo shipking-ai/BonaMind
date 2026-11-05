@@ -1,12 +1,11 @@
-﻿/**
- * Red-team regression for URL-travelling OAuth tokens:
+/**
+ * Auth URL handling:
  *
- * 1. The boot scrub must run BEFORE telemetry initializes, and must wipe
- *    token params from the address while keeping the `code` the PKCE flow
- *    needs.
- * 2. The callback page must build the session from the code exchange â€”
- *    never `setSession` from tokens read out of the URL â€” and route a
- *    recovery link to the password screen.
+ * 1. The boot cleanup runs before telemetry initializes and keeps the `code`
+ *    the code flow needs.
+ * 2. The callback page exchanges only a real code, never builds a session
+ *    from URL values itself, and routes a recovery link to the password
+ *    screen on every path.
  */
 
 import { readFileSync } from 'node:fs';
@@ -14,7 +13,7 @@ import path from 'node:path';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import CallbackPage from '../pages/auth/CallbackPage';
 import {
   captureAndScrubOAuthUrl,
@@ -33,16 +32,24 @@ const supabase = vi.hoisted(() => ({
 vi.mock('../services/database/supabase', () => ({ supabase }));
 vi.mock('../lib/onboardingGate', () => ({ hasCompletedOnboarding: () => true }));
 
+function WhereAmI() {
+  const location = useLocation();
+  return <output data-testid="route">{location.pathname + location.search}</output>;
+}
+
 function CallbackPageHost() {
   return (
     <MemoryRouter initialEntries={['/auth/callback']}>
       <CallbackPage />
+      <WhereAmI />
     </MemoryRouter>
   );
 }
 
+const route = () => screen.getByTestId('route').textContent;
+
 afterEach(() => {
-  vi.restoreAllMocks();
+  vi.resetAllMocks();
   resetCapturedOAuthUrlForTests();
 });
 
@@ -103,7 +110,7 @@ describe('CallbackPage', () => {
     // The exchange consumed the captured URL's code (the transport survives
     // the scrub), and NO session was built from URL tokens.
     expect(supabase.auth.exchangeCodeForSession).toHaveBeenCalledTimes(1);
-    expect(supabase.auth.exchangeCodeForSession.mock.calls[0]?.[0]).toContain('code=good');
+    expect(supabase.auth.exchangeCodeForSession).toHaveBeenCalledWith('good');
     expect(supabase.auth.setSession).not.toHaveBeenCalled();
   });
 
@@ -115,14 +122,60 @@ describe('CallbackPage', () => {
     );
     captureAndScrubOAuthUrl();
     supabase.auth.exchangeCodeForSession.mockResolvedValue({
-      data: { session: { user: { user_metadata: {} } }, error: null },
+      data: { session: { user: { user_metadata: {} } } },
+      error: null,
     });
 
     render(<CallbackPageHost />);
 
     await waitFor(() => expect(screen.getByText(/Signed in!/i)).toBeTruthy());
     expect(supabase.auth.exchangeCodeForSession).toHaveBeenCalledTimes(1);
-    expect(window.location.pathname).not.toBe('/dashboard');
+    await waitFor(() => expect(route()).toBe('/reset-password?mode=update'), { timeout: 2000 });
+  });
+
+  it('routes a fragment recovery link to the password screen without exchanging anything', async () => {
+    window.history.replaceState(
+      null,
+      '',
+      'http://localhost:3000/auth/callback#access_token=A&refresh_token=R&token_type=bearer&type=recovery',
+    );
+    captureAndScrubOAuthUrl();
+    supabase.auth.getSession.mockResolvedValue({
+      data: { session: { user: { user_metadata: {} } } },
+      error: null,
+    });
+
+    render(<CallbackPageHost />);
+
+    await waitFor(() => expect(route()).toBe('/reset-password?mode=update'), { timeout: 2000 });
+    expect(supabase.auth.exchangeCodeForSession).not.toHaveBeenCalled();
+    expect(supabase.auth.setSession).not.toHaveBeenCalled();
+  });
+
+  it('keeps the recovery route when the client already consumed the code', async () => {
+    window.history.replaceState(null, '', 'http://localhost:3000/auth/callback?code=used&type=recovery');
+    captureAndScrubOAuthUrl();
+    supabase.auth.exchangeCodeForSession.mockResolvedValue({
+      data: { session: null },
+      error: { message: 'code already used' },
+    });
+    supabase.auth.getSession.mockResolvedValue({
+      data: { session: { user: { user_metadata: {} } } },
+      error: null,
+    });
+
+    render(<CallbackPageHost />);
+
+    await waitFor(() => expect(route()).toBe('/reset-password?mode=update'), { timeout: 2000 });
+  });
+
+  it('reports a failure when no code and no session exist', async () => {
+    window.history.replaceState(null, '', 'http://localhost:3000/auth/callback');
+    supabase.auth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+
+    render(<CallbackPageHost />);
+
+    expect(await screen.findByText('Sign-in failed')).toBeTruthy();
   });
 
   it('surfaces OAuth errors instead of exchanging them', async () => {

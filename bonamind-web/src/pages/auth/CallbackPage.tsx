@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../services/database/supabase';
 import { capturedOAuthUrl } from '../../lib/oauthUrlHygiene';
 import { hasCompletedOnboarding } from '../../lib/onboardingGate';
@@ -15,16 +16,31 @@ const CallbackPage: React.FC = () => {
     let cancelled = false;
 
     const handleOAuthCallback = async () => {
-      // The pre-scrub copy of the URL (see oauthUrlHygiene): the token bytes
-      // the flow travels in were wiped from the address bar at boot so no
-      // telemetry snapshot can ever hold them. This page consumes the copy.
+      // The pre-scrub copy of the URL (see oauthUrlHygiene): the address bar
+      // was cleaned at boot, so the flow's hints are read from this copy.
       const source = capturedOAuthUrl() || window.location.search + window.location.hash;
-
-      // Benign navigation hints (code/type/error descriptions) — never:
-      // with a PKCE client, tokens do not belong in the URL and the page
-      // below does not read any access_token/refresh_token from it.
-      const params = new URLSearchParams(source.replace(/^[^?#]*/, ''));
+      const params = new URLSearchParams(
+        source.replace(/^[^?#]*/, '').replace(/^[?#]/, '').replace('#', '&'),
+      );
       const isRecovery = params.get('type') === 'recovery';
+      const code = params.get('code');
+
+      // A recovery link lands on the password-change screen; a fresh signup
+      // that confirmed their email goes to onboarding for the role + topic
+      // step before the plan; returning users skip it.
+      const finish = (session: Session) => {
+        setStatus('success');
+        setTimeout(
+          () =>
+            navigate(
+              isRecovery
+                ? '/reset-password?mode=update'
+                : hasCompletedOnboarding(session.user?.user_metadata) ? '/dashboard' : '/onboarding',
+              { replace: true },
+            ),
+          800,
+        );
+      };
 
       const oauthError = params.get('error');
       const errorDescription = params.get('error_description');
@@ -46,62 +62,34 @@ const CallbackPage: React.FC = () => {
       }
 
       try {
-        // exchangeCodeForSession() is the PKCE callback handler. It parses
-        // the code from the captured URL and establishes a session.
-        const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(
-          source.replace(/^[^?#]*/, ''),
-        );
-
-        if (exchangeError) {
-          // Code may have already been consumed — fall back to checking existing session
-          console.warn('OAuth exchange attempt, falling back to getSession:', exchangeError.message);
-          const {
-            data: { session: existingSession },
-            error: sessionError,
-          } = await supabase.auth.getSession();
-
-          if (sessionError) throw sessionError;
-
-          if (existingSession && !cancelled) {
-            setStatus('success');
-            const metadata = existingSession.user?.user_metadata;
-            setTimeout(
-              () =>
-                navigate(
-                  hasCompletedOnboarding(metadata) ? '/dashboard' : '/onboarding',
-                  { replace: true },
-                ),
-              800,
-            );
+        // A code-flow callback carries a code to exchange. Without one, the
+        // client already built the session from the URL when it was created.
+        let exchangeMessage = '';
+        if (code) {
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (!exchangeError && data?.session) {
+            if (!cancelled) finish(data.session);
             return;
           }
+          // The client may already have consumed the code; check for a session.
+          exchangeMessage = exchangeError?.message ?? '';
+          if (exchangeMessage) console.warn('OAuth exchange attempt, falling back to getSession:', exchangeMessage);
+        }
 
-          if (!cancelled) {
-            setStatus('error');
-            setErrorMsg(exchangeError.message || 'Authentication failed. Please try again.');
-          }
+        const {
+          data: { session: existingSession },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        if (existingSession) {
+          if (!cancelled) finish(existingSession);
           return;
         }
 
-        if (data?.session && !cancelled) {
-          setStatus('success');
-          // A recovery link lands on the password-change screen; a fresh
-          // signup that confirmed their email goes to onboarding for the
-          // role + topic step before the plan; returning users skip it.
-          const metadata = data.session.user?.user_metadata;
-          setTimeout(
-            () =>
-              navigate(
-                isRecovery
-                  ? '/reset-password?mode=update'
-                  : hasCompletedOnboarding(metadata) ? '/dashboard' : '/onboarding',
-                { replace: true },
-              ),
-            800,
-          );
-        } else if (!cancelled) {
+        if (!cancelled) {
           setStatus('error');
-          setErrorMsg('Could not establish session. Please try signing in again.');
+          setErrorMsg(exchangeMessage || 'Could not establish session. Please try signing in again.');
         }
       } catch (err: any) {
         console.error('OAuth callback error:', err);
