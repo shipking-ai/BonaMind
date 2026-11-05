@@ -22,7 +22,7 @@ const REQUIRED_DISCLOSURES: { label: string; pattern: RegExp }[] = [
   { label: 'Cerebras (AI fallback)', pattern: /Cerebras/ },
   { label: 'Google Gemini (AI fallback)', pattern: /Gemini/ },
   { label: 'OpenRouter (AI fallback)', pattern: /OpenRouter/ },
-  { label: 'Puter (client-side AI)', pattern: /Puter/ },
+  { label: 'Puter (called from the browser)', pattern: /Puter/ },
   { label: 'Cloudflare Turnstile (sign-in bot check)', pattern: /Turnstile/ },
   { label: 'Google Fonts (font hosting)', pattern: /Google Fonts/ },
   {
@@ -34,6 +34,14 @@ const REQUIRED_DISCLOSURES: { label: string; pattern: RegExp }[] = [
 describe('the privacy policy names every third-party data path', () => {
   it.each(REQUIRED_DISCLOSURES)('discloses $label', ({ pattern }) => {
     expect(POLICY).toMatch(pattern);
+  });
+
+  it('makes no claim about providers that we cannot verify', () => {
+    // api/_providers.ts runs on free tiers, whose terms may allow keeping data.
+    expect(POLICY).not.toMatch(/do not retain your data/);
+    expect(POLICY).not.toMatch(/study content is excluded/);
+    expect(POLICY).not.toMatch(/Puter[^.]*client-side/);
+    expect(POLICY).toMatch(/under its own terms/);
   });
 
   it('keeps the operator name untouched (blocked on the CogniVect decision)', () => {

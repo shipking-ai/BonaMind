@@ -53,7 +53,7 @@ const sections = [
         <ul className="list-disc pl-5 space-y-1.5 text-[#9090A8]">
           <li><strong className="text-[#F0EFFE]">To Provide the Service:</strong> Process study content, generate flashcards and quizzes, power AI tutoring, and deliver all platform features.</li>
           <li><strong className="text-[#F0EFFE]">To Improve the Service:</strong> Analyze usage patterns to improve features, optimize the FSRS spaced repetition algorithm, and enhance AI responses.</li>
-          <li><strong className="text-[#F0EFFE]">AI Processing:</strong> Your prompts and uploaded content are sent to our AI providers (Groq, with Cerebras, Google Gemini and OpenRouter as fallbacks; Puter runs client-side in your browser) solely to generate responses. Local inference runs entirely in your browser. We do not use your content to train or fine-tune AI models.</li>
+          <li><strong className="text-[#F0EFFE]">AI Processing:</strong> Your prompts and uploaded content are sent to our AI providers (Groq, with Cerebras, Google Gemini and OpenRouter as fallbacks, and Puter, a cloud service your browser contacts directly) to generate responses. Local inference runs entirely in your browser. We do not use your content to train our own AI models.</li>
           <li><strong className="text-[#F0EFFE]">Read-Aloud (Text-to-Speech):</strong> Built-in voices speak entirely on your device and never send card text anywhere. If you choose an AI voice, the text being read is sent to our API and synthesised by Groq.</li>
           <li><strong className="text-[#F0EFFE]">To Communicate:</strong> Send transactional emails (welcome, password reset, payment receipts, trial reminders) via Resend.</li>
           <li><strong className="text-[#F0EFFE]">To Process Payments:</strong> Subscription payments are processed securely by Stripe. We do not store full payment card details.</li>
@@ -71,7 +71,7 @@ const sections = [
           <li><strong className="text-[#F0EFFE]">Input Handling:</strong> Your prompts and uploaded content are sent to our AI providers solely to generate responses in real-time. They are not used to train or improve their models.</li>
           <li><strong className="text-[#F0EFFE]">No Model Training:</strong> We do not use your study content, AI interactions, or personal data to train AI models without your explicit consent.</li>
           <li><strong className="text-[#F0EFFE]">AI Output Caution:</strong> AI-generated content may contain inaccuracies. You are responsible for reviewing and verifying outputs before relying on them.</li>
-          <li><strong className="text-[#F0EFFE]">Third-Party Providers:</strong> We use Groq as our primary AI inference provider, with Cerebras, Google Gemini and OpenRouter as fallbacks, and Puter for client-side inference in your browser. These providers process your inputs only for generating responses and do not retain your data.</li>
+          <li><strong className="text-[#F0EFFE]">Third-Party Providers:</strong> We use Groq as our primary AI inference provider, with Cerebras, Google Gemini and OpenRouter as fallbacks, and Puter, a cloud service your browser contacts directly. Each provider handles your inputs under its own terms and may keep them for a period or use them to improve its services, especially on free plans. Please avoid entering sensitive personal information in prompts or uploads.</li>
         </ul>
       </>
     ),
@@ -115,7 +115,7 @@ const sections = [
               <tr className="border-b border-[#2A2A3A]/50">
                 <td className="py-2 pr-4 text-[#F0EFFE]">Sentry</td>
                 <td className="py-2 pr-4">Error &amp; Crash Monitoring</td>
-                <td className="py-2">Error messages, stack traces, device/browser metadata (study content is excluded)</td>
+                <td className="py-2">Error messages, stack traces, device/browser metadata. We set it not to collect request bodies, cookies or AI conversations, but an error report may occasionally include a fragment of text</td>
               </tr>
               <tr className="border-b border-[#2A2A3A]/50">
                 <td className="py-2 pr-4 text-[#F0EFFE]">Cerebras</td>
@@ -134,7 +134,7 @@ const sections = [
               </tr>
               <tr className="border-b border-[#2A2A3A]/50">
                 <td className="py-2 pr-4 text-[#F0EFFE]">Puter</td>
-                <td className="py-2 pr-4">Client-side AI</td>
+                <td className="py-2 pr-4">AI Inference (called from your browser)</td>
                 <td className="py-2">Prompts, chat and card text (sent from your browser)</td>
               </tr>
               <tr className="border-b border-[#2A2A3A]/50">
