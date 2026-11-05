@@ -636,7 +636,7 @@ export default function ModernLandingPage() {
             </div>
             <span className="text-[#F0EFFE] text-xs font-medium font-script">BonaMind</span>
           </div>
-          <p className="text-[#3A3A4F] text-xs">Built by one person. Powered by real science.</p>
+          <p className="text-[#8A8AA3] text-xs">Built by one person. Powered by real science.</p>
           <div className="flex items-center gap-6">
             <a href="/privacy" className="text-[#7A7A96] hover:text-[#F0EFFE] text-xs transition-colors">Privacy</a>
             <a href="/terms" className="text-[#7A7A96] hover:text-[#F0EFFE] text-xs transition-colors">Terms</a>

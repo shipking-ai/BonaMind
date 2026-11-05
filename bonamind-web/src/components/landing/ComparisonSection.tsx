@@ -232,7 +232,7 @@ export function ComparisonSection() {
           </div>
         </div>
 
-        <p className="text-[10px] text-[#3A3A4F] text-center mt-6">
+        <p className="text-[10px] text-[#8A8AA3] text-center mt-6">
           Comparison as of BonaMind v2.0.0 · Aug 2026 · Feature availability may
           vary by competitor plan tier.
         </p>
