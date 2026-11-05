@@ -611,6 +611,9 @@ async function handleAdminUtility(req: VercelRequest, res: VercelResponse, supab
       const parsed = validateBody(res, CreateTestUserSchema, req.body);
       if (!parsed.ok) return;
       const { email, password, makeAdmin = false, role = 'user' } = parsed.data.testData;
+      if (actorRank(requestingUser) <= (ROLE_RANK[role] ?? 0)) {
+        return json(res, 403, { error: 'Not allowed to grant this role' });
+      }
 
       const userPayload = {
         email,
@@ -674,6 +677,9 @@ async function handleAdminUtility(req: VercelRequest, res: VercelResponse, supab
       const { data: userData } = await supabase.auth.admin.getUserById(targetUserId);
       if (!userData?.user) return json(res, 404, { error: 'User not found' });
       if (userData.user.email === ADMIN_EMAIL) return json(res, 403, { error: 'Cannot delete the owner account' });
+      if (!roleChangeAllowed(requestingUser, userData.user, 'user')) {
+        return json(res, 403, { error: 'Not allowed to delete this account' });
+      }
 
       const targetEmail = userData.user.email;
 
@@ -1814,6 +1820,10 @@ async function handleAdminBulk(req: VercelRequest, res: VercelResponse, supabase
           }
           if (userData.user.email === ADMIN_EMAIL) {
             results.failed.push({ id: uid, error: 'Cannot change owner' });
+            continue;
+          }
+          if (!roleChangeAllowed(user, userData.user, role)) {
+            results.failed.push({ id: uid, error: 'Not allowed to change this role' });
             continue;
           }
           await supabase.auth.admin.updateUserById(uid, {

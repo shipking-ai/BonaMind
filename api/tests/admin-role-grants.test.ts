@@ -1,13 +1,8 @@
-﻿import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 
 /**
- * Red-team regression: a staff account could mint any role — owner and ceo
- * included — for anyone, themselves included, because the grant endpoint
- * accepted a free role enum and only protected the operator account itself.
- *
- * Grants now follow a rank matrix (a role can only manage roles strictly
- * below its own; only the operator account outranks the table), so the
- * class of escalation is closed for good.
+ * Staff role grants follow a rank matrix: a role can only manage roles strictly
+ * below its own, on every route that sets a role or removes an account.
  */
 
 const ADMIN_EMAIL = 'root@bonamind.app';
@@ -17,7 +12,7 @@ process.env.ADMIN_EMAIL = ADMIN_EMAIL;
 const supabase = vi.hoisted(() => ({
   auth: {
     getUser: vi.fn(),
-    admin: { getUserById: vi.fn(), updateUserById: vi.fn() },
+    admin: { getUserById: vi.fn(), updateUserById: vi.fn(), createUser: vi.fn(), deleteUser: vi.fn() },
   },
   from: vi.fn(),
 }));
@@ -146,5 +141,90 @@ describe('the staff role-grant matrix', () => {
 
     const { status: okFromCeo } = await toggleAs(actor('ceo'), target(16, 'user'), true);
     expect(okFromCeo).toBe(200);
+  });
+});
+
+describe('other routes follow the same matrix', () => {
+  const asActor = (user: object) =>
+    supabase.auth.getUser.mockResolvedValue({ data: { user }, error: null });
+
+  const createAs = (user: object, role: string) => {
+    asActor(user);
+    supabase.auth.admin.createUser.mockResolvedValue({
+      data: { user: { id: uuid(500), email: 'new@example.com' } },
+      error: null,
+    });
+    return call('admin/utility', {
+      headers: { authorization: 'Bearer token' },
+      body: { action: 'create_test_user', testData: { email: 'new@example.com', password: 'password123', role } },
+    });
+  };
+
+  const deleteAs = (user: object, targetUser: object) => {
+    asActor(user);
+    supabase.auth.admin.getUserById.mockResolvedValue({ data: { user: targetUser } });
+    supabase.auth.admin.deleteUser.mockResolvedValue({ data: {}, error: null });
+    return call('admin/utility', {
+      headers: { authorization: 'Bearer token' },
+      body: { action: 'delete_user', targetUserId: (targetUser as { id: string }).id },
+    });
+  };
+
+  const bulkAs = (user: object, targetUser: object, role: string) => {
+    asActor(user);
+    supabase.auth.admin.getUserById.mockResolvedValue({ data: { user: targetUser } });
+    supabase.auth.admin.updateUserById.mockResolvedValue({ data: {} });
+    return call('admin/bulk', {
+      headers: { authorization: 'Bearer token' },
+      body: { action: 'role', userIds: [(targetUser as { id: string }).id], role },
+    });
+  };
+
+  beforeEach(() => {
+    supabase.from.mockReturnValue({
+      insert: async () => ({ error: null }),
+      delete: () => ({ eq: async () => ({ error: null }) }),
+    });
+  });
+
+  it('create_test_user cannot create a role at or above the caller', async () => {
+    for (const role of ['admin', 'ceo', 'owner']) {
+      const { status } = await createAs(actor('admin'), role);
+      expect(status).toBe(403);
+    }
+    expect(supabase.auth.admin.createUser).not.toHaveBeenCalled();
+  });
+
+  it('create_test_user still creates roles below the caller', async () => {
+    const { status } = await createAs(actor('admin'), 'tester');
+    expect(status).toBe(200);
+  });
+
+  it('delete_user cannot remove an account at or above the caller', async () => {
+    for (const rank of ['admin', 'ceo']) {
+      const { status } = await deleteAs(actor('admin'), target(20, rank));
+      expect(status).toBe(403);
+    }
+    expect(supabase.auth.admin.deleteUser).not.toHaveBeenCalled();
+  });
+
+  it('delete_user still removes accounts below the caller', async () => {
+    const { status } = await deleteAs(actor('admin'), target(21, 'user'));
+    expect(status).toBe(200);
+    expect(supabase.auth.admin.deleteUser).toHaveBeenCalledTimes(1);
+  });
+
+  it('bulk role change skips accounts and roles at or above the caller', async () => {
+    const mint = await bulkAs(actor('admin'), target(22, 'user'), 'admin');
+    expect(mint.body.results.failed).toHaveLength(1);
+    const demote = await bulkAs(actor('admin'), target(23, 'ceo'), 'user');
+    expect(demote.body.results.failed).toHaveLength(1);
+    expect(supabase.auth.admin.updateUserById).not.toHaveBeenCalled();
+  });
+
+  it('bulk role change still works below the caller', async () => {
+    const { body } = await bulkAs(actor('admin'), target(24, 'user'), 'employee');
+    expect(body.results.success).toHaveLength(1);
+    expect(supabase.auth.admin.updateUserById).toHaveBeenCalledTimes(1);
   });
 });
