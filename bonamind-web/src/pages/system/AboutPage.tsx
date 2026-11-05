@@ -197,7 +197,7 @@ const AboutPage: React.FC<AboutPageProps> = ({ versionOverride }) => {
             TRADEMARK_STATEMENT was removed here rather than reworded. It read
             "BonaMind is a trademark of CogniVect, Inc" — asserting a
             registered mark against a company being dissolved. Whether BonaMind
-            has a mark, and who owns it, is a legal fact; see the FROZEN block
+            has a mark, and who owns it, is a legal fact; see the note
             in lib/branding.ts.
           */}
         </section>

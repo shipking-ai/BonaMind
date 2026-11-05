@@ -1,21 +1,21 @@
 /**
- * Branding — single source of truth for the CogniVect (parent) and
+ * Branding — single source of truth for the operating company (parent) and
  * BonaMind (first product) brand surface.
  *
  * Load-bearing contract (pinned by `__tests__/branding.test.ts` v3 + every
  * legal/footer page consumer). Any future rename touches exactly this
  * file; consumers reference `BRAND.*` or the named exports — never the
- * literal string "CogniVect" inline.
+ * company name inline.
  *
  * Placement policy (M6.5.b round 14):
  *   - BonaMind is the PRIMARY mark everywhere it's seen.
- *   - CogniVect parent line appears BENEATH or BESIDE the BonaMind mark,
+ *   - The company line appears BENEATH or BESIDE the BonaMind mark,
  *     never inside it, never replacing it. See `CogniWordmark.tsx`.
  *   - Store-listing metadata (capacitor.config appName, package.json
  *     metadata, index.html <title>) MUST stay "BonaMind" only — Google
  *     rejects anything that looks like a tagline in the visual app name,
  *     and only the "Developer/Vendor Name" field accepts the parent
- *     brand. CogniVect leaves that field at the storefront console.
+ *     brand. The company name goes in that field at the storefront console.
  *   - Mobile chrome (TopAppBar, MobileTabBar) is intentionally too
  *     cramped for the parent line.
  *
@@ -34,41 +34,24 @@ import { APP_NAME } from '../../app-identity.ts';
 /* ── Named exports (canonical, pinned by branding.test.ts) ───────────── */
 
 /**
- * ┌──────────────────────────────────────────────────────────────────────┐
- * │ FROZEN — PENDING A LEGAL DECISION. DO NOT SHIP WITHOUT RESOLVING.     │
- * └──────────────────────────────────────────────────────────────────────┘
+ * The entity that operates the service, as decided by the owner on 2026-11-04
+ * (#225). It replaced CogniVect, Inc., which is being dissolved. Every constant
+ * from here to LEGAL_COPYRIGHT_LINE names that entity, and a privacy policy has
+ * to name a real data controller, so change these only on a legal decision.
  *
- * CogniVect, Inc. is being dissolved. Every constant from here to
- * LEGAL_COPYRIGHT_LINE names the entity that operates the service, and a
- * privacy policy has to name a real data controller. These values are
- * therefore still the old ones, and they are still WRONG.
- *
- * What has already been removed is the *marketing* half — the parent byline,
- * the CogniVect wordmark and the vector glyph — because that is presentation,
- * not a legal claim. What remains here is the part that cannot be decided by
- * engineering.
- *
- * Blocking before public launch:
- *   1. The privacy policy and terms still name CogniVect, Inc.
- *   2. Stripe's merchant entity of record — payouts fail if it is dissolved.
- *   3. Google Play Console's verified developer entity name and address.
- *   4. Google/Notion OAuth consent screens, which show the verified entity.
- *   5. The W-9 (or W-8) filed with Play and Stripe.
- *
- * Note items 2–5 are not in this repository. They are console settings and
- * will keep working until they are changed, which is what makes them easy to
- * miss and expensive to discover late.
- *
- * When the replacement entity is confirmed, these are the only lines to
- * change; everything else derives from them.
+ * These are not in this repository and have to be changed by hand, because they
+ * keep working until someone does, which makes them easy to miss:
+ *   1. Stripe's merchant entity of record: payouts fail if it is dissolved.
+ *   2. Google Play Console's verified developer entity name and address.
+ *   3. Google/Notion OAuth consent screens, which show the verified entity.
+ *   4. The W-9 (or W-8) filed with Play and Stripe.
  */
 
-/** The entity that operates the service. See the FROZEN block above. */
-export const PARENT_COMPANY_NAME    = 'CogniVect';
-/** Legal suffix matters: the old entity was an Inc, any replacement may not be. */
-export const PARENT_COMPANY_LEGAL   = 'CogniVect, Inc';          /* no trailing period */
-export const PARENT_BRAND_SLUG     = 'covect';
-export const PARENT_BRAND_TAGLINE  = 'cognitive · vector';     /* middle dot, not '+' */
+/** The entity that operates the service. See the note above. */
+export const PARENT_COMPANY_NAME    = 'CastleRock Investors Group';
+/** Legal suffix matters: consumers add their own punctuation after it. */
+export const PARENT_COMPANY_LEGAL   = 'CastleRock Investors Group, LLC'; /* no trailing period */
+export const PARENT_BRAND_SLUG     = 'castlerock';
 /**
  * The product name, sourced from app-identity.ts rather than retyped.
  *
@@ -81,13 +64,13 @@ export const CONTACT_EMAIL         = 'hello@bonamind.app';
 /* Until the operating entity provisions its own mailbox, contact-mail aliases
  * to the deliverability-warmed production mailbox. */
 export const PARENT_CONTACT_EMAIL  = CONTACT_EMAIL;
-export const LEGAL_ADDRESS         = `${PARENT_COMPANY_LEGAL}, 548 Market St, San Francisco, CA 94104`;
+export const LEGAL_ADDRESS         = `${PARENT_COMPANY_LEGAL}, ADDRESS NEEDED`;
 export const TRADEMARK_STATEMENT   = `${PRODUCT_NAME} is a trademark of ${PARENT_COMPANY_LEGAL}`;
 
 /* Year must be computed BEFORE the copyright line so the inlined value
  * inside LEGAL_COPYRIGHT_LINE matches LEGAL_YEAR byte-for-byte. */
 export const LEGAL_YEAR: number                       = new Date().getFullYear();
-export const LEGAL_COPYRIGHT_LINE: string             = `© ${LEGAL_YEAR} CogniVect, Inc. All rights reserved.`;
+export const LEGAL_COPYRIGHT_LINE: string             = `© ${LEGAL_YEAR} ${PARENT_COMPANY_LEGAL}. All rights reserved.`;
 
 /**
  * The product's own web origin, for surfaces that need an absolute URL.
@@ -119,7 +102,6 @@ export const BRAND = {
   parentName:           PARENT_COMPANY_NAME,
   parentLegal:          PARENT_COMPANY_LEGAL,
   parentSlug:           PARENT_BRAND_SLUG,
-  parentTagline:        PARENT_BRAND_TAGLINE,
   product:              PRODUCT_NAME,
   contactEmail:         CONTACT_EMAIL,
   parentContactEmail:   PARENT_CONTACT_EMAIL,
@@ -130,5 +112,5 @@ export const BRAND = {
 
 /* ── Type-safe helpers ────────────────────────────────────────────────── */
 
-export type BrandParent = typeof PARENT_COMPANY_NAME; // 'CogniVect'
+export type BrandParent = typeof PARENT_COMPANY_NAME;
 export type BrandAggregateKeys = keyof typeof BRAND;
