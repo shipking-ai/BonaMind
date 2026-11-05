@@ -35,9 +35,9 @@ vi.mock('../types/league', async importOriginal => {
 import { fetchLeagueBoard } from '../services/gamification/leagueService';
 
 const ROSTER = [
-  { user_id: 'me', display_name: 'Me', avatar_url: null },
-  { user_id: 'peer-1', display_name: 'Ana', avatar_url: null },
-  { user_id: 'peer-2', display_name: 'Ravi', avatar_url: null },
+  { user_id: 'me', display_name: 'Me' },
+  { user_id: 'peer-1', display_name: 'Ana' },
+  { user_id: 'peer-2', display_name: 'Ravi' },
 ];
 
 const MEMBERSHIPS = [
@@ -148,6 +148,17 @@ describe('the league roster migration a human must apply', () => {
     expect(sql).toMatch(/caller\.user_id = auth\.uid\(\)/);
     expect(sql).toMatch(/revoke execute .* from public, anon/);
     expect(sql).toMatch(/grant execute .* to authenticated/);
+  });
+
+  it('reads only columns user_profiles really has', () => {
+    // user_profiles has no avatar_url column (avatars live in auth metadata, see
+    // userService). Postgres checks a SQL function's body when it is created, so
+    // naming that column makes the whole migration fail in the SQL Editor.
+    const sql = readFileSync(
+      path.join(REPO, 'supabase/migrations/20261029130000_league_group_roster.sql'),
+      'utf8',
+    );
+    expect(sql).not.toContain('avatar_url');
   });
 
   it('the service no longer ships a demo board', () => {

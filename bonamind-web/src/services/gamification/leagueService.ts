@@ -210,10 +210,8 @@ export async function fetchLeagueBoard(
       if (rosterError) throw rosterError;
 
       const nameOf = new Map<string, string>();
-      const avatarOf = new Map<string, string>();
-      ((roster ?? []) as { user_id: string; display_name: string; avatar_url: string | null }[]).forEach(p => {
+      ((roster ?? []) as { user_id: string; display_name: string }[]).forEach(p => {
         nameOf.set(p.user_id, p.display_name);
-        if (p.avatar_url) avatarOf.set(p.user_id, p.avatar_url);
       });
 
       const members: LeagueMemberView[] = memberships
@@ -221,7 +219,6 @@ export async function fetchLeagueBoard(
         .map(m => ({
           userId: m.user_id,
           name: nameOf.get(m.user_id) ?? 'Learner',
-          avatar: avatarOf.get(m.user_id),
           weeklyXp: m.weekly_xp,
           accuracyRate: Number(m.accuracy_rate ?? 0),
           rank: 0,
