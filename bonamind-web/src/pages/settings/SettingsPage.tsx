@@ -29,6 +29,7 @@ import {
 } from '../../services/auth/mfaService';
 import type { UserProfile } from '../../types';
 import { DesktopSettingsSection } from '../../desktop/DesktopSettingsSection';
+import { isAndroidApp } from '../../lib/platform';
 
 type MfaStep =
   | { step: 'idle' }
@@ -540,9 +541,11 @@ export default function SettingsPage() {
                 </span>
               </div>
               <p className="text-[#7A7A96] text-xs mt-1">{profile?.email || ''}</p>
-              <button onClick={handleManageSubscription} className="text-[#8B5CF6] text-[10px] font-medium hover:text-[#7C3AED] transition-colors mt-1">
-                Manage subscription
-              </button>
+              {!isAndroidApp() && (
+                <button onClick={handleManageSubscription} className="text-[#8B5CF6] text-[10px] font-medium hover:text-[#7C3AED] transition-colors mt-1">
+                  Manage subscription
+                </button>
+              )}
             </div>
             <div className="flex gap-2 mt-2 sm:mt-0 flex-wrap">
               <button onClick={handleChangePassword} className="px-4 py-2 border border-[#2A2A3A] text-[#F0EFFE] text-xs font-medium rounded-lg hover:border-[#3A3A4F] transition-all">

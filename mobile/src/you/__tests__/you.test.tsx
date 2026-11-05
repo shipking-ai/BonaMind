@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { getOutbox } from '../../data/app';
 import { signOut } from '../../data/auth';
 import { fetchSubscription } from '../../data/subscription';
@@ -104,6 +104,33 @@ it('flags a failed payment and points to the billing portal', async () => {
   await waitFor(() => expect(screen.getByText(/Payment failed — update your card/)).toBeTruthy());
   expect(screen.queryByRole('button', { name: 'Upgrade to Pro' })).toBeNull();
   expect(screen.getByRole('button', { name: 'Manage billing' })).toBeTruthy();
+});
+
+describe('on Android, where the app sells nothing', () => {
+  const realOS = Platform.OS;
+  beforeEach(() => { Platform.OS = 'android'; });
+  afterEach(() => { Platform.OS = realOS; });
+
+  it('shows no Upgrade button to an unpaid account', async () => {
+    pending(0);
+    authModule.__setState({ access_token: 'tok', user: { id: 'auth-1', email: 'sam@example.com' } });
+    (fetchSubscription as jest.Mock).mockResolvedValue({ subscribed: false, status: 'none', plan: 'Starter', graceEndedAt: null });
+    await renderYou();
+    await waitFor(() => expect(screen.getByText('Starter')).toBeTruthy());
+    expect(screen.queryByRole('button', { name: 'Upgrade to Pro' })).toBeNull();
+  });
+
+  it('shows no Manage billing button to a customer', async () => {
+    pending(0);
+    authModule.__setState({
+      access_token: 'tok',
+      user: { id: 'auth-1', email: 'sam@example.com', user_metadata: { stripe_customer_id: 'cus_123' } },
+    });
+    (fetchSubscription as jest.Mock).mockResolvedValue({ subscribed: true, status: 'active', plan: 'Pro', graceEndedAt: null });
+    await renderYou();
+    await waitFor(() => expect(screen.getByText('Pro')).toBeTruthy());
+    expect(screen.queryByRole('button', { name: 'Manage billing' })).toBeNull();
+  });
 });
 
 it('says the status could not be checked when the route fails', async () => {

@@ -99,6 +99,8 @@ export function YouScreen() {
     void syncDailyReminder(reminderEnabled, h);
   }
 
+  // Android users subscribe and manage billing on the website (#226).
+  const canSellHere = Platform.OS !== 'android';
   const view = subscription.data;
   const failed = subscription.isError;
   const planLabel = view?.plan ?? (failed ? '—' : '…');
@@ -115,10 +117,10 @@ export function YouScreen() {
         <Text style={styles.planName}>{planLabel}</Text>
         <Text style={styles.streak}>{statusText}{graceTime(view)}</Text>
         <View style={styles.planActions}>
-          {view && !subscription.isError && subscription.isSuccess && needsUpgrade(view) ? (
+          {canSellHere && view && !subscription.isError && subscription.isSuccess && needsUpgrade(view) ? (
             <SecondaryButton label="Upgrade to Pro" onPress={() => checkout.mutate()} />
           ) : null}
-          {subscription.isSuccess && customerId ? (
+          {canSellHere && subscription.isSuccess && customerId ? (
             <SecondaryButton label="Manage billing" onPress={() => portal.mutate()} />
           ) : null}
         </View>
