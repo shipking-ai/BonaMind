@@ -41,7 +41,7 @@ describe('the server no longer accepts svg', () => {
     );
     expect(sql).toContain("array_remove(allowed_mime_types, 'image/svg+xml')");
     expect(sql).toContain("WHERE id = 'avatars'");
-    const helper = sql.slice(sql.indexOf('CREATE OR REPLACE FUNCTION'));
+    const helper = sql.slice(sql.indexOf('CREATE OR REPLACE FUNCTION'), sql.indexOf('INSERT INTO schema_migrations'));
     expect(helper).not.toContain('svg');
   });
 });
