@@ -423,7 +423,7 @@ export default function AuthPage() {
                       // unlabelled button.
                       aria-label={showPassword ? "Hide password" : "Show password"}
                       aria-pressed={showPassword}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7A7A96] hover:text-[#F0EFFE] text-sm transition-colors"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-6 w-6 items-center justify-center rounded text-[#7A7A96] hover:text-[#F0EFFE] text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#7C3AED]/60"
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>

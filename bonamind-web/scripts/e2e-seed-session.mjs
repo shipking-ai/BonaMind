@@ -41,6 +41,7 @@ const name = arg('--name', 'onboarding');
 const baseUrl = arg('--base-url', 'http://localhost:3001');
 const onboarded = !argv.includes('--fresh');
 const withSparkDeck = argv.includes('--with-spark-deck');
+const withSubscription = argv.includes('--with-subscription') || withSparkDeck;
 
 // ── Load service-role key from the repo-root .env (same source migrate uses) ─
 function loadRootEnv() {
@@ -93,14 +94,15 @@ async function main() {
   const metadata = onboarded
     ? { role: 'student', onboarding_topic: 'Cell biology', onboarding_completed: true }
     : {};
-  // Entitlement lives in app_metadata (service-role only). Spark E2E needs
-  // the dashboard, which the paywall guards, so only those accounts get an
-  // active subscription; onboarding E2E must still land on /subscribe. The
-  // existing app_metadata is spread first so a reused account keeps its role.
+  // Entitlement lives in app_metadata (service-role only). Spark and
+  // onboarded-account E2E need the dashboard, which the paywall guards, so
+  // those accounts get an active subscription; the fresh onboarding account
+  // must still land on /subscribe. The existing app_metadata is spread first
+  // so a reused account keeps its role.
   const { data: current } = await admin.auth.admin.getUserById(userId);
   const { error: updateErr } = await admin.auth.admin.updateUserById(userId, {
     user_metadata: metadata,
-    ...(withSparkDeck
+    ...(withSubscription
       ? { app_metadata: { ...(current?.user?.app_metadata ?? {}), subscription_status: 'active' } }
       : {}),
   });

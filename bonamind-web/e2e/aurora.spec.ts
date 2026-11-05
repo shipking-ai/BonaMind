@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { gotoApp } from './gotoApp';
 import { execSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -65,7 +66,7 @@ test.describe('aurora motion', () => {
   });
 
   test('background layers respond to scroll; shell chrome stays fixed', async ({ page }) => {
-    await page.goto('/dashboard');
+    await gotoApp(page, '/dashboard');
     await page.waitForSelector('main#nova-main-content');
 
     const scroller = page.locator('main#nova-main-content');
