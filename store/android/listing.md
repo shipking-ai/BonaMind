@@ -24,14 +24,14 @@ WHAT YOU GET
 • AI-generated flashcards — drop a PDF, a video link, or a topic; BonaMind turns it into a deck in under a minute.
 • Personalized spaced repetition — the algorithm learns YOUR memory and reshapes its schedule around it. The longer you use BonaMind, the faster you remember.
 • Active recall + retrieval practice — proven to outperform re-reading by 2-3x.
-• Offline-first — all your decks live on your device; sync when you're back online.
+• Offline-first — study your cached decks without a connection; every device syncs through your account when you're back online.
 • Streaks, leagues, and friends — gentle pressure to keep your study habit alive, but never burn-out inducing.
 • Memory Palace + Flow Mode — turn your hardest topic into a visual walkthrough or enter distraction-free deep-study mode.
 • Concept Maps — see how ideas in a deck connect to each other.
 
 PRIVACY-FIRST
 
-Your decks and notes stay on your device. We don't sell your study data. We use post-hoc analytics (PostHog) only for product improvement, and Sentry only for crash reports. The full privacy policy is at https://bonamind.app/privacy.
+Your account stores your decks, notes and study progress so every device stays in sync — they don't live only on your device. We don't sell your study data. Analytics (PostHog) covers product improvement and Sentry crash reports only. When you chat with Prof. Linnea or build cards, the text (and photos or audio you add for a course) goes through our server to the AI provider that answers. The full privacy policy is at https://bonamind.app/privacy.
 
 BUILT FOR STUDENTS WHO ACTUALLY STUDY
 
