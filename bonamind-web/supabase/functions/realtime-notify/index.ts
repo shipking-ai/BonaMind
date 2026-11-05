@@ -88,7 +88,8 @@ Deno.serve(async (req: Request) => {
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
-  const realtimeChannel = supabase.channel(body.channel);
+  // Clients listen on private channels, so a public send would never reach them.
+  const realtimeChannel = supabase.channel(body.channel, { config: { private: true } });
 
   try {
     // Wait for subscription to be established (with 5s timeout)

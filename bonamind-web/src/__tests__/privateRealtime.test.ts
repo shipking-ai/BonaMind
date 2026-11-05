@@ -1,17 +1,10 @@
 /**
- * Red-team regression for public realtime channels: the notification,
- * shared-study and flow-presence channels were joined with PUBLIC broadcast
- * config, so anyone holding the public anon key could subscribe to
- * (and forged-broadcast into) any user's notification topic by guessing
- * their user id.
+ * Every realtime channel is private: access is decided by policies on
+ * realtime.messages (migration 20261030000000).
  *
- * Every channel is now private: access is decided by realtime RLS policies
- * on realtime.messages (migration 20261030000000), evaluated against the
- * caller's JWT. The policy set:
- *
- *   user:<uid>:notifications -> owner only (server publishes w/ service role)
+ *   user:<uid>:notifications -> owner reads, server publishes
  *   study:<deckId>           -> deck owner or a public deck (read + insert)
- *   flow:presence            -> any authenticated user (presence only)
+ *   flow:presence            -> any signed-in user (presence only)
  */
 
 import { readFileSync } from 'node:fs';
@@ -26,6 +19,11 @@ describe('the private channel wiring', () => {
     ),
     multiplayer: readFileSync(path.resolve(__dirname, '../hooks/useMultiplayerStudy.ts'), 'utf8'),
     flow: readFileSync(path.resolve(__dirname, '../components/study/FlowMode.tsx'), 'utf8'),
+    // The server publisher must match, or notifications never reach clients.
+    publisher: readFileSync(
+      path.resolve(__dirname, '../../supabase/functions/realtime-notify/index.ts'),
+      'utf8',
+    ),
   };
 
   it('every realtime channel joins with private: true', () => {
@@ -51,6 +49,14 @@ describe('the realtime policies (a human must apply them)', () => {
     path.resolve(__dirname, '../../../supabase/migrations/20261030000000_private_realtime_channels.sql'),
     'utf8',
   );
+
+  it('can be applied twice', () => {
+    const created = sql.match(/create policy "[^"]+"/g) ?? [];
+    expect(created.length).toBeGreaterThan(0);
+    for (const statement of created) {
+      expect(sql).toContain(statement.replace('create policy', 'drop policy if exists'));
+    }
+  });
 
   it('covers all three topic families', () => {
     expect(sql).toMatch(/'user:' \|\| \(select auth\.uid\(\)\)::text \|\| ':%'/);
