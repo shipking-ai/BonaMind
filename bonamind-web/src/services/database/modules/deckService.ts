@@ -37,7 +37,8 @@ export const deckService = {
                 supabase as unknown as RowsClient,
                 'decks',
                 '*',
-                q => q.eq('user_id', userId).order('created_at', { ascending: true }),
+                // id breaks created_at ties so pages can't skip or repeat a deck.
+                q => q.eq('user_id', userId).order('created_at', { ascending: true }).order('id', { ascending: true }),
             )) as unknown as DeckRow[];
         } catch (err) {
             console.error('Error fetching decks:', err);
@@ -60,12 +61,12 @@ export const deckService = {
                     return acc;
                 }, {});
             } else {
-                // No order was present before; paging needs one for stable windows.
+                // Paging needs a unique order, or rows can be skipped or counted twice.
                 const counted = (await fetchAllPages(
                     supabase as unknown as RowsClient,
                     'cards',
                     'deck_id',
-                    q => q.in('deck_id', deckIds).order('deck_id', { ascending: true }),
+                    q => q.in('deck_id', deckIds).order('id', { ascending: true }),
                 )) as unknown as { deck_id: string }[];
                 cardCounts = counted.reduce((acc: Record<string, number>, card) => {
                     const id = String(card.deck_id);

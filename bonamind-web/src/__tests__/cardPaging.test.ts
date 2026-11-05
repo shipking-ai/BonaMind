@@ -156,6 +156,18 @@ describe('the service wirings', () => {
   });
 });
 
+describe('deck reads page in a stable order', () => {
+  it('breaks ties on id, for the decks and for the fallback card count', () => {
+    const src = readFileSync(
+      path.resolve(__dirname, '../services/database/modules/deckService.ts'),
+      'utf8',
+    );
+    expect(src).toContain(".order('created_at', { ascending: true }).order('id', { ascending: true })");
+    expect(src).toContain("q.in('deck_id', deckIds).order('id', { ascending: true })");
+    expect(src).not.toContain(".order('deck_id'");
+  });
+});
+
 describe('a human must apply the migration', () => {
   it('exists and follows the executor lockdown convention', () => {
     const sql = readFileSync(
