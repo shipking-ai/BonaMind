@@ -27,6 +27,7 @@ export interface DataExport {
 
 interface RowQuery {
   eq(column: string, value: unknown): RowQuery;
+  order(column: string, options?: { ascending?: boolean }): RowQuery;
   range(from: number, to: number): RowQuery;
   maybeSingle(): Promise<{ data: unknown; error: { message: string } | null }>;
   then(
@@ -57,7 +58,10 @@ async function fetchProfile(client: RowsClient, userId: string): Promise<unknown
   return data ?? null;
 }
 
-/** Fetch every row for the user, paging through the 1000-row request cap. */
+/**
+ * Fetch every row for the user, paging through the 1000-row request cap. The id
+ * order keeps the pages from skipping or repeating rows.
+ */
 export async function fetchAllRows(client: RowsClient, table: string, userId: string): Promise<unknown[]> {
   const rows: unknown[] = [];
   let offset = 0;
@@ -66,6 +70,7 @@ export async function fetchAllRows(client: RowsClient, table: string, userId: st
       .from(table)
       .select('*')
       .eq('user_id', userId)
+      .order('id', { ascending: true })
       .range(offset, offset + PAGE_SIZE - 1);
     if (error) throw error;
     const page = data ?? [];

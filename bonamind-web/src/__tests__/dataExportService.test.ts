@@ -18,6 +18,7 @@ type Row = Record<string, unknown>;
 interface Call {
   table: string;
   range?: [number, number];
+  orderedBy?: string;
 }
 
 /**
@@ -35,6 +36,10 @@ function makeClient(tables: Record<string, Row[]>) {
         return {
           select: () => chain(r),
           eq: () => chain(r),
+          order: (column: string) => {
+            call.orderedBy = column;
+            return chain(r);
+          },
           range: (from: number, to: number) => chain([from, to]),
           maybeSingle: async () => ({ data: tables[table]?.[0] ?? null, error: null }),
           then(onOk: (r: { data: unknown[] | null; error: null }) => unknown) {
@@ -93,6 +98,8 @@ describe('buildDataExport', () => {
     expect(bundle.cards).toHaveLength(1250);
     const cardPages = calls.filter((c) => c.table === 'cards' && c.range);
     expect(cardPages.map((c) => c.range![0])).toEqual([0, 1000]);
+    // Without a unique order, pages can skip or repeat rows.
+    expect(cardPages.every((c) => c.orderedBy === 'id')).toBe(true);
   });
 
   it('fetchAllRows pages each 1000-row window, never dropping a row', async () => {
