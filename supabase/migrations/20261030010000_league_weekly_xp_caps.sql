@@ -1,30 +1,10 @@
--- increment_weekly_xp, re-hardened.
+-- League weekly XP: limit what one call and one week can add.
 --
--- Two defects against the original 20260720120000_league_weekly_xp_rpc.sql:
+-- Same function as 20260917000000_league_weekly_xp_atomic, plus two limits:
+-- 200 XP per call and 2,000 XP per week. A total already above the weekly
+-- limit is left as it is.
 --
--- 1. DOUBLE CREDIT: the original UPSERT inserted (v_prev_xp + delta) as the
---    row's new total, and then ON CONFLICT did
---        weekly_xp = league_memberships.weekly_xp + EXCLUDED.weekly_xp
---    — adding the new TOTAL to the old total again. The weekly score
---    compounded exponentially with every call (call 3 credits ~4x the
---    session's XP, call 4 ~8x, ...). The arithmetic now lives in the
---    conflict update itself: the inserting path carries the DELTA, and the
---    update ADDS that delta once onto the stored total.
---
--- 2. FORGED AMOUNTS: the amount was client-supplied and uncapped; a
---    caller could send p_xp_delta = 999999 in one call and top every
---    league permanently. Per-call and per-week caps are now enforced
---    server-side (see the finds below); accuracy keeps its [0, 100] clamp
---    plus the same EMA.
---
--- Unchanged and still load-bearing:
---   - `p_user_id <> auth.uid()` raises: a caller can never credit anybody
---     but themselves (verified present since 20260720);
---   - single-statement upsert at READ COMMITTED, season auto-create, group
---     id and tier pass-through, executor grants.
---
--- Caps: 200 XP per call, 2,000 XP per week. Both constants are named
--- locally so a future issue can retune them with one line each.
+-- IDEMPOTENT: CREATE OR REPLACE. Signature unchanged.
 
 CREATE OR REPLACE FUNCTION public.increment_weekly_xp(
   p_user_id      UUID,
@@ -43,17 +23,14 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_season_id     TEXT;
-  v_starts_at     TIMESTAMPTZ;
-  v_ends_at       TIMESTAMPTZ;
-  v_prev_acc      REAL;
-  v_new_acc       REAL;
-  v_delta         INT;
-  v_per_call_cap  INT := 200;
-  v_weekly_cap    INT := 2000;
+  v_season_id  TEXT;
+  v_starts_at  TIMESTAMPTZ;
+  v_accuracy   REAL;
+  v_new_xp     INT;
+  v_new_acc    REAL;
+  v_delta      INT;
 BEGIN
-  -- Defensive: only ever credit the calling user's own row.
-  IF p_user_id <> auth.uid() THEN
+  IF auth.uid() IS NULL OR p_user_id <> auth.uid() THEN
     RAISE EXCEPTION 'cannot increment weekly XP for another user'
       USING ERRCODE = '42501';
   END IF;
@@ -66,72 +43,56 @@ BEGIN
     RAISE EXCEPTION 'tier must be in [1, 10]' USING ERRCODE = '22023';
   END IF;
 
-  -- Server-side cap of a single session's credit: the client's number is a
-  -- claim, not an input of record.
-  v_delta := GREATEST(0, LEAST(p_xp_delta, v_per_call_cap));
-
-  -- Mirror the currentSeasonId() convention used in src/types/league.ts:
-  -- the season id is the ISO week label (e.g. '2026-W30'), Mon-anchored.
-  v_season_id := to_char(NOW() AT TIME ZONE 'UTC', 'IYYY-"W"IW');
-
-  -- Week starts Mon 00:00 UTC, ends Sun 23:59:59 UTC. Absolute timestamps so
-  -- the leagues countdown can show "ends in 3d 4h".
-  v_starts_at := date_trunc('week', NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC';
-  v_ends_at   := v_starts_at + INTERVAL '7 days';
-
-  -- Auto-create the season row if missing (idempotent).
-  INSERT INTO public.league_seasons (id, starts_at, ends_at)
-  VALUES (v_season_id, v_starts_at, v_ends_at)
-  ON CONFLICT (id) DO NOTHING;
-
-  -- Accuracy EMA: prior accuracy gets 70% weight, new sample 30%. Only the
-  -- accuracy needs the previous value (the XP total now accrues in one
-  -- authorized place below).
-  SELECT COALESCE(accuracy_rate, 0)
-  INTO v_prev_acc
-  FROM public.league_memberships
-  WHERE season_id = v_season_id
-    AND user_id   = p_user_id;
-
-  IF NOT FOUND THEN
-    v_prev_acc := 0;
+  IF p_group_id IS NULL OR length(p_group_id) = 0 OR length(p_group_id) > 64 THEN
+    RAISE EXCEPTION 'group_id is required' USING ERRCODE = '22023';
   END IF;
 
-  v_new_acc := CASE
-    WHEN p_accuracy IS NULL THEN v_prev_acc
-    WHEN v_prev_acc = 0     THEN GREATEST(0, LEAST(100, p_accuracy))
-    ELSE (0.7 * v_prev_acc + 0.3 * p_accuracy)::REAL
-  END;
-  v_new_acc := GREATEST(0, LEAST(100, v_new_acc))::REAL;
+  -- At most 200 XP per call and 2,000 XP per week, whatever the client sends.
+  v_delta := LEAST(p_xp_delta, 200);
 
-  -- One upsert. The insert path carries the clamped DELTA; the conflict
-  -- path accrues ONCE onto the stored total, capped at the weekly ceiling.
-  INSERT INTO public.league_memberships (
+  -- ISO week label, matching currentSeasonId() in src/types/league.ts.
+  v_season_id := to_char(NOW() AT TIME ZONE 'UTC', 'IYYY-"W"IW');
+  v_starts_at := date_trunc('week', NOW() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC';
+
+  INSERT INTO public.league_seasons (id, starts_at, ends_at)
+  VALUES (v_season_id, v_starts_at, v_starts_at + INTERVAL '7 days')
+  ON CONFLICT (id) DO NOTHING;
+
+  v_accuracy := CASE
+    WHEN p_accuracy IS NULL THEN NULL
+    ELSE GREATEST(0, LEAST(100, p_accuracy))::REAL
+  END;
+
+  INSERT INTO public.league_memberships AS m (
     season_id, user_id, league_group_id, tier, weekly_xp, accuracy_rate
   )
   VALUES (
-    v_season_id, p_user_id, p_group_id, p_tier, v_delta, v_new_acc
+    v_season_id, p_user_id, p_group_id, p_tier, v_delta, COALESCE(v_accuracy, 0)
   )
   ON CONFLICT (season_id, user_id) DO UPDATE
-    SET weekly_xp     = LEAST(v_weekly_cap,
-                              public.league_memberships.weekly_xp + EXCLUDED.weekly_xp),
-        accuracy_rate = v_new_acc,
+    SET weekly_xp       = GREATEST(m.weekly_xp, LEAST(2000, m.weekly_xp + v_delta)),
+        -- EMA: prior accuracy 70%, new sample 30%; first sample taken as-is.
+        accuracy_rate   = CASE
+                            WHEN v_accuracy IS NULL THEN m.accuracy_rate
+                            WHEN m.accuracy_rate = 0 THEN v_accuracy
+                            ELSE GREATEST(0, LEAST(100, 0.7 * m.accuracy_rate + 0.3 * v_accuracy))::REAL
+                          END,
         league_group_id = EXCLUDED.league_group_id,
-        tier          = EXCLUDED.tier,
-        updated_at    = NOW();
+        tier            = EXCLUDED.tier,
+        updated_at      = NOW()
+  RETURNING m.weekly_xp, m.accuracy_rate INTO v_new_xp, v_new_acc;
 
-  RETURN QUERY
-  SELECT LEAST(v_weekly_cap,
-               COALESCE((select lm.weekly_xp from public.league_memberships lm
-                         where lm.season_id = v_season_id and lm.user_id = p_user_id), v_delta)),
-         v_new_acc, p_group_id, p_tier;
+  RETURN QUERY SELECT v_new_xp, v_new_acc, p_group_id, p_tier;
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.increment_weekly_xp(UUID, TEXT, INT, INT, NUMERIC) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.increment_weekly_xp(UUID, TEXT, INT, INT, NUMERIC) TO authenticated;
 
--- Migration bookkeeping per project convention.
+-- ── Bookkeeping ─────────────────────────────────────────────────────────
 INSERT INTO schema_migrations (version, description)
-VALUES ('20261030010000_league_weekly_xp_caps',
-        'increment_weekly_xp: server-side per-call and weekly XP caps; fix the conflict-path double credit that compounded weekly totals')
+VALUES (
+  '20261030010000_league_weekly_xp_caps',
+  'increment_weekly_xp limits credit to 200 XP per call and 2,000 XP per week'
+)
 ON CONFLICT (version) DO NOTHING;
