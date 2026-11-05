@@ -1,4 +1,5 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
+import { APP_VERSION } from './env';
 import { App } from '@capacitor/app';
 import { Clipboard } from '@capacitor/clipboard';
 import { Device } from '@capacitor/device';
@@ -85,7 +86,7 @@ export async function getVersion(): Promise<string> {
     const info = await App.getInfo();
     return info.version;
   } catch {
-    return '2.0.0';
+    return APP_VERSION;
   }
 }
 

@@ -6,6 +6,7 @@ import {
   VENDOR_URL,
 } from '../../lib/branding';
 import { isDesktopApp } from '../../lib/platform';
+import { APP_VERSION } from '../../lib/env';
 import {
   checkForDesktopUpdate,
   desktopAppVersion,
@@ -30,7 +31,7 @@ import {
  */
 
 interface AboutPageProps {
-  /** Override app version when running in tests (e.g. "2.0.0-test"). */
+  /** Override app version when running in tests (e.g. "1.2.3-test"). */
   versionOverride?: string;
 }
 
@@ -43,7 +44,7 @@ type CheckState =
   | { status: 'web' };
 
 const AboutPage: React.FC<AboutPageProps> = ({ versionOverride }) => {
-  const version = versionOverride ?? '2.0.0';
+  const version = versionOverride ?? APP_VERSION;
   const channel = 'production';
   const [checkState, setCheckState] = useState<CheckState>({ status: 'idle' });
 

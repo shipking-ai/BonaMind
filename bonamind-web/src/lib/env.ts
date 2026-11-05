@@ -55,6 +55,10 @@ const CLIENT_ENV: Readonly<Record<string, string | undefined>> = {
   // widget in the browser. The matching SECRET lives only in Supabase.
   VITE_TURNSTILE_SITE_KEY: import.meta.env.VITE_TURNSTILE_SITE_KEY,
 
+  // Build-time app version, injected by vite.config's define from
+  // package.json so every version display reads one source.
+  APP_VERSION: import.meta.env.APP_VERSION,
+
   // Deliberately absent, and must stay absent — these are provider
   // credentials that were never safe behind a VITE_ prefix. The client holds
   // no provider key at all; AI goes through /api/ai, which uses the
@@ -72,6 +76,9 @@ const CLIENT_ENV: Readonly<Record<string, string | undefined>> = {
 export function readClientEnv(name: string): string | undefined {
   return CLIENT_ENV[name];
 }
+
+/** The app version, injected at build time from package.json via vite define. */
+export const APP_VERSION: string = readClientEnv('APP_VERSION') ?? '';
 
 interface EnvVarConfig {
   name: string;
