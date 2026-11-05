@@ -141,8 +141,10 @@ describe('the league roster migration a human must apply', () => {
       path.join(REPO, 'supabase/migrations/20261029130000_league_group_roster.sql'),
       'utf8',
     );
-    expect(sql).toMatch(/create or replace function public\.league_group_roster/);
+    expect(sql).toMatch(/CREATE OR REPLACE FUNCTION public.league_group_roster/);
     expect(sql).toMatch(/security definer/);
+    // League peers are strangers: names must never be derived from the email.
+    expect(sql).not.toMatch(/up.email/);
     expect(sql).toMatch(/caller\.user_id = auth\.uid\(\)/);
     expect(sql).toMatch(/revoke execute .* from public, anon/);
     expect(sql).toMatch(/grant execute .* to authenticated/);

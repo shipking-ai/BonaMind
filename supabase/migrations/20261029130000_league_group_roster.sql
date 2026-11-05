@@ -10,10 +10,10 @@
 --
 -- It returns display name + avatar ONLY for members of a group the caller
 -- themselves belong to (the exists() gate). Any other group id yields an
--- empty roster. Display name falls back to the email local-part, mirroring
--- the previous client-side behaviour.
+-- empty roster. League peers are strangers, so the display name is the first
+-- word of full_name and never comes from the email address.
 
-create or replace function public.league_group_roster(p_group_id text, p_season_id text)
+CREATE OR REPLACE FUNCTION public.league_group_roster(p_group_id text, p_season_id text)
 returns table (user_id uuid, display_name text, avatar_url text)
 language sql
 stable
@@ -22,8 +22,7 @@ set search_path = ''
 as $$
   select m.user_id,
          coalesce(
-           nullif(up.full_name, ''),
-           split_part(up.email, '@', 1),
+           nullif(split_part(trim(up.full_name), ' ', 1), ''),
            'Learner'
          ) as display_name,
          up.avatar_url
@@ -42,3 +41,10 @@ $$;
 
 revoke execute on function public.league_group_roster(text, text) from public, anon;
 grant execute on function public.league_group_roster(text, text) to authenticated;
+
+INSERT INTO schema_migrations (version, description)
+VALUES (
+  '20261029130000_league_group_roster',
+  'league_group_roster() returns first name and avatar for members of the caller''s own league group only; user_profiles stays locked'
+)
+ON CONFLICT (version) DO NOTHING;
