@@ -24,6 +24,8 @@ describe('the Android store text', () => {
     const changelog = read('changelogs', 'en-US.txt');
     expect(changelog).not.toMatch(/no servers, no data leaving your device/i);
     expect(changelog).not.toMatch(/ON YOUR PHONE/i);
+    expect(changelog).not.toMatch(/on-device/i);
+    expect(changelog).not.toMatch(/WebGPU/i);
   });
 
   it('the listing never claims decks and notes live only on the device', () => {
