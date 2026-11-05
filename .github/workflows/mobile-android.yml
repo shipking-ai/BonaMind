@@ -153,11 +153,18 @@ jobs:
             -storepass "$ANDROID_KEYSTORE_PASSWORD" \
             -alias "$ANDROID_KEY_ALIAS" | head -20
 
+      # Compute the version code in its own step: an arithmetic expression in
+      # the step `env:` map made GitHub reject the whole workflow file
+      # ("workflow file issue", zero jobs). Same semantics as before —
+      # monotonic and never reused, run_attempt folded into the low digits so
+      # a re-run can't burn the same versionCode twice; Android's ceiling
+      # (2.1e9) would take 2.1 million runs to collide.
+      - name: Compute the Android version code
+        run: |
+          echo "ANDROID_VERSION_CODE=$(( ${{ github.run_number }} * 1000 + ${{ github.run_attempt }} ))" >> "$GITHUB_ENV"
+
       - name: Assemble signed release AAB
         env:
-          # Monotonic and never reused, so repeat releases are not rejected.
-          # github.run_number only ever increases for this workflow.
-          ANDROID_VERSION_CODE: ${{ github.run_number }}
           ANDROID_KEYSTORE_PATH: android/keystore/release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
