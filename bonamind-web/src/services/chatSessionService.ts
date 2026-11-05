@@ -284,26 +284,30 @@ export async function deleteRemoteSession(id: string): Promise<void> {
  * Delete every remote chat session for the signed-in user — the "Also delete
  * your saved chats from your account?" path when chat history saving is
  * switched off. Walks fetchRemoteSessions in pages of `limit` and deletes
- * each row; one failing delete must not stop the sweep, and a full page is
- * re-fetched until a short one says the table is empty for this user.
- * Returns how many rows were actually deleted.
+ * each row; one failing delete must not stop the sweep. A full page is
+ * re-fetched until a short one, unless a whole pass deleted nothing, which
+ * means the remaining rows are stuck. Reports how many were deleted and failed.
  */
-export async function deleteAllRemoteSessions(limit = 50): Promise<number> {
+export async function deleteAllRemoteSessions(
+  limit = 50,
+): Promise<{ deleted: number; failed: number }> {
   let deleted = 0;
   for (;;) {
     const sessions = await fetchRemoteSessions(limit);
-    if (sessions.length === 0) break;
+    if (sessions.length === 0) return { deleted, failed: 0 };
+    let deletedThisPass = 0;
+    let failed = 0;
     for (const session of sessions) {
       try {
         await deleteRemoteSession(session.id);
-        deleted++;
+        deletedThisPass++;
       } catch {
-        // A single stuck row must not strand the rest.
+        failed++;
       }
     }
-    if (sessions.length < limit) break;
+    deleted += deletedThisPass;
+    if (sessions.length < limit || deletedThisPass === 0) return { deleted, failed };
   }
-  return deleted;
 }
 
 /**

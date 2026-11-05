@@ -79,10 +79,10 @@ describe('deleteAllRemoteSessions', () => {
       [],
     ];
 
-    const deleted = await deleteAllRemoteSessions();
+    const result = await deleteAllRemoteSessions();
 
     expect(db.deletes).toHaveLength(70);
-    expect(deleted).toBe(70);
+    expect(result).toEqual({ deleted: 70, failed: 0 });
     expect(db.pages).toHaveLength(1); // only the trailing empty page is left
   });
 
@@ -93,16 +93,26 @@ describe('deleteAllRemoteSessions', () => {
     ];
     db.deleteErrorFor = uuid(1);
 
-    const deleted = await deleteAllRemoteSessions();
+    const result = await deleteAllRemoteSessions();
 
     expect(db.deletes).toHaveLength(2);
     expect(db.deletes).not.toContain('r-1');
-    expect(deleted).toBe(2);
+    expect(result).toEqual({ deleted: 2, failed: 1 });
+  });
+
+  it('stops when a full page has nothing it can delete', async () => {
+    db.pages = [[row(uuid(1), 1)], [row(uuid(1), 1)], [row(uuid(1), 1)]];
+    db.deleteErrorFor = uuid(1);
+
+    const result = await deleteAllRemoteSessions(1);
+
+    expect(result).toEqual({ deleted: 0, failed: 1 });
+    expect(db.pages).toHaveLength(2);
   });
 
   it('deleting nothing is a clean 0', async () => {
     db.pages = [[]];
-    expect(await deleteAllRemoteSessions()).toBe(0);
+    expect(await deleteAllRemoteSessions()).toEqual({ deleted: 0, failed: 0 });
     expect(db.deletes).toHaveLength(0);
   });
 });

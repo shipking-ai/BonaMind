@@ -393,13 +393,23 @@ export default function SettingsPage() {
   /**
    * Turning history saving off must ask about the server copies (#216):
    * switching off only clears local ones, so the remote sessions in
-   * ai_chat_sessions would silently live on. Deleting is best-effort.
+   * ai_chat_sessions would stay. The result is shown either way.
    */
   const handleSaveChatHistoryChange = useCallback((next: boolean) => {
     const wasOn = saveChatHistory;
     setSaveChatHistory(next);
     if (wasOn && !next && window.confirm('Also delete your saved chats from your account?')) {
-      void deleteAllRemoteSessions().catch(() => undefined);
+      void deleteAllRemoteSessions()
+        .then(({ deleted, failed }) => {
+          if (failed > 0) {
+            toast.error("Some saved chats couldn't be deleted. Turn history on and off to try again.");
+          } else {
+            toast.success(deleted > 0 ? "Saved chats deleted" : "No saved chats in your account");
+          }
+        })
+        .catch(() => {
+          toast.error("Couldn't delete your saved chats. Turn history on and off to try again.");
+        });
     }
   }, [saveChatHistory, setSaveChatHistory]);
 
