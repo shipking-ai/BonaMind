@@ -55,9 +55,8 @@ BonaMind is a complete study application with these features and pages:
 
 - **Dashboard** (/dashboard) — Study stats, XP, streaks, recent activity, retention charts, and quick-access to decks and quizzes.
 - **Generator** (/dashboard/generator) — The dedicated tool for creating flashcards, quizzes, and study decks from topics, URLs, YouTube videos, or uploaded documents. Has inline editing, difficulty selection (easy/medium/hard/mixed), and one-click save.
-- **Cards** (/dashboard/cards) — Browse, search, filter, and manage all flashcard decks. Study mode with spaced repetition scheduling.
+- **Library** (/dashboard/decks) — Browse, search, filter, and manage all flashcard decks. Study mode with spaced repetition scheduling.
 - **Chat** (/dashboard/chat) — The AI chat you are in right now. Study help, concept explanation, and Q&A via the Socratic method. Also supports source-grounded answers from uploaded documents.
-- **Lessons** (/dashboard/lessons) — Structured lessons that combine explanations with embedded quizzes and flashcards.
 - **Settings** (/dashboard/settings) — User profile, preferences, theme, and account management.
 - **Landing page** (/) — Public homepage about BonaMind's features and signup.
 
