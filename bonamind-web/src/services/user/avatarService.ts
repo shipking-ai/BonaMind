@@ -16,12 +16,8 @@ import { supabase } from '../database/supabase';
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MiB
 // GIF is exempt from canvas-compression (palette/alpha can be lost under
-// canvas reencode). SVG is NOT allowed at all: it is active content
-// (script-capable XML) served from a public bucket on our own origin, and
-// one upload with an inline handler would plant stored XSS on every profile
-// image render. The bucket also stores avatars under user-chosen bytes, so
-// the mime the FILE CLAIMS is checked against what it actually contains —
-// see the sniff in validate() below.
+// canvas reencode). SVG isn't accepted at all, including when renamed to an
+// image type: see sniffsAsSvg() and the check in the upload path.
 const COMPRESSION_EXEMPT = new Set(['image/gif']);
 const ALLOWED_MIME = new Set([
   'image/png', 'image/jpeg', 'image/jpg', 'image/webp',
@@ -112,9 +108,8 @@ function extFromMime(mime: string): string {
 }
 
 /**
- * The claimed mime is what a caller HIMSELF chose, so it lies: a scriptable
- * image payload renamed to profile.png sails past the mime allowlist. `image/`-typed uploads get their first bytes sniffed;
- * active XML content marks an upload invalid regardless of the claimed type.
+ * A file's claimed type can't be trusted, so this checks its first bytes: SVG
+ * content is refused whatever type the file claims to be.
  */
 export async function sniffsAsSvg(file: File): Promise<boolean> {
   if (!file.type.startsWith('image/')) return false;

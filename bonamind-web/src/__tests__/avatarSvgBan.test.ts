@@ -1,16 +1,7 @@
 /**
- * Red-team regression for SVG avatars: profile images upload to a PUBLIC
- * bucket on our own origin, and every profile render points an <img> at
- * that origin — an SVG with an inline script stored there is stored XSS
- * (the script runs when the raw file is opened in-tab, whatever the site
- * does with it). SVG used to be an allowed picker type on two screens and
- * an always-pass in the upload service.
- *
- * SVG is now banned through three layers: the two file pickers' accept
- * lists no longer advertise it, the upload service's mime allowlist dropped
- * it, and — because the claimed mime can lie (profile.png that is really
- * XML) — uploads get their leading bytes sniffed and active XML is refused
- * regardless of the claimed type.
+ * Avatars don't accept SVG: the file pickers don't offer it, the upload service
+ * refuses it (including when renamed to an image type), and the server's bucket
+ * settings don't allow it (migration 20261030020000).
  */
 
 import { readFileSync } from 'node:fs';
@@ -39,6 +30,19 @@ describe('the upload service rejects svg payloads', () => {
       type: 'image/png',
     });
     expect(await sniffsAsSvg(png)).toBe(false);
+  });
+});
+
+describe('the server no longer accepts svg', () => {
+  it('removes it from the bucket and from the upload helper', () => {
+    const sql = readFileSync(
+      path.resolve(__dirname, '../../../supabase/migrations/20261030020000_avatars_no_svg.sql'),
+      'utf8',
+    );
+    expect(sql).toContain("array_remove(allowed_mime_types, 'image/svg+xml')");
+    expect(sql).toContain("WHERE id = 'avatars'");
+    const helper = sql.slice(sql.indexOf('CREATE OR REPLACE FUNCTION'));
+    expect(helper).not.toContain('svg');
   });
 });
 
