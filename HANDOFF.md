@@ -202,6 +202,35 @@ value:
 
 Each of these cost real time. None are obvious from the code.
 
+### Production deploys come only from Vercel's Git integration
+
+Until 2026-11-05 each merge to main was deployed twice: by Vercel's Git
+integration and by a GitHub Actions workflow, `deploy.yml`
+(`vercel pull` + `vercel build` + `vercel deploy --prebuilt --prod`). Two
+things went wrong:
+
+- They raced, and the workflow ran one copy per merge side by side, so
+  older commits sometimes went live after newer ones. Each build has new
+  file names, so every switch broke open tabs, and one was left blank.
+- `vercel pull` can't read variables stored as **Sensitive**; it writes
+  `[SENSITIVE]` instead. `VITE_TURNSTILE_SITE_KEY` was stored that way, so
+  the workflow's builds shipped `[SENSITIVE]` as the site key. Whenever its
+  deploy landed last, password sign-in, sign-up and reset were stuck behind
+  "Couldn't load the verification check". Same-commit builds also got
+  different file names because that one value differed.
+
+`deploy.yml` is gone; Vercel builds with the real values and promotes the
+newest commit. Don't add a second production deploy back
+(`src/__tests__/deployPipeline.test.ts` fails if a workflow runs
+`vercel deploy --prod`). VITE_ values are public, so never store one as
+Sensitive; the build now fails if one arrives as `[SENSITIVE]`
+(`vite-plugins/no-redacted-env.ts`).
+
+Tabs that still hit a missing file recover by themselves:
+`public/boot-recovery.js` handles the main script and its CSS, and
+`src/lib/staleDeployRecovery.ts` handles chunks loaded later. Missing files
+under `/assets/` get a 404, not `index.html`.
+
 ### `verify_jwt: true` does not mean "signed-in users only"
 
 It only checks that the caller presents *a* valid JWT, and the public anon key
@@ -2297,7 +2326,7 @@ What changed (the ones that actually break if missed):
 - `vercel.json` (build/dev commands + `outputDirectory`), root `package.json`
   scripts, `run-migrations.js`, `api/server.js` (serves `dist` locally),
   `api/scripts/verify-launch.mjs`.
-- Seven workflows: `ci.yml`, `deploy.yml`, `desktop-windows.yml`,
+- Six workflows: `ci.yml`, `desktop-windows.yml`,
   `migration-drift.yml`, `mobile-android.yml`, `mobile-ios.yml`,
   `scheduled-checks.yml` — `cd`, `working-directory`, cache-dependency,
   artifact and path-filter entries.
