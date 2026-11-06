@@ -15,13 +15,13 @@
 import { supabase } from '../database/supabase';
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MiB
-// GIF and SVG are exempt from canvas-compression because:
-//   - GIF transparency palette can be lost under canvas reencode.
-//   - SVG is vector — there is no raster to resize.
-const COMPRESSION_EXEMPT = new Set(['image/gif', 'image/svg+xml']);
+// GIF is exempt from canvas-compression (palette/alpha can be lost under
+// canvas reencode). SVG isn't accepted at all, including when renamed to an
+// image type: see sniffsAsSvg() and the check in the upload path.
+const COMPRESSION_EXEMPT = new Set(['image/gif']);
 const ALLOWED_MIME = new Set([
   'image/png', 'image/jpeg', 'image/jpg', 'image/webp',
-  'image/svg+xml', 'image/gif', 'image/avif',
+  'image/gif', 'image/avif',
 ]);
 
 export type UploadResult =
@@ -85,7 +85,7 @@ function validate(file: File): void {
   if (!ALLOWED_MIME.has(file.type)) {
     throw new Error(
       `That file type (${file.type || 'unknown'}) isn't supported. ` +
-      `Try PNG, JPG, WEBP, GIF, or SVG.`,
+      `Try PNG, JPG, WEBP, GIF, or AVIF.`,
     );
   }
   if (file.size > MAX_BYTES) {
@@ -99,13 +99,26 @@ function validate(file: File): void {
 /** Deterministically derive an extension from MIME so uploading the same
  *  file twice overwrites the canonical path instead of leaving orphans. */
 function extFromMime(mime: string): string {
-  if (mime === 'image/svg+xml') return 'svg';
   if (mime === 'image/jpeg' || mime === 'image/jpg') return 'jpg';
   if (mime === 'image/png') return 'png';
   if (mime === 'image/webp') return 'webp';
   if (mime === 'image/gif') return 'gif';
   if (mime === 'image/avif') return 'avif';
   return 'bin';
+}
+
+/**
+ * A file's claimed type can't be trusted, so this checks its first bytes: SVG
+ * content is refused whatever type the file claims to be.
+ */
+export async function sniffsAsSvg(file: File): Promise<boolean> {
+  if (!file.type.startsWith('image/')) return false;
+  try {
+    const head = await file.slice(0, 1024).text();
+    return /^\uFEFF?\s*(<\?xml[^>]*\?>\s*(<!--[\s\S]*?-->\s*)*)?<svg[\s>]/i.test(head);
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -116,6 +129,11 @@ function extFromMime(mime: string): string {
 export async function uploadAvatar(file: File, userId: string): Promise<UploadResult> {
   try {
     validate(file);
+    if (await sniffsAsSvg(file)) {
+      throw new Error(
+        "SVG images can't be used as avatars. Try PNG, JPG, WEBP, GIF, or AVIF.",
+      );
+    }
   } catch (e) {
     return { ok: false, error: (e as Error).message } as const;
   }
