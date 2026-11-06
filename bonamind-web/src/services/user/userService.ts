@@ -1,6 +1,7 @@
 import { supabase } from '../database/supabase';
 import { UserProfile, UserRole } from '../../types';
 import { toIsoOrNull } from '../../lib/timestamps';
+import { resolvePlan } from '../../lib/subscriptionPlan';
 
 /**
  * Whitelist of `user_profiles` columns declared as TIMESTAMPTZ in the live
@@ -95,7 +96,7 @@ export const userService = {
         id: newProfile.id,
         email: newProfile.email,
         name: newProfile.name,
-        plan: newProfile.plan,
+        plan: resolvePlan(user),
         streak: newProfile.streak,
         joinedDate: newProfile.joined_date,
         avatar: user.user_metadata?.avatar_url || undefined,
@@ -110,7 +111,11 @@ export const userService = {
       id: profile.id,
       email: profile.email,
       name: profile.name,
-      plan: profile.plan,
+      // Plan comes from app_metadata, the field entitlement reads. The
+      // user_profiles.plan column is not kept current by billing, and showing
+      // it is how the full settings page came to read "Free" for a
+      // subscriber while every other screen read something else.
+      plan: resolvePlan(user),
       streak: profile.streak,
       joinedDate: profile.joined_date,
       // Avatar lives in auth users' user_metadata (user_profiles has no

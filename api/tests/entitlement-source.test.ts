@@ -243,3 +243,36 @@ describe('isEntitledWithRoleAccess — internal roles bypass the paywall', () =>
     expect(status).toBe(200);
   });
 });
+
+describe('/api/subscription reports the plan from app_metadata', () => {
+  // The plan name used to be `user_metadata.plan`, which the account holder
+  // can set to anything. It is display-only, but the client shows it as the
+  // account's plan, so it has to come from the same field as entitlement.
+  const subscriber = (app_metadata: Record<string, unknown>, user_metadata: Record<string, unknown>) => {
+    const user = { id: 'u-1', email: 'u@b.co', app_metadata, user_metadata };
+    supabase.auth.getUser.mockResolvedValue({ data: { user }, error: null });
+    supabase.auth.admin.getUserById.mockResolvedValue({ data: { user }, error: null });
+  };
+
+  it('ignores a plan set in user_metadata', async () => {
+    subscriber({}, { plan: 'Pro' });
+    const { status, body } = await call('subscription', { ...AUTHED, body: {} });
+    expect(status).toBe(200);
+    expect(body).toMatchObject({ subscribed: false, status: 'none', plan: 'Starter' });
+  });
+
+  it('reports Pro for a subscription app_metadata records', async () => {
+    subscriber({ subscription_status: 'active' }, { plan: 'Starter' });
+    const { body } = await call('subscription', { ...AUTHED, body: {} });
+    expect(body).toMatchObject({ subscribed: true, status: 'active', plan: 'Pro' });
+  });
+
+  it('reports Starter once the dunning grace window has run out', async () => {
+    subscriber(
+      { subscription_status: 'past_due' },
+      { subscription_status: 'past_due', last_payment_failure_at: '2000-01-01T00:00:00Z', plan: 'Pro' },
+    );
+    const { body } = await call('subscription', { ...AUTHED, body: {} });
+    expect(body).toMatchObject({ subscribed: false, status: 'expired', plan: 'Starter' });
+  });
+});

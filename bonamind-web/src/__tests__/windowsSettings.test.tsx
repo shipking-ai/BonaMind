@@ -29,6 +29,7 @@ import { ThemeProvider } from '../hooks/useTheme';
 import { WindowsSettings } from '../components/windows/WindowsSettings';
 import { renderWithWorkspace, testUser } from './helpers/windowsWorkspace';
 import { UserRole, type UserProfile } from '../types';
+import { resolvePlan } from '../lib/subscriptionPlan';
 
 type W = Window & { __TAURI_INTERNALS__?: unknown };
 beforeEach(() => { (window as W).__TAURI_INTERNALS__ = {}; localStorage.clear(); });
@@ -44,6 +45,18 @@ describe('WindowsSettings', () => {
     mount();
     expect(screen.getByText('Matt Smith')).toBeVisible();
     expect(screen.getByText('matt@example.com')).toBeVisible();
+  });
+
+  it('shows the plan billing records, not one set in user_metadata', () => {
+    // The workspace user is built by App.tsx with resolvePlan(authUser).
+    const authUser = { app_metadata: {}, user_metadata: { plan: 'Pro' } };
+    mount({ ...testUser, plan: resolvePlan(authUser) });
+    expect(screen.getByText('Plan').nextElementSibling).toHaveTextContent('Starter');
+  });
+
+  it('shows Pro for a subscription app_metadata records', () => {
+    mount({ ...testUser, plan: resolvePlan({ app_metadata: { subscription_status: 'active' } }) });
+    expect(screen.getByText('Plan').nextElementSibling).toHaveTextContent('Pro');
   });
 
   it('switches between Light, Dark and System', () => {
