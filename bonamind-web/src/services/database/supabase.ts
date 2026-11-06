@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { isDesktopApp } from '../../lib/platform';
+import { purgeSupabaseCache } from '../../lib/authCachePurge';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -34,14 +35,19 @@ if (!isValidSupabaseUrl(supabaseUrl) || !supabaseAnonKey) {
 export const supabase: SupabaseClient | null = (() => {
     if (!isValidSupabaseUrl(supabaseUrl) || !supabaseAnonKey) return null;
     try {
-        // The Windows app finishes OAuth through bonamind://auth/callback,
-        // which needs PKCE (the code is useless without the verifier stored
-        // in this origin). Web and mobile keep the current flow.
-        return createClient(
+        const client = createClient(
             supabaseUrl,
             supabaseAnonKey,
             isDesktopApp() ? { auth: { flowType: 'pkce' } } : undefined,
         );
+        // Cached Supabase GET responses (workbox `supabase-api-cache`) must
+        // not outlive the session: on a shared browser the next user could
+        // be served the previous one's rows offline. Sign-out = cache out,
+        // centrally, for every sign-out path.
+        client.auth.onAuthStateChange((event) => {
+            if (event === 'SIGNED_OUT') void purgeSupabaseCache();
+        });
+        return client;
     } catch (err) {
         console.warn('Failed to initialize Supabase client:', err);
         return null;
