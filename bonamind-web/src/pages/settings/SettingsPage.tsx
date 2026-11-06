@@ -37,6 +37,7 @@ import {
   type MfaFactor,
 } from '../../services/auth/mfaService';
 import type { UserProfile } from '../../types';
+import { deleteAllRemoteSessions } from '../../services/chatSessionService';
 import { DesktopSettingsSection } from '../../desktop/DesktopSettingsSection';
 
 type MfaStep =
@@ -398,6 +399,29 @@ export default function SettingsPage() {
     navigate('/reset-password');
   }, [navigate]);
 
+  /**
+   * Turning history saving off must ask about the server copies (#216):
+   * switching off only clears local ones, so the remote sessions in
+   * ai_chat_sessions would stay. The result is shown either way.
+   */
+  const handleSaveChatHistoryChange = useCallback((next: boolean) => {
+    const wasOn = saveChatHistory;
+    setSaveChatHistory(next);
+    if (wasOn && !next && window.confirm('Also delete your saved chats from your account?')) {
+      void deleteAllRemoteSessions()
+        .then(({ deleted, failed }) => {
+          if (failed > 0) {
+            toast.error("Some saved chats couldn't be deleted. Turn history on and off to try again.");
+          } else {
+            toast.success(deleted > 0 ? "Saved chats deleted" : "No saved chats in your account");
+          }
+        })
+        .catch(() => {
+          toast.error("Couldn't delete your saved chats. Turn history on and off to try again.");
+        });
+    }
+  }, [saveChatHistory, setSaveChatHistory]);
+
   const handleManageSubscription = useCallback(async () => {
     try {
       // If the user already has a Stripe customer, open the billing portal
@@ -744,7 +768,7 @@ export default function SettingsPage() {
             </SettingRow>
             <div className="border-t border-[#2A2A3A]/30" />
             <SettingRow label="Save AI chat history">
-              <Toggle label="Save AI chat history" on={saveChatHistory} onChange={setSaveChatHistory} />
+              <Toggle label="Save AI chat history" on={saveChatHistory} onChange={handleSaveChatHistoryChange} />
             </SettingRow>
           </div>
         </div>
