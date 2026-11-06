@@ -71,8 +71,10 @@ export const FlowMode: React.FC<FlowModeProps> = ({
   useEffect(() => {
     if (phase !== 'study' || !userId || !supabase) return;
 
+    // Private channel: any signed-in user may share the flow counter,
+    // enforced by realtime RLS (20261030000000) rather than anonymity.
     const channel = requireSupabase().channel('flow:presence', {
-      config: { presence: { key: userId }, broadcast: { ack: false } },
+      config: { presence: { key: userId }, broadcast: { ack: false }, private: true },
     });
 
     const countPeers = () => {

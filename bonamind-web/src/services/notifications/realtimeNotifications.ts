@@ -204,9 +204,9 @@ function onBroadcastEvent(event: { payload?: { type?: string; data?: RealtimeNot
  * Initialize real-time notification subscriptions.
  * Call after the user is authenticated.
  *
- * Broadcast channels are PUBLIC — no private-channel RLS needed.
- * Channel names like `user:<uuid>:notifications` scope subscriptions
- * at the application layer; only server-side code publishes.
+ * Broadcast channels are PRIVATE — realtime.messages RLS (20261030000000)
+ * authorizes the topic's owner only; the server publishes via the service
+ * role.
  *
  * @param userId - The authenticated user's UUID
  * @param _authToken - Kept for API compat but no longer used
@@ -237,11 +237,12 @@ export function initRealtimeNotifications(userId: string): void {
   currentUserId = userId;
   setStatus('connecting');
 
-  // Public broadcast channel — scoped by user ID in the channel name.
-  // No setAuth() or private RLS required; the Realtime server delivers
-  // broadcast payloads to all subscribers of this topic.
+  // Private broadcast channel — the topic is the channel's own gate:
+  // realtime.messages RLS (20261030000000) authorizes reads only for the
+  // topic's owner. Only server-side code publishes (service role bypasses
+  // RLS), so clients have no INSERT policy on this topic.
   channel = supabase.channel(channelName, {
-    config: { broadcast: { ack: false } },
+    config: { broadcast: { ack: false }, private: true },
   });
 
   channel
