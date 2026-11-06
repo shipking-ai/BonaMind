@@ -6,7 +6,7 @@
   "rewrites": [
     { "source": "/api/admin/(.*)", "destination": "/api?path=admin/$1" },
     { "source": "/api/(.*)", "destination": "/api?path=$1" },
-    { "source": "/((?!@vite|@react-refresh|src/|node_modules/).*)", "destination": "/index.html" }
+    { "source": "/((?!@vite|@react-refresh|src/|node_modules/|assets/).*)", "destination": "/index.html" }
   ],
   "headers": [
     {

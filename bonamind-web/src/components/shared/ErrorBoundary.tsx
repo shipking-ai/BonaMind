@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangleIcon as AlertTriangle, RefreshCwIcon as RefreshCw, HomeIcon as Home, BugIcon as Bug } from '../icons/CustomIcons';
 import { GenericErrorArt } from '../graphics';
+import { isStaleDeployError, tryRecoverFromStaleDeploy } from '../../lib/staleDeployRecovery';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -39,6 +40,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    // A lazy screen from an older deploy whose file is gone: reload instead
+    // of reporting it. Falls through if a reload was just tried.
+    if (isStaleDeployError(error) && tryRecoverFromStaleDeploy()) return;
+
     this.setState({ errorInfo });
     
     // Log to console in development
