@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Loader2 } from "@/components/icons";
 import { supabase } from "../../services/database/supabase";
@@ -12,6 +12,7 @@ import { Capacitor } from "../../lib/nativeShim";
 import { isAppShell, isDesktopApp } from "../../lib/platform";
 import { readClientEnv } from "../../lib/env";
 import { hasCompletedOnboarding } from "../../lib/onboardingGate";
+import { PRODUCT_SITE_URL } from "../../lib/branding";
 
 /** The Windows app can finish OAuth via bonamind:// once Supabase allows it. */
 function desktopOAuthEnabled(): boolean {
@@ -428,6 +429,29 @@ export default function AuthPage() {
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
+                  {mode === "login" && (
+                    <div className="mt-1.5 text-right">
+                      {/* The reset email links to a web page, which can't open
+                          inside the installed apps, so they reset on the site. */}
+                      {isAppShell() ? (
+                        <a
+                          href={`${PRODUCT_SITE_URL}/reset-password`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#8B5CF6] text-xs hover:text-[#A78BFA] transition-colors"
+                        >
+                          Forgot password?
+                        </a>
+                      ) : (
+                        <Link
+                          to="/reset-password"
+                          className="text-[#8B5CF6] text-xs hover:text-[#A78BFA] transition-colors"
+                        >
+                          Forgot password?
+                        </Link>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
               {mode === "signup" && !mfaPending && (
