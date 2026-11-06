@@ -202,22 +202,29 @@ value:
 
 Each of these cost real time. None are obvious from the code.
 
-### Production deploys come only from `deploy.yml`, one at a time
+### Production deploys come only from Vercel's Git integration
 
-Every build gets new file names, and the site only serves the live build's
-files, so each time production switches builds, open tabs lose files they
-still need. Until 2026-11-05 each merge to main was deployed twice: by
-Vercel's own Git integration and by `.github/workflows/deploy.yml`. The
-workflow also ran one copy per merge side by side. After seven quick merges
-the builds went live in whatever order they finished, older commits after
-newer ones, and the site switched builds again and again within minutes. One
-tab was left blank because its main script was gone.
+Until 2026-11-05 each merge to main was deployed twice: by Vercel's Git
+integration and by a GitHub Actions workflow, `deploy.yml`
+(`vercel pull` + `vercel build` + `vercel deploy --prebuilt --prod`). Two
+things went wrong:
 
-Now `vercel.json` has `"git": { "deploymentEnabled": { "main": false } }`
-(PR previews still come from Vercel) and `deploy.yml` has a `concurrency`
-group, so deploys run one at a time and the newest commit goes live last.
-Don't turn the Git integration back on for main, or remove the `concurrency`
-block; `src/__tests__/deployPipeline.test.ts` fails if you do.
+- They raced, and the workflow ran one copy per merge side by side, so
+  older commits sometimes went live after newer ones. Each build has new
+  file names, so every switch broke open tabs, and one was left blank.
+- `vercel pull` can't read variables stored as **Sensitive**; it writes
+  `[SENSITIVE]` instead. `VITE_TURNSTILE_SITE_KEY` was stored that way, so
+  the workflow's builds shipped `[SENSITIVE]` as the site key. Whenever its
+  deploy landed last, password sign-in, sign-up and reset were stuck behind
+  "Couldn't load the verification check". Same-commit builds also got
+  different file names because that one value differed.
+
+`deploy.yml` is gone; Vercel builds with the real values and promotes the
+newest commit. Don't add a second production deploy back
+(`src/__tests__/deployPipeline.test.ts` fails if a workflow runs
+`vercel deploy --prod`). VITE_ values are public, so never store one as
+Sensitive; the build now fails if one arrives as `[SENSITIVE]`
+(`vite-plugins/no-redacted-env.ts`).
 
 Tabs that still hit a missing file recover by themselves:
 `public/boot-recovery.js` handles the main script and its CSS, and
@@ -2319,7 +2326,7 @@ What changed (the ones that actually break if missed):
 - `vercel.json` (build/dev commands + `outputDirectory`), root `package.json`
   scripts, `run-migrations.js`, `api/server.js` (serves `dist` locally),
   `api/scripts/verify-launch.mjs`.
-- Seven workflows: `ci.yml`, `deploy.yml`, `desktop-windows.yml`,
+- Six workflows: `ci.yml`, `desktop-windows.yml`,
   `migration-drift.yml`, `mobile-android.yml`, `mobile-ios.yml`,
   `scheduled-checks.yml` — `cd`, `working-directory`, cache-dependency,
   artifact and path-filter entries.

@@ -6,6 +6,7 @@ import react from '@vitejs/plugin-react';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { pwaConfig } from './src/lib/pwa';
 import { brandHtml } from './vite-plugins/brand-html.ts';
+import { noRedactedEnv } from './vite-plugins/no-redacted-env.ts';
 
 // Single source of truth for the displayed app version: package.json feeds
 // import.meta.env.APP_VERSION in every build (web, Capacitor, Tauri) so no
@@ -56,6 +57,8 @@ export default defineConfig(({ mode }) => {
     plugins: [
       // Rewrites the product name in index.html from app-identity.ts. Must run
       // before the PWA plugin, which injects the manifest into the same HTML.
+      // Stops a build whose VITE_ settings came back as Vercel's "[SENSITIVE]".
+      noRedactedEnv(env),
       brandHtml(),
       react(),
       pwaConfig,

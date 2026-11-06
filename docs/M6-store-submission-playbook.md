@@ -6,7 +6,7 @@ BonaMind. Pair it with the M5 platform hardening + the brand surface
 shipped in `lib/branding.ts`.
 
 **Android is the only wired release pipeline.** `mobile-android.yml`
-builds and signs the AAB; `deploy.yml` ships the web app to Vercel.
+builds and signs the AAB; Vercel's Git integration ships the web app on every merge to main.
 `mobile-ios.yml` builds the iOS app **unsigned** and runs it in a simulator —
 there is no signed iOS release or TestFlight job yet. `desktop-windows.yml`
 builds the Windows app and drafts a GitHub release on `desktop-v*` tags (see
@@ -36,10 +36,9 @@ These are consumed by workflows that exist in `.github/workflows/`.
 | 🟠 `ANDROID_KEY_ALIAS`               | mobile-android.yml | Android key alias (e.g. `auramind-upload`) |
 | 🟠 `ANDROID_KEY_PASSWORD`            | mobile-android.yml | Android key password |
 | 🟠 `PLAY_STORE_SERVICE_ACCOUNT_JSON` | mobile-android.yml | Google Play API service-account JSON |
-| 🟠 `VERCEL_TOKEN`                    | deploy.yml         | Web deploy to Vercel |
-| 🟠 `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | deploy.yml | Client Supabase config (public) |
+| 🟠 `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` | mobile-*.yml | Client Supabase config (public) |
 | 🟠 `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`   | migration-drift.yml | Server-side schema checks |
-| 🟠 `VITE_STRIPE_PUBLISHABLE_KEY`     | deploy.yml, mobile-*.yml | Client Stripe config (public) |
+| 🟠 `VITE_STRIPE_PUBLISHABLE_KEY`     | mobile-*.yml | Client Stripe config (public) |
 | 🟡 `VITE_POSTHOG_KEY`                | mobile-android.yml | Product analytics in the Android build (the web build reads it from Vercel env) |
 
 Generate the Android release keystore first. **The backup is
