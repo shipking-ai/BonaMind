@@ -180,17 +180,11 @@ const sections = [
   },
   {
     id: 'third-party',
-    title: '9. Third-Party Services & Integrations',
+    title: '9. Third-Party Services',
     content: (
       <>
         <p>
-          The Service integrates with third-party platforms and services, including:
-        </p>
-        <ul className="list-disc pl-5 space-y-1.5 text-[#9090A8]">
-          <li><strong className="text-[#F0EFFE]">Schoology:</strong> Import courses and materials via OAuth. Schoology's terms apply to data accessed through this integration.</li>
-        </ul>
-        <p>
-          These integrations are provided for your convenience. We are not responsible for the privacy practices, terms, or security of third-party platforms.
+          The Service relies on third-party services to operate, as described in our Privacy Policy. We are not responsible for the privacy practices, terms, or security of third-party platforms.
         </p>
       </>
     ),

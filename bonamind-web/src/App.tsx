@@ -146,7 +146,6 @@ const StatusPage = React.lazy(() => import("./pages/system/StatusPage"));
 const ResetPasswordPage = React.lazy(() => import("./pages/auth/ResetPasswordPage"));
 const RestoreAccountPage = React.lazy(() => import("./pages/auth/RestoreAccountPage"));
 const CallbackPage = React.lazy(() => import("./pages/auth/CallbackPage"));
-const SchoologyCallbackPage = React.lazy(() => import("./pages/auth/SchoologyCallbackPage"));
 const NotFoundPage = React.lazy(() => import("./pages/NotFoundPage"));
 const PaymentPage = React.lazy(() => import("./components/auth/PaymentPage"));
 const OnboardingFlow = React.lazy(() => import("./pages/onboarding/OnboardingFlow"));
@@ -1180,14 +1179,6 @@ const AppContent = ({ onUserRoleChange }: { onUserRoleChange: (role: UserRole) =
                 element={
                   <PageTransition>
                     <CallbackPage />
-                  </PageTransition>
-                }
-              />
-              <Route
-                path="/auth/schoology/callback"
-                element={
-                  <PageTransition>
-                    <SchoologyCallbackPage />
                   </PageTransition>
                 }
               />

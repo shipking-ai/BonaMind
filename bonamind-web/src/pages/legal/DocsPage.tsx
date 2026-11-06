@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Zap, Brain, Repeat, Puzzle, MessageSquare, Rocket } from '@/components/icons';
+import { ArrowLeft, BookOpen, Zap, Brain, Repeat, MessageSquare, Rocket } from '@/components/icons';
 import { LEGAL_COPYRIGHT_LINE } from '../../lib/branding';
 
 const sections = [
@@ -103,22 +103,6 @@ const sections = [
           <li><strong className="text-[#F0EFFE]">Retention Rate:</strong> Percentage of cards you recalled correctly.</li>
           <li><strong className="text-[#F0EFFE]">Study Streak:</strong> Consecutive days with at least one review session.</li>
           <li><strong className="text-[#F0EFFE]">Cards Reviewed:</strong> Total cards reviewed across all sessions.</li>
-        </ul>
-      </>
-    ),
-  },
-  {
-    id: 'integrations',
-    title: 'Integrations',
-    icon: Puzzle,
-    content: (
-      <>
-        <p>BonaMind integrates with external platforms to streamline your study workflow.</p>
-        <h4 className="text-sm font-semibold text-[#F0EFFE] mt-4 mb-2">Schoology (LMS)</h4>
-        <ul className="list-disc pl-5 space-y-1.5 text-[#9090A8]">
-          <li>Connect your Schoology account to import assignments and course materials.</li>
-          <li>Automatically convert assignments and materials into flashcards.</li>
-          <li>Navigate to <strong className="text-[#F0EFFE]">Settings → Integrations</strong> to connect.</li>
         </ul>
       </>
     ),
