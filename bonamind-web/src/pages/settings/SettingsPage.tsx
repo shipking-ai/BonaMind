@@ -5,6 +5,15 @@ import { toast } from 'sonner';
 import { useDashboardWorkspace } from '../../contexts/DashboardWorkspaceContext';
 import { useCurrentUserId } from '../../hooks/useCurrentUserId';
 import { supabase, requireSupabase } from '../../services/database/supabase';
+// The export service takes a PostgREST-shaped subset of the client (see the
+// RowsClient note in dataExportService) — the cast lives at this boundary.
+import {
+  ankiTsv,
+  buildDataExport,
+  downloadTextFile,
+  fetchAllRows,
+  type RowsClient,
+} from '../../services/data/dataExportService';
 import { userService } from '../../services/user/userService';
 import { uploadAvatar, deleteAvatar } from '../../services/user/avatarService';
 import ProfLinneaAvatar from '../../components/bonamind/ProfLinneaAvatar';
@@ -439,32 +448,43 @@ export default function SettingsPage() {
   }, []);
 
   const handleResetProgress = useCallback(() => {
-    if (!window.confirm('This will reset all your study progress and streaks. Are you sure?')) return;
+    if (!window.confirm('This clears the study progress cached on this device. Your cards, decks and progress stored in your account are untouched. Continue?')) return;
     const keep = ['bonamind_theme', 'bonamind_dailyGoal', 'bonamind_newCards', 'bonamind_maxReviews'];
     const keys = Object.keys(localStorage).filter(k => k.startsWith('bonamind_') && !keep.includes(k));
     keys.forEach(k => localStorage.removeItem(k));
-    toast.success('Progress reset');
+    toast.success('Offline progress cleared');
   }, []);
 
   const handleExportData = useCallback(async () => {
-    const stats = Object.keys(localStorage)
-      .filter(k => k.startsWith('bonamind_'))
-      .reduce((acc, k) => ({ ...acc, [k]: localStorage.getItem(k) }), {} as Record<string, string | null>);
-    const blob = new Blob([JSON.stringify(stats, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `bonamind-export-${Date.now()}.json`; a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Data exported');
+    try {
+      const client = await requireSupabase();
+      const { data: { user } } = await client.auth.getUser();
+      if (!user) { toast.error('You need to be signed in to export your data.'); return; }
+      const localPreferences = Object.keys(localStorage)
+        .filter(k => k.startsWith('bonamind_'))
+        .reduce((acc, k) => ({ ...acc, [k]: localStorage.getItem(k) }), {} as Record<string, string | null>);
+      const bundle = await buildDataExport(user.id, localPreferences, client as unknown as RowsClient);
+      downloadTextFile(JSON.stringify(bundle, null, 2), `bonamind-export-${Date.now()}.json`, 'application/json');
+      toast.success('Data exported');
+    } catch (err) {
+      console.error('[settings] data export failed:', err);
+      toast.error('Export failed — try again.');
+    }
   }, []);
 
   const handleExportAnki = useCallback(async () => {
-    const blob = new Blob(['# BonaMind Anki Export\n# Format: Front\tBack\n'], { type: 'text/tab-separated-values' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `bonamind-anki-${Date.now()}.tsv`; a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Anki package exported');
+    try {
+      const client = await requireSupabase();
+      const { data: { user } } = await client.auth.getUser();
+      if (!user) { toast.error('You need to be signed in to export your cards.'); return; }
+      const rows = (await fetchAllRows(client as unknown as RowsClient, 'cards', user.id)) as { front: string; back: string }[];
+      if (rows.length === 0) { toast.info('No cards yet — nothing to export.'); return; }
+      downloadTextFile(ankiTsv(rows), `bonamind-anki-${Date.now()}.tsv`, 'text/tab-separated-values');
+      toast.success(`Exported ${rows.length} cards for Anki`);
+    } catch (err) {
+      console.error('[settings] anki export failed:', err);
+      toast.error('Export failed — try again.');
+    }
   }, []);
 
   const handleDeleteAccount = useCallback(() => {
@@ -801,11 +821,11 @@ export default function SettingsPage() {
             <div className="border-t border-[#2A2A3A]/30" />
             <div className="flex items-center justify-between py-2.5">
               <div>
-                <div className="text-[#F0EFFE] text-xs">Reset progress</div>
-                <div className="text-[#7A7A96] text-[10px] mt-0.5">Reset all study progress and streaks</div>
+                <div className="text-[#F0EFFE] text-xs">Reset progress (this device)</div>
+                <div className="text-[#7A7A96] text-[10px] mt-0.5">Clears the offline study cache on this device — your account data is untouched</div>
               </div>
               <button onClick={handleResetProgress} className="px-4 py-1.5 border border-red-500/30 text-red-400 text-[11px] font-medium rounded-lg hover:bg-red-500/10 transition-all">
-                Reset
+                Clear
               </button>
             </div>
           </div>
@@ -859,9 +879,9 @@ export default function SettingsPage() {
       <div className="mt-8 bg-[#111118] border border-red-500/20 rounded-xl p-6">
           <SectionHeader icon={AlertTriangle} title="Danger Zone" subtitle="Irreversible actions. Proceed with care." />
           <div className="space-y-3">
-            {['Export your data', 'Export Anki package', 'Delete account'].map((item, i) => {
+            {['Export your data', 'Export cards for Anki (TSV)', 'Delete account'].map((item, i) => {
               const handler = item === 'Export your data' ? handleExportData
-                : item === 'Export Anki package' ? handleExportAnki
+                : item === 'Export cards for Anki (TSV)' ? handleExportAnki
                 : handleDeleteAccount;
               return (
                 <div key={i} className="flex items-center justify-between py-2">
