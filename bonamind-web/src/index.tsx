@@ -57,6 +57,13 @@ const ReactQueryDevtools =
     : null;
 import { queryClient } from './lib/queryClient';
 
+// OAuth tokens leave the address bar BEFORE any telemetry initializes
+// (Sentry breadcrumbs and PostHog pageviews snapshot the location). The auth
+// client must exist first: it reads the session from the URL when created.
+import './services/database/supabase';
+import { captureAndScrubOAuthUrl } from './lib/oauthUrlHygiene';
+captureAndScrubOAuthUrl();
+
 // Initialize Sentry (no-op if DSN not configured)
 initSentry();
 

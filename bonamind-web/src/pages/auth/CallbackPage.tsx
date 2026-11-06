@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../../services/database/supabase';
+import { capturedOAuthUrl } from '../../lib/oauthUrlHygiene';
 import { hasCompletedOnboarding } from '../../lib/onboardingGate';
 import { Loader2, Check, AlertTriangle } from '@/components/icons';
 
@@ -14,14 +16,32 @@ const CallbackPage: React.FC = () => {
     let cancelled = false;
 
     const handleOAuthCallback = async () => {
-      // Check for recovery (password reset) flow
-      const hashParams = new URLSearchParams(location.hash.replace('#', ''));
-      const isRecovery = hashParams.get('type') === 'recovery';
-
-      // Check for error in the URL hash or query (e.g. ?error=access_denied)
+      // The pre-scrub copy of the URL (see oauthUrlHygiene): the address bar
+      // was cleaned at boot, so the flow's hints are read from this copy.
+      const source = capturedOAuthUrl() || window.location.search + window.location.hash;
       const params = new URLSearchParams(
-        location.hash.replace('#', '') + '&' + location.search.replace('?', ''),
+        source.replace(/^[^?#]*/, '').replace(/^[?#]/, '').replace('#', '&'),
       );
+      const isRecovery = params.get('type') === 'recovery';
+      const code = params.get('code');
+
+      // A recovery link lands on the password-change screen; a fresh signup
+      // that confirmed their email goes to onboarding for the role + topic
+      // step before the plan; returning users skip it.
+      const finish = (session: Session) => {
+        setStatus('success');
+        setTimeout(
+          () =>
+            navigate(
+              isRecovery
+                ? '/reset-password?mode=update'
+                : hasCompletedOnboarding(session.user?.user_metadata) ? '/dashboard' : '/onboarding',
+              { replace: true },
+            ),
+          800,
+        );
+      };
+
       const oauthError = params.get('error');
       const errorDescription = params.get('error_description');
 
@@ -42,77 +62,34 @@ const CallbackPage: React.FC = () => {
       }
 
       try {
-        // Handle password recovery flow
-        if (isRecovery) {
-          const accessToken = hashParams.get('access_token');
-          const refreshToken = hashParams.get('refresh_token');
-          if (accessToken) {
-            const { error: setError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken || '',
-            });
-            if (!setError && !cancelled) {
-              setStatus('success');
-              setTimeout(() => navigate('/reset-password?mode=update', { replace: true }), 800);
-              return;
-            }
-          }
-          // Fallback: try standard exchange
-        }
-
-        // exchangeCodeForSession() is the recommended PKCE callback handler.
-        // It parses the OAuth code from the URL hash/query and establishes a session.
-        const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(
-          location.search || location.hash,
-        );
-
-        if (exchangeError) {
-          // Code may have already been consumed — fall back to checking existing session
-          console.warn('OAuth exchange attempt, falling back to getSession:', exchangeError.message);
-          const {
-            data: { session: existingSession },
-            error: sessionError,
-          } = await supabase.auth.getSession();
-
-          if (sessionError) throw sessionError;
-
-          if (existingSession && !cancelled) {
-            setStatus('success');
-            const metadata = existingSession.user?.user_metadata;
-            setTimeout(
-              () =>
-                navigate(
-                  hasCompletedOnboarding(metadata) ? '/dashboard' : '/onboarding',
-                  { replace: true },
-                ),
-              800,
-            );
+        // A code-flow callback carries a code to exchange. Without one, the
+        // client already built the session from the URL when it was created.
+        let exchangeMessage = '';
+        if (code) {
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (!exchangeError && data?.session) {
+            if (!cancelled) finish(data.session);
             return;
           }
+          // The client may already have consumed the code; check for a session.
+          exchangeMessage = exchangeError?.message ?? '';
+          if (exchangeMessage) console.warn('OAuth exchange attempt, falling back to getSession:', exchangeMessage);
+        }
 
-          if (!cancelled) {
-            setStatus('error');
-            setErrorMsg(exchangeError.message || 'Authentication failed. Please try again.');
-          }
+        const {
+          data: { session: existingSession },
+          error: sessionError,
+        } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        if (existingSession) {
+          if (!cancelled) finish(existingSession);
           return;
         }
 
-        if (data?.session && !cancelled) {
-          setStatus('success');
-          // A fresh signup that confirmed their email lands on onboarding for
-          // the role + topic step before the plan; returning users skip it.
-          const metadata = data.session.user?.user_metadata;
-          setTimeout(
-            () =>
-              navigate(
-                hasCompletedOnboarding(metadata) ? '/dashboard' : '/onboarding',
-                { replace: true },
-              ),
-            800,
-          );
-        } else if (!cancelled) {
+        if (!cancelled) {
           setStatus('error');
-          setErrorMsg('Could not establish session. Please try signing in again.');
+          setErrorMsg(exchangeMessage || 'Could not establish session. Please try signing in again.');
         }
       } catch (err: any) {
         console.error('OAuth callback error:', err);
