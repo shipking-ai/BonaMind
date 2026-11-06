@@ -202,6 +202,28 @@ value:
 
 Each of these cost real time. None are obvious from the code.
 
+### Production deploys come only from `deploy.yml`, one at a time
+
+Every build gets new file names, and the site only serves the live build's
+files, so each time production switches builds, open tabs lose files they
+still need. Until 2026-11-05 each merge to main was deployed twice: by
+Vercel's own Git integration and by `.github/workflows/deploy.yml`. The
+workflow also ran one copy per merge side by side. After seven quick merges
+the builds went live in whatever order they finished, older commits after
+newer ones, and the site switched builds again and again within minutes. One
+tab was left blank because its main script was gone.
+
+Now `vercel.json` has `"git": { "deploymentEnabled": { "main": false } }`
+(PR previews still come from Vercel) and `deploy.yml` has a `concurrency`
+group, so deploys run one at a time and the newest commit goes live last.
+Don't turn the Git integration back on for main, or remove the `concurrency`
+block; `src/__tests__/deployPipeline.test.ts` fails if you do.
+
+Tabs that still hit a missing file recover by themselves:
+`public/boot-recovery.js` handles the main script and its CSS, and
+`src/lib/staleDeployRecovery.ts` handles chunks loaded later. Missing files
+under `/assets/` get a 404, not `index.html`.
+
 ### `verify_jwt: true` does not mean "signed-in users only"
 
 It only checks that the caller presents *a* valid JWT, and the public anon key

@@ -5,6 +5,14 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# One production deploy at a time. A newer push waits for the running one
+# instead of racing it, and replaces any older run still waiting, so the
+# newest commit is always the last to go live. Vercel's Git integration is
+# off for main (vercel.json "git"), so this is the only production deploy.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest

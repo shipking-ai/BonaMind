@@ -2,6 +2,9 @@
   "buildCommand": "cd bonamind-web && npm install && npm run build",
   "outputDirectory": "bonamind-web/dist",
   "framework": null,
+  "git": {
+    "deploymentEnabled": { "main": false }
+  },
   "devCommand": "cd bonamind-web && npm run dev",
   "rewrites": [
     { "source": "/api/admin/(.*)", "destination": "/api?path=admin/$1" },
