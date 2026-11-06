@@ -20,6 +20,7 @@ import { validateEnv, logEnvValidation } from './lib/env';
 
 // Error handling
 import { ErrorBoundary, setupGlobalErrorHandler } from './components/shared/ErrorBoundary';
+import { installStaleDeployRecovery } from './lib/staleDeployRecovery';
 
 // SEO
 import { updateMetaTags, setDefaultJsonLd } from './lib/seo';
@@ -142,6 +143,9 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 
 // Set up global error handlers
 setupGlobalErrorHandler();
+
+// A tab left open across a deploy reloads itself once when an old file is gone.
+installStaleDeployRecovery();
 
 // Windows app: outside links open in the user's browser (no-op elsewhere).
 installDesktopLinkHandling();
