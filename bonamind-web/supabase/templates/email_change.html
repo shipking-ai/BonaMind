@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Confirm your new email - BonaMind</title>
+</head>
+<body style="margin:0;padding:0;background:#F4F4F7;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F4F7;">
+  <tr>
+    <td align="center" style="padding:32px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#FFFFFF;border-radius:12px;">
+        <tr>
+          <td style="padding:32px 32px 8px 32px;font-family:Arial,Helvetica,sans-serif;">
+            <p style="margin:0 0 24px 0;font-size:20px;font-weight:bold;color:#7C3AED;">BonaMind</p>
+            <h1 style="margin:0 0 16px 0;font-size:22px;font-weight:bold;color:#1A1A24;">Confirm your new email</h1>
+            <p style="margin:0 0 16px 0;font-size:16px;line-height:24px;color:#1A1A24;">You asked to change the email on your BonaMind account from {{ .Email }} to {{ .NewEmail }}.</p>
+            <p style="margin:0 0 16px 0;font-size:16px;line-height:24px;color:#1A1A24;">Confirm the change with the button below.</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:8px 32px 16px 32px;font-family:Arial,Helvetica,sans-serif;">
+            <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:12px 24px;background:#7C3AED;color:#FFFFFF;font-size:16px;font-weight:bold;text-decoration:none;border-radius:8px;">Confirm new email</a>
+            <p style="margin:24px 0 0 0;font-size:13px;line-height:20px;color:#55556A;">If the button doesn’t work, copy this link into your browser:<br>
+            <a href="{{ .ConfirmationURL }}" style="color:#7C3AED;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:8px 32px 32px 32px;font-family:Arial,Helvetica,sans-serif;">
+            <p style="margin:0;font-size:14px;line-height:22px;color:#55556A;">Didn’t ask for this? Ignore this email and your email address stays the same.</p>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:16px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#8A8AA3;">
+        BonaMind &middot; <a href="https://bonamind.app" style="color:#8A8AA3;">bonamind.app</a>
+      </p>
+    </td>
+  </tr>
+</table>
+</body>
+</html>
