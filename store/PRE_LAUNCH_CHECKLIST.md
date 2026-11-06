@@ -15,14 +15,12 @@
 - [ ] **Terms of service URL returns 200** — `https://bonamind.app/terms`
 - [ ] **Support URL returns 200** — `https://bonamind.app/support` (or
       `mailto:hello@bonamind.app` works)
-- [ ] **Privacy policy names the operating entity** — ⚠️ BLOCKED. It currently
-      says *CogniVect, Inc*, which is being dissolved. A privacy policy must
-      name a real data controller; see the FROZEN block in
-      `src/lib/branding.ts`. Everything else the policy must cover is in place:
+- [x] **Privacy policy names the operating entity** — CastleRock Investors Group, LLC,
+      set in `src/lib/branding.ts`. Everything else the policy must cover is in place:
       data collected (account email, optional profile photo, study progress,
       crash logs, Stripe-billing metadata); all third-party SDKs (Sentry,
       PostHog, Stripe); storage duration; user's rights under GDPR + CCPA.
-- [ ] **Terms of service names the operating entity** — ⚠️ BLOCKED, same reason.
+- [x] **Terms of service names the operating entity** — same constant.
       The rest is in place: subscription auto-renew, cancellation procedure,
       refund policy, prohibited content rules, limitation of liability,
       jurisdiction.

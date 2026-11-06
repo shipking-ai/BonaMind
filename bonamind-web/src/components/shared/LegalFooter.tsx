@@ -22,7 +22,7 @@ import {
  *
  * What remains is deliberately small. The copyright line still names the
  * operating entity, which is the one part here that is a legal statement
- * rather than presentation — see the FROZEN block in lib/branding.ts. It is
+ * rather than presentation — see the note in lib/branding.ts. It is
  * wrong until the replacement entity is confirmed, and that is deliberate:
  * the alternative is silently dropping a copyright notice, which is worse.
  */
