@@ -6,6 +6,26 @@ import { capturedOAuthUrl } from '../../lib/oauthUrlHygiene';
 import { hasCompletedOnboarding } from '../../lib/onboardingGate';
 import { Loader2, Check, AlertTriangle } from '@/components/icons';
 
+/**
+ * A code-flow link only works in the browser that asked for it: that browser
+ * holds the secret the code is exchanged with. Opened anywhere else, the
+ * library reports a missing "code verifier" in words meant for developers.
+ */
+function isOtherBrowser(error: unknown): boolean {
+  const e = error as { code?: string; name?: string; message?: string } | null | undefined;
+  return (
+    e?.code === 'pkce_code_verifier_not_found' ||
+    e?.name === 'AuthPKCECodeVerifierMissingError' ||
+    /code verifier/i.test(e?.message ?? '')
+  );
+}
+
+function otherBrowserMessage(isRecovery: boolean): string {
+  return isRecovery
+    ? 'Open the reset link in the browser where you asked for it, or ask for a new link from this one.'
+    : 'This link only works in the browser where you started. If you were confirming your email, it’s confirmed: sign in to continue.';
+}
+
 const CallbackPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -74,6 +94,7 @@ const CallbackPage: React.FC = () => {
           // The client may already have consumed the code; check for a session.
           exchangeMessage = exchangeError?.message ?? '';
           if (exchangeMessage) console.warn('OAuth exchange attempt, falling back to getSession:', exchangeMessage);
+          if (isOtherBrowser(exchangeError)) exchangeMessage = otherBrowserMessage(isRecovery);
         }
 
         const {
