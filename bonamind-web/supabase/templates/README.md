@@ -29,4 +29,4 @@ Resend (resend.com → Domains). The app's own emails already use it
 `{{ .ConfirmationURL }}`, `{{ .Email }}`, `{{ .NewEmail }}` and `{{ .Token }}`
 are filled in by Supabase. Keep them exactly as written.
 `src/__tests__/authEmailTemplates.test.ts` checks each file has its link or
-code, says BonaMind, and has none of the old AuraMind wording.
+code, says BonaMind, and has none of the pre-rename wording.

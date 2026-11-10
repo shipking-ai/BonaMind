@@ -21,8 +21,11 @@ export function captureAndScrubOAuthUrl(): void {
       /(^|&|[#?])(access_token|refresh_token|id_token)=/.test(url.hash) ||
       /(^|&|[#?])(access_token|refresh_token|id_token)=/.test(url.search);
     const recoveryish = /type=recovery/.test(url.hash + url.search) || url.searchParams.has('type');
+    // An auth link that failed (expired, already used) comes back with the
+    // reason in the fragment instead of tokens.
+    const authError = /(^|&|#)error_description=/.test(url.hash);
     if (tokenish) captured = window.location.href;
-    if (!tokenish && !recoveryish) return;
+    if (!tokenish && !recoveryish && !authError) return;
     // Scrub risky params from the address; keep benign navigation hints
     // (code, type, error) so the PKCE callback keeps working from the live URL.
     const clean = new URL(window.location.href);
@@ -30,6 +33,13 @@ export function captureAndScrubOAuthUrl(): void {
     clean.searchParams.delete('access_token');
     clean.searchParams.delete('refresh_token');
     clean.searchParams.delete('id_token');
+    // Supabase sends a link to its Site URL (the home page) whenever the
+    // app's redirectTo isn't on its Redirect URLs list. Finish every auth
+    // return on the callback page, which routes a reset link to "Set a new
+    // password" and explains an expired one, instead of the landing page.
+    if ((tokenish || authError) && clean.pathname !== '/auth/callback') {
+      clean.pathname = '/auth/callback';
+    }
     window.history.replaceState(null, '', clean.toString());
   } catch {
     // Scrubbing may never break boot; telemetry uses whatever is left.
