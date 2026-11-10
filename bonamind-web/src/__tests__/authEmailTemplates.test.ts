@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 /**
  * The emails Supabase Auth sends (password reset, sign-up confirmation, …).
  *
- * The live ones were still the AuraMind originals: "[AURAMIND] Reset Access
+ * The live ones were still the pre-rename originals: "[AURAMIND] Reset Access
  * Key", "RESET INTERFACE KEY", "If you did not issue this command, ignore
  * this transmission". These files are the BonaMind versions. Supabase reads
  * them from config.toml locally; production gets them pasted into
@@ -44,7 +44,7 @@ describe('auth email templates', () => {
     const html = read(kind);
     const subject = subjectOf(kind) ?? '';
     for (const text of [html, subject]) {
-      expect(text).not.toMatch(/auramind/i);
+      expect(text).not.toMatch(/aura\s*mind/i);
       expect(text).not.toMatch(/interface key|access key|transmission|sequence was initiated|protocol|gateway/i);
     }
     expect(html).toContain('BonaMind');
