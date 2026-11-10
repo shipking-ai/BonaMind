@@ -243,10 +243,32 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+# Auth emails. Production does not read this file: paste each subject and
+# template into Dashboard -> Auth -> Email Templates (supabase/templates/README.md).
+[auth.email.template.recovery]
+subject = "Reset your BonaMind password"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.confirmation]
+subject = "Confirm your email for BonaMind"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.magic_link]
+subject = "Your BonaMind sign-in link"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your new email for BonaMind"
+content_path = "./supabase/templates/email_change.html"
+
+[auth.email.template.invite]
+subject = "You’re invited to BonaMind"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.reauthentication]
+subject = "Your BonaMind verification code"
+content_path = "./supabase/templates/reauthentication.html"
+
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
