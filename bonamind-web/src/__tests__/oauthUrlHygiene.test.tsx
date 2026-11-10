@@ -169,6 +169,37 @@ describe('CallbackPage', () => {
     await waitFor(() => expect(route()).toBe('/reset-password?mode=update'), { timeout: 2000 });
   });
 
+  // A code only works in the browser that started the flow. The library's own
+  // message for this is written for developers (it suggests SSR packages).
+  const verifierMissing = {
+    name: 'AuthPKCECodeVerifierMissingError',
+    code: 'pkce_code_verifier_not_found',
+    message: 'PKCE code verifier not found in storage. For SSR frameworks (Next.js, SvelteKit, etc.), use @supabase/ssr',
+  };
+
+  it('tells a reset link opened in another browser what to do, in plain words', async () => {
+    window.history.replaceState(null, '', 'http://localhost:3000/auth/callback?code=x&type=recovery');
+    supabase.auth.exchangeCodeForSession.mockResolvedValue({ data: { session: null }, error: verifierMissing });
+    supabase.auth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+
+    render(<CallbackPageHost />);
+
+    expect(await screen.findByText(/open the reset link in the browser where you asked for it/i)).toBeTruthy();
+    expect(screen.queryByText(/SSR|verifier/i)).toBeNull();
+  });
+
+  it('tells a confirmation link opened in another browser that the email is confirmed', async () => {
+    window.history.replaceState(null, '', 'http://localhost:3000/auth/callback?code=x');
+    supabase.auth.exchangeCodeForSession.mockResolvedValue({ data: { session: null }, error: verifierMissing });
+    supabase.auth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+
+    render(<CallbackPageHost />);
+
+    expect(await screen.findByText(/only works in the browser where you started/i)).toBeTruthy();
+    expect(screen.getByText(/sign in/i)).toBeTruthy();
+    expect(screen.queryByText(/SSR|verifier/i)).toBeNull();
+  });
+
   it('reports a failure when no code and no session exist', async () => {
     window.history.replaceState(null, '', 'http://localhost:3000/auth/callback');
     supabase.auth.getSession.mockResolvedValue({ data: { session: null }, error: null });

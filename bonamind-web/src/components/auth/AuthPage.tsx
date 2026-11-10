@@ -13,6 +13,7 @@ import { isAppShell, isDesktopApp } from "../../lib/platform";
 import { readClientEnv } from "../../lib/env";
 import { hasCompletedOnboarding } from "../../lib/onboardingGate";
 import { PRODUCT_SITE_URL } from "../../lib/branding";
+import { authCallbackUrl } from "../../lib/authFlow";
 
 /** The Windows app can finish OAuth via bonamind:// once Supabase allows it. */
 function desktopOAuthEnabled(): boolean {
@@ -97,6 +98,11 @@ export default function AuthPage() {
           password,
           options: {
             ...(captchaToken ? { captchaToken } : {}),
+            // Back to the callback, which finishes the sign-in. Without it
+            // Supabase sends the link to the Site URL (the home page). The
+            // installed apps' own origin isn't a website, so they keep the
+            // project default.
+            ...(isAppShell() ? {} : { emailRedirectTo: authCallbackUrl() }),
           },
         });
         if (signUpError) throw signUpError;
@@ -178,7 +184,7 @@ export default function AuthPage() {
     try {
       await supabase.auth.signInWithOAuth({
         provider: "notion",
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
+        options: { redirectTo: authCallbackUrl() },
       });
       setLoading(false);
     } catch (err: any) {
@@ -201,7 +207,7 @@ export default function AuthPage() {
     try {
       await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
+        options: { redirectTo: authCallbackUrl() },
       });
       // Success: the browser redirects to the provider. Exiting the loading
       // state guards the edge case where the redirect is deferred/blocked.

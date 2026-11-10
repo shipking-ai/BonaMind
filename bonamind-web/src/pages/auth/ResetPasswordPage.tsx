@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Mail, ArrowLeft, CheckCircle, Loader2, Lock } from '@/components/icons';
 import { supabase } from '../../services/database/supabase';
+import { authCallbackUrl } from '../../lib/authFlow';
 import TurnstileWidget, { isTurnstileEnabled, type TurnstileHandle } from '../../components/auth/TurnstileWidget';
 
 export default function ResetPasswordPage() {
@@ -43,7 +44,8 @@ export default function ResetPasswordPage() {
       if (!supabase) { setError('Not connected'); return; }
       const { error: sendError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         ...(captchaToken ? { captchaToken } : {}),
-        redirectTo: `${window.location.origin}/auth/callback`,
+        // Marked as a reset: a code-flow link comes back with only `?code=`.
+        redirectTo: authCallbackUrl('recovery'),
       });
       if (sendError) {
         setError(sendError.message);

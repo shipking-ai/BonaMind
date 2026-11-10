@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { isDesktopApp } from '../../lib/platform';
+import { authClientOptions } from '../../lib/authFlow';
 import { purgeSupabaseCache } from '../../lib/authCachePurge';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -38,7 +38,8 @@ export const supabase: SupabaseClient | null = (() => {
         const client = createClient(
             supabaseUrl,
             supabaseAnonKey,
-            isDesktopApp() ? { auth: { flowType: 'pkce' } } : undefined,
+            // Code flow (PKCE) on the website and the Windows app; see authFlow.
+            authClientOptions(),
         );
         // Cached Supabase GET responses (workbox `supabase-api-cache`) must
         // not outlive the session: on a shared browser the next user could
