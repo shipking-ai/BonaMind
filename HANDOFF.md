@@ -12,7 +12,7 @@ the traps that cost real time.
 
 | | |
 |---|---|
-| Version | 2.3.6 (root, app, Android and Wear agree; Windows reads it from `bonamind-web/package.json`). **Windows 2.3.5 published 2026-10-19** (`desktop-v2.3.5`, marked latest). 2.3.6 (tag `desktop-v2.3.6` once its PR merges) clears the 2.3.5 leftovers: Updates in Settings, the paper Quick Review card and drop overlay, file-named courses, the tray shortcut label, and Quick Review's stale cache. Play's versionCode 14 still says 2.0.0 |
+| Version | 2.3.7 (root, app, Android and Wear agree; Windows reads it from `bonamind-web/package.json`). **Windows 2.3.5 is the latest published release** (`desktop-v2.3.5`, 2026-10-19). The `desktop-v2.3.6` release was built but left as a draft, so no one got it; 2.3.7 (tag `desktop-v2.3.7`) carries its changes plus everything in CHANGELOG since, and is the build the private realtime channels need before Realtime public access is turned off. Delete the 2.3.6 draft once 2.3.7 is published. Play's versionCode 14 still says 2.0.0 |
 | Play | versionCode 14 (the BonaMind rename, built after #172 and #176), closed testing (Alpha), **rolled out and sent for review 2026-10-16** together with the BonaMind listing |
 | Branch | `main` at `03d102ed` (2026-10-18, through #181: the Windows app's own layout (#180) and its paper-and-ink look; the BonaMind rename finished in #177; #176 the Gradle heap fix). Repo renamed to `shipking-ai/BonaMind` 2026-10-13 |
 | CI | Node **22 + 24** (20 dropped, EOL); required checks are `build-and-test (22.x)` and `(24.x)` |
