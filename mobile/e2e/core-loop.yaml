@@ -1,9 +1,34 @@
 # The core loop on a real build: signed in -> Today -> study 5 cards (going
 # offline mid-session on Android) -> celebration. verify-reviews.mjs then
 # checks the server received exactly those 5 reviews.
+#
+# iOS signs in through the token-file hook (src/e2e/FileAdopt.tsx): the
+# workflow writes the minted refresh token into the app's sandboxed
+# Documents and the app adopts it on the welcome screen. openLink cannot
+# sign iOS in: iOS 26 gates cold custom-scheme deep links behind a system
+# "Open in 'BonaMind'?" sheet whose Open button drops the URL in CI
+# (mobile-dev-inc/Maestro#2610, unfixed), and the clipboard alternative
+# stalls on the paste-permission sheet. Android has no such sheet, so the
+# deep link signs it in directly.
 appId: ${APP_ID}
 ---
-- openLink: bonamind://e2e/session?rt=${RT}
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      # No clearState: the simulator is fresh every dispatch (freshly
+      # installed app, no session to clear), and Maestro wipes iOS app state
+      # by reinstalling, REPLACING the data container — that deletes the
+      # planted token file before the app ever gets to read it.
+      - launchApp
+      # The welcome screen adopts the token the workflow wrote into the app
+      # container (src/e2e/FileAdopt.tsx); no system sheet can block it, so
+      # Today is the only thing left to wait for.
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - openLink: bonamind://e2e/session?rt=${RT}
 - extendedWaitUntil:
     visible: "Today"
     timeout: 30000
@@ -12,7 +37,24 @@ appId: ${APP_ID}
 - repeat:
     times: 3
     commands:
-      - tapOn: "Tap or swipe to reveal"
+      # The "Tap or swipe to reveal" hint is a plain gray Text that the iOS
+      # 26.4 simulator's accessibility tree intermittently omits TWICE: not
+      # in the findable tree at snapshot time (Maestro "Element not found"),
+      # while the failure screenshot shows it plainly on screen. The card
+      # itself is the tap target, so on iOS tap the card directly by point
+      # (~50%, 40% — blank card area above the question text). Android's
+      # text tap is green; leave it alone.
+      - runFlow:
+          when:
+            platform: iOS
+          commands:
+            - tapOn:
+                point: "50%, 40%"
+      - runFlow:
+          when:
+            platform: Android
+          commands:
+            - tapOn: "Tap or swipe to reveal"
       - swipe:
           direction: RIGHT
           duration: 300
@@ -24,7 +66,17 @@ appId: ${APP_ID}
 - repeat:
     times: 2
     commands:
-      - tapOn: "Tap or swipe to reveal"
+      - runFlow:
+          when:
+            platform: iOS
+          commands:
+            - tapOn:
+                point: "50%, 40%"
+      - runFlow:
+          when:
+            platform: Android
+          commands:
+            - tapOn: "Tap or swipe to reveal"
       - swipe:
           direction: RIGHT
           duration: 300
