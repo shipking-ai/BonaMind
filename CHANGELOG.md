@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.7] - 2026-11-11
+
+### Added
+- **Forgot password?** on the sign-in form
+- **Chat** - switching history saving off offers to delete the copies
+  already saved online
+
+### Changed
+- **Website sign-in** uses Supabase's code flow (PKCE). A reset or
+  confirmation link has to be opened in the browser that asked for it
+- **Live notifications and shared study rooms** use private channels. The
+  installed apps need this release to keep receiving them
+- **Account emails** (password reset, sign-up confirmation and the rest) are
+  BonaMind's, sent from noreply@mail.bonamind.app
+- **Privacy policy** names every outside service that receives user data;
+  store listings and import options describe only what the app does
+
+### Fixed
+- **Password reset links** open "Set a new password" instead of the landing
+  page, and an expired link says so
+- **Open tabs** reload once after a new release instead of failing to load
+  parts of the app
+- **Offline reviews** sync, the deck cache refreshes, and chat sync is back
+- **Large decks** load and count every card past the first 1,000
+- **Exports and Reset progress** do what they say; session pacing goes the
+  way its labels say; Prof. Linnea's app guide links to pages that exist
+- **Version** shows the real version everywhere
+- **Leagues** show your league's real names; the demo leaderboard is gone
+- **Plan** shown from the account's billing record on every screen
+- Security fixes
+
+### Removed
+- The Schoology integration, which never worked, and the made-up rating in
+  the site's search data
+
 ## [2.3.6] - 2026-10-19
 
 ### Added
