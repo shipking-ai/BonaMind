@@ -106,12 +106,8 @@ Drafted answers — flag anything the questionnaire phrases differently:
 
 ## Pricing & distribution
 
-- Free with in-app products: **BonaMind Premium** subscription (Stripe —
-  note: Play Billing vs Stripe: selling digital study features inside an
-  Android app technically requires Play Billing; the current build uses
-  Stripe Checkout in the webview. **Known review risk — either add a Play
-  Billing SKU or be ready to defend the web-only checkout exemption.**
-  This is the single biggest review-risk item in this file.)
+- Free, no in-app products. The Android app sells nothing and shows no link,
+  price or offer. People subscribe on the website (#226).
 - Countries: all available (adjust to taste)
 
 ## Release

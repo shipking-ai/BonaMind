@@ -148,7 +148,7 @@ const ResetPasswordPage = React.lazy(() => import("./pages/auth/ResetPasswordPag
 const RestoreAccountPage = React.lazy(() => import("./pages/auth/RestoreAccountPage"));
 const CallbackPage = React.lazy(() => import("./pages/auth/CallbackPage"));
 const NotFoundPage = React.lazy(() => import("./pages/NotFoundPage"));
-const PaymentPage = React.lazy(() => import("./components/auth/PaymentPage"));
+const SubscribeScreen = React.lazy(() => import("./components/auth/SubscribeScreen"));
 const OnboardingFlow = React.lazy(() => import("./pages/onboarding/OnboardingFlow"));
 const DownloadPage = React.lazy(() => import("./pages/DownloadPage"));
 
@@ -820,10 +820,11 @@ const AppContent = ({ onUserRoleChange }: { onUserRoleChange: (role: UserRole) =
   }, [authChecked]);
 
   /**
-   * Checkout opens in the phone's browser (Apple requires that on iOS, and
-   * Capacitor sends every outside link there), so the purchase finishes
-   * outside the app. Re-check the subscription whenever the app comes back to
-   * the foreground so a new subscriber is let in without restarting the app.
+   * Purchases finish outside the app: checkout opens in the phone's browser on
+   * iOS (Apple requires that, and Capacitor sends every outside link there), and
+   * Android users subscribe on the website. Re-check the subscription whenever
+   * the app comes back to the foreground so a new subscriber is let in without
+   * restarting the app.
    */
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || !user || subscriptionStatus === "active") return;
@@ -979,9 +980,13 @@ const AppContent = ({ onUserRoleChange }: { onUserRoleChange: (role: UserRole) =
                     <Navigate to="/dashboard" replace />
                   ) : (
                     <PageTransition>
-                      <PaymentPage
+                      <SubscribeScreen
                         user={currentUser as any}
                         cancelled={window.location.search.includes("payment=cancelled")}
+                        onCheckAgain={() => {
+                          if (user) void checkSubscription(user.id, user.email || "", true);
+                        }}
+                        onSignOut={onLogout}
                       />
                     </PageTransition>
                   )
