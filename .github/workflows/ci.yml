@@ -134,6 +134,45 @@ jobs:
           cd bonamind-web
           npx playwright install --with-deps chromium
 
+      # The seeded specs mint throwaway accounts, so they run against a
+      # Supabase started on this runner, never the live project: the
+      # baseline schema plus every migration, then the API on 3002.
+      - name: Start a local Supabase
+        run: |
+          mkdir -p "$RUNNER_TEMP/supabase-e2e" && cd "$RUNNER_TEMP/supabase-e2e"
+          npx -y supabase@2.109.1 init
+          sed -i 's/^project_id = .*/project_id = "bonamind-e2e"/' supabase/config.toml
+          npx -y supabase@2.109.1 start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor,storage-api,postgres-meta
+          npx -y supabase@2.109.1 status -o env > status.env
+          # Local-only demo keys, but keep them out of the log anyway.
+          set -a; . ./status.env; set +a
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          {
+            echo "SUPABASE_URL=$API_URL"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "VITE_SUPABASE_URL=$API_URL"
+            echo "VITE_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "VITE_API_PROXY_TARGET=http://localhost:3002"
+            echo "E2E_REQUIRE_SEED=1"
+          } >> "$GITHUB_ENV"
+
+      - name: Build the BonaMind schema in it
+        run: node bonamind-web/scripts/e2e-local-db.mjs
+
+      - name: Start the API on 3002
+        run: |
+          cd api
+          npm ci
+          # Unused placeholders: the server refuses to boot without them.
+          RESEND_API_KEY=re_e2e_unused STRIPE_SECRET_KEY=sk_test_e2e_unused PORT=3002 \
+            nohup npx tsx server.js > "$RUNNER_TEMP/api.log" 2>&1 &
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:3002/api/health >/dev/null && exit 0
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/api.log"
+          exit 1
+
       - name: Run Playwright e2e
         run: |
           cd bonamind-web
