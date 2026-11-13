@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **iPhone app** no longer crashes when you open "New course" to create a
   course
+- **Wear OS app** can now receive decks from the phone: it uses the phone
+  app's package name, which the watch connection and Google Play both require
 
 ## [2.3.7] - 2026-11-11
 
