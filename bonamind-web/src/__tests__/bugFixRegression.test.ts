@@ -629,7 +629,7 @@ describe('Bug #5: Studied-today counter & league_memberships schema', () => {
 //     Name" field, never in appName/identifier/og:title.
 // ---------------------------------------------------------------------------
 describe('Bug #6: CogniVect parent-brand placement', () => {
-  it('BRAND aggregate keys align with the v3 contract (parentName / parentLegal / parentTagline / product)', async () => {
+  it('BRAND aggregate keys align with the v3 contract (parentName / parentLegal / product)', async () => {
     const { BRAND, PARENT_COMPANY_NAME, PRODUCT_NAME, CONTACT_EMAIL, LEGAL_COPYRIGHT_LINE } = await import('../lib/branding');
     // The product name is asserted against app-identity.ts rather than a
     // literal, so a rename does not turn this guard into a rename chore — and
@@ -639,16 +639,15 @@ describe('Bug #6: CogniVect parent-brand placement', () => {
     // The v3 contract pinned by __tests__/branding.test.ts — these spot-checks
     // are the most user-visible assertions. The full parity test lives in
     // branding.test.ts; this block covers what Bug #6 cares about.
-    expect(PARENT_COMPANY_NAME).toBe('CogniVect');
+    expect(PARENT_COMPANY_NAME).toBe('CastleRock Investors Group');
     expect(PRODUCT_NAME).toBe(APP_NAME);
     expect(CONTACT_EMAIL).toBe('hello@bonamind.app');
-    expect(BRAND.parentName).toBe('CogniVect');
-    expect(BRAND.parentLegal).toBe('CogniVect, Inc');
-    expect(BRAND.parentTagline).toBe('cognitive · vector');
+    expect(BRAND.parentName).toBe('CastleRock Investors Group');
+    expect(BRAND.parentLegal).toBe('CastleRock Investors Group, LLC');
     expect(BRAND.product).toBe(APP_NAME);
     // The canonical copyright line stays stable across builds and is what
     // consumers should reach for (NOT a hand-rolled `new Date().getFullYear()`).
-    expect(LEGAL_COPYRIGHT_LINE).toMatch(/^© \d{4} CogniVect, Inc\..*$/);
+    expect(LEGAL_COPYRIGHT_LINE).toMatch(/^© \d{4} CastleRock Investors Group, LLC\..*$/);
   });
 
   it('the parent-brand component surface is gone (the operating entity is being dissolved)', () => {
@@ -685,7 +684,7 @@ describe('Bug #6: CogniVect parent-brand placement', () => {
     //
     // Privacy Policy and Terms of Service are deliberately NOT in this list.
     // They name the operating entity in their body text, and that text is
-    // frozen pending a legal decision -- see the FROZEN block in
+    // a legal fact -- see the note in
     // lib/branding.ts. Asserting they are free of the entity name would fail
     // on the legal pages precisely because their legal content has not been
     // resolved yet, which would make this guard cry wolf.
@@ -708,7 +707,7 @@ describe('Bug #6: CogniVect parent-brand placement', () => {
         .join('\n');
       expect(
         code,
-        rel + ' must not reference CogniVect -- the operating entity is being dissolved',
+        rel + ' must not reference CogniVect -- these surfaces carry no parent-company name',
       ).not.toMatch(/CogniVect|VectorMark|PARENT_BRAND|PARENT_COMPANY/);
     }
   });
@@ -774,7 +773,7 @@ describe('Bug #6: CogniVect parent-brand placement', () => {
       'utf8',
     );
     // The canonical literal lives on the named constant.
-    expect(brandingSrc).toMatch(/PARENT_COMPANY_NAME\s*=\s*['"]CogniVect['"]/);
+    expect(brandingSrc).toMatch(/PARENT_COMPANY_NAME\s*=\s*['"]CastleRock Investors Group['"]/);
     // The BRAND aggregate mirrors via identifier reference (NOT a quoted
     // literal in the aggregate body). This pins the architecture: ONE
     // string literal in the file, mirrored everywhere via PARENT_COMPANY_NAME.

@@ -2,7 +2,7 @@
 name = "bonamind-desktop"
 version = "0.0.0" # the app version comes from ../package.json via tauri.conf.json
 description = "BonaMind for Windows"
-authors = ["CogniVect, Inc."]
+authors = ["CastleRock Investors Group, LLC"]
 license = "LicenseRef-Proprietary"
 publish = false
 edition = "2021"

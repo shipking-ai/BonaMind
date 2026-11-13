@@ -71,4 +71,4 @@ From the repo root, `npm run dev` starts web (3000) + API (3001) together.
 
 ## Author
 
-CogniVect, Inc. — proprietary, all rights reserved.
+CastleRock Investors Group, LLC — proprietary, all rights reserved.

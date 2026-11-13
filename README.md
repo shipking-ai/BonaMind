@@ -418,8 +418,8 @@ npm install
 
 ## 📝 License
 
-Proprietary — All rights reserved. © 2026 CogniVect, Inc.
-BonaMind and the BonaMind mark are trademarks of CogniVect, Inc.
+Proprietary — All rights reserved. © 2026 CastleRock Investors Group, LLC.
+BonaMind and the BonaMind mark are trademarks of CastleRock Investors Group, LLC.
 No part of this codebase is licensed for redistribution.
 
 ## 📚 Governance
