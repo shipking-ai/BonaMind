@@ -1,10 +1,14 @@
 name: Mobile builds
 
-# Manual builds of the native BonaMind app (mobile/):
+# Builds of the native BonaMind app (mobile/):
 #   ios-unsigned-ipa  an unsigned device IPA to sideload with Sideloadly and a
-#                     free Apple ID (no Apple Developer Program needed).
+#                     free Apple ID (no Apple Developer Program needed). Also
+#                     runs on every pull request and push to main that touch
+#                     the native app, so a broken device build fails before
+#                     merge.
 #   e2e-ios / e2e-android  Maestro runs of the core loop against the real
-#                     backend with the end-to-end test account.
+#                     backend with the end-to-end test account. Manual only:
+#                     they sign in to production with test accounts.
 #
 # Liquid Glass needs the iOS 26 SDK, so iOS jobs select Xcode 26.
 # Secrets: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (public, shared with the
@@ -13,6 +17,17 @@ name: Mobile builds
 # The jobs also run one after the other and reseed before each run.
 
 on:
+  pull_request:
+    paths:
+      - 'mobile/**'
+      - 'packages/core/**'
+      - '.github/workflows/mobile-builds.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - 'packages/core/**'
+      - '.github/workflows/mobile-builds.yml'
   workflow_dispatch:
     inputs:
       job:
@@ -23,6 +38,12 @@ on:
 
 permissions:
   contents: read
+
+# A newer push to the same pull request replaces its running build. Manual and
+# main-branch runs each get their own group, so they never cancel each other.
+concurrency:
+  group: mobile-builds-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
 
 env:
   EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -36,7 +57,7 @@ env:
 
 jobs:
   ios-unsigned-ipa:
-    if: inputs.job == 'ios-unsigned-ipa' || inputs.job == 'all'
+    if: github.event_name != 'workflow_dispatch' || inputs.job == 'ios-unsigned-ipa' || inputs.job == 'all'
     runs-on: macos-latest
     timeout-minutes: 60
     steps:
@@ -63,6 +84,27 @@ jobs:
             -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build | tail -20
           test -d build/Build/Products/Release-iphoneos/BonaMind.app
+      - name: Check the binaries are built for iPhone (arm64)
+        working-directory: mobile
+        run: |
+          set -euo pipefail
+          APP=build/Build/Products/Release-iphoneos/BonaMind.app
+          # A device build that "succeeds" for the wrong slice is no use on
+          # an iPhone. Read each bundle's executable name from its Info.plist
+          # and require an arm64 slice, for the app and every extension.
+          check() {
+            exe=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$1/Info.plist")
+            archs=$(lipo -archs "$1/$exe")
+            echo "$(basename "$1")/$exe: $archs"
+            case " $archs " in
+              *" arm64 "*) ;;
+              *) echo "::error::$1/$exe has no arm64 slice ($archs)"; exit 1 ;;
+            esac
+          }
+          check "$APP"
+          for ext in "$APP"/PlugIns/*.appex; do
+            if [ -d "$ext" ]; then check "$ext"; fi
+          done
       - name: Package the IPA
         working-directory: mobile
         run: |
