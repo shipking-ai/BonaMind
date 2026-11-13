@@ -5,8 +5,10 @@
 # tab's "New course" button — Today may be all caught up after the core loop,
 # which renders no CTA at all.
 #
-# iOS is already signed in by the core loop (same simulator, session in the
-# keychain), so a plain launch lands on Today; openLink is unusable on iOS 26
+# The e2e build keeps its session in memory only (src/data/supabase.ts), so
+# the core loop's sign-in does not survive this relaunch. On iOS the workflow
+# mints a fresh session and plants it as the token file, which the welcome
+# screen adopts exactly as in the core loop; openLink is unusable on iOS 26
 # (Maestro#2610, see core-loop). Android re-adopts the session deep link and
 # routes to /create by deep link as well.
 appId: ${APP_ID}
@@ -15,10 +17,9 @@ appId: ${APP_ID}
     when:
       platform: iOS
     commands:
+      # No clearState: it reinstalls the app on iOS and would delete the
+      # freshly planted token file (see core-loop).
       - launchApp
-      # The core loop left the session in the keychain (same simulator), so a
-      # plain launch lands on Today; welcome only shows on the rare lost
-      # session and reads the token file like the core loop does.
 - runFlow:
     when:
       platform: Android
