@@ -313,7 +313,10 @@ final class BonaSpeechEngine {
             }
             int cut = -1;
             for (String mark : new String[] {". ", "! ", "? ", "; ", ", ", " "}) {
-                int at = rest.lastIndexOf(mark, max);
+                // The piece keeps the mark's punctuation and drops its
+                // trailing space, so it ends at at + mark.length() - 1:
+                // search no later than where that still fits in max.
+                int at = rest.lastIndexOf(mark, max - mark.length() + 1);
                 if (at > max / 2) {
                     cut = at + mark.length();
                     break;
