@@ -10,6 +10,12 @@
         android:label="@string/app_name"
         android:theme="@android:style/Theme.DeviceDefault.DayNight">
 
+        <!-- The watch gets its decks from the phone app over the Data Layer
+             and has no network code of its own, so it needs the phone app. -->
+        <meta-data
+            android:name="com.google.android.wearable.standalone"
+            android:value="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true">

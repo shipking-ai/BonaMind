@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   course
 - **Android app** reading aloud no longer stops partway through a very long
   text when a sentence ends exactly at the speech engine's length limit
+- **Wear OS app** can now receive decks from the phone: it uses the phone
+  app's package name, which the watch connection and Google Play both require
 
 ## [2.3.7] - 2026-11-11
 

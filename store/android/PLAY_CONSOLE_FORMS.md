@@ -123,12 +123,11 @@ Drafted answers — flag anything the questionnaire phrases differently:
 
 ## Wear OS note
 
-The wear module builds with the **same upload keystore** but declares
-`com.auramind.app.wear` — if you intend it as a *companion* (embedded in
-the phone listing) it must be built into the phone AAB or embedded via the
-`wearApp` gradle config; a standalone `com.auramind.app.wear` listing
-requires its own store record. Decide before the first upload: the
-package name + listing relationship cannot be changed afterwards.
+The wear module uses the phone app's package name, `com.auramind.app`, and
+the same upload keystore, so it ships in the phone app's listing as a Wear OS
+form factor (not a separate listing). Add Wear OS under **Advanced settings →
+Form factors**, then upload with the Mobile Android workflow's `wear_track`
+input. Steps: `bonamind-web/android/wear/keystore-notes.md`.
 
 ## Post-upload checklist
 
