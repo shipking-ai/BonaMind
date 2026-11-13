@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Capacitor } from '../../lib/nativeShim';
 import { useDashboardWorkspace } from '../../contexts/DashboardWorkspaceContext';
 import { getUserStats } from '../../services/gamification/gamificationService';
-import { initWearSync, pushNow } from '../../services/wear/wearSyncManager';
+import { initWearSync, pushNow, replayWatchGrades } from '../../services/wear/wearSyncManager';
 import type { Card } from '../../types';
 
 function startOfToday(): number {
@@ -45,7 +45,11 @@ export default function WearSyncWiring() {
   }, [user?.id]);
 
   useEffect(() => {
-    if (initedRef.current) void pushNow();
+    if (!initedRef.current) return;
+    void pushNow();
+    // Grades made on the watch while the app was closed wait on the watch
+    // link; apply them once the cards they refer to are here.
+    void replayWatchGrades();
   }, [workspace?.cards]);
 
   return null;

@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   text when a sentence ends exactly at the speech engine's length limit
 - **Wear OS app** can now receive decks from the phone: it uses the phone
   app's package name, which the watch connection and Google Play both require
+- **Wear OS app** cards you grade on the watch while the phone app is closed
+  are no longer lost: the phone keeps them until the app has saved them
 
 ## [2.3.7] - 2026-11-11
 

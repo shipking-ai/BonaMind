@@ -32,19 +32,54 @@ export function initWearSync(opts: WearSyncSources) {
     // and this guard simply skipped). Fixing the registration order made the
     // guard pass for the first time and the latent crash fired immediately.
     try {
-      WearSync.addListener('onGradeResult', async (grade: GradeResult) => {
-        if (!sources) return;
-        const userId = sources.getUserId();
-        if (!userId) return;
-        await applyWatchGrade({ grade, cards: sources.getCards(), userId });
-        await pushNow();
-      });
+      WearSync.addListener('onGradeResult', (grade: GradeResult) => handleWatchGrade(grade));
     } catch {
       // A watch listener is optional; never let it break the dashboard.
     }
   }
 
   return { pushNow };
+}
+
+/**
+ * Applies one grade from the watch, then tells the phone it may drop the
+ * grade's item from the watch link. Until then the item stays there, so a
+ * grade that arrives while the app is closed, or before its cards have
+ * loaded, is applied by a later replay instead of being lost.
+ */
+export async function handleWatchGrade(grade: GradeResult): Promise<void> {
+  if (!sources) return;
+  const userId = sources.getUserId();
+  if (!userId) return;
+  const cards = sources.getCards();
+  const outcome = await applyWatchGrade({ grade, cards, userId });
+  const done =
+    outcome.applied ||
+    outcome.reason === 'duplicate' ||
+    // With the cards loaded, a grade for a card that is not among them (a
+    // deleted card, another account's card) can never apply.
+    (outcome.reason === 'unknown-card' && cards.length > 0);
+  if (done && grade.uri) {
+    try {
+      await wearPlugin()?.ackGrade?.({ uri: grade.uri });
+    } catch {
+      // The grade is replayed and recognised as a duplicate next time.
+    }
+  }
+  if (outcome.applied) await pushNow();
+}
+
+/**
+ * Asks the phone to deliver every grade still waiting on the watch link:
+ * those that arrived while the app was closed, or before the cards loaded.
+ */
+export async function replayWatchGrades(): Promise<void> {
+  if (!sources || sources.getCards().length === 0) return;
+  try {
+    await wearPlugin()?.replayPendingGrades?.();
+  } catch {
+    // Older native shells lack the method; their grades arrive live only.
+  }
 }
 
 export async function pushNow(): Promise<void> {

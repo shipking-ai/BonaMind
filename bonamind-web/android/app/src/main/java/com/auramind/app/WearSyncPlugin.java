@@ -1,5 +1,7 @@
 package com.auramind.app;
 
+import android.net.Uri;
+
 import androidx.annotation.NonNull;
 
 import com.getcapacitor.JSObject;
@@ -10,6 +12,8 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.google.android.gms.wearable.DataClient;
 import com.google.android.gms.wearable.DataItem;
 import com.google.android.gms.wearable.DataMap;
+import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.Wearable;
 import com.google.android.gms.tasks.Task;
@@ -23,6 +27,14 @@ import java.util.ArrayList;
  *
  * - pushReviewPayload(payload): pushes today's due cards to the watch.
  * - onGradeResult event: fired when the watch sends a grade back.
+ * - ackGrade({uri}): the app has applied a grade; drop its item.
+ * - replayPendingGrades(): re-fire onGradeResult for every grade item still
+ *   on the data layer.
+ *
+ * A grade's item stays on the data layer until the app acknowledges it. The
+ * listener service can wake while the app is closed, and anything it only
+ * held in memory died with the process; now the app collects those grades
+ * the next time it has cards loaded.
  *
  * No-op when no watch is paired (Wear data-layer calls simply yield nothing).
  */
@@ -42,6 +54,18 @@ public class WearSyncPlugin extends Plugin {
         return path != null && (path.equals(GRADE_PATH) || path.startsWith(GRADE_PATH + "/"));
     }
 
+    /** The grade a data item carries, with the item's uri for ackGrade. */
+    static JSObject gradeFrom(DataItem item) {
+        DataMap dm = DataMapItem.fromDataItem(item).getDataMap();
+        JSObject grade = new JSObject();
+        grade.put("sessionId", dm.getString("sessionId", ""));
+        grade.put("cardId", dm.getString("cardId", ""));
+        grade.put("rating", dm.getInt("rating", 0));
+        grade.put("timestamp", dm.getLong("timestamp", 0L));
+        grade.put("uri", item.getUri().toString());
+        return grade;
+    }
+
     @Override
     public void load() {
         super.load();
@@ -50,6 +74,41 @@ public class WearSyncPlugin extends Plugin {
 
     private void emitGrade(JSObject grade) {
         notifyListeners("onGradeResult", grade, true);
+    }
+
+    @PluginMethod
+    public void ackGrade(PluginCall call) {
+        String uri = call.getString("uri");
+        if (uri == null || !isGradePath(Uri.parse(uri).getPath())) {
+            call.reject("a grade uri is required");
+            return;
+        }
+        Wearable.getDataClient(getContext())
+            .deleteDataItems(Uri.parse(uri))
+            .addOnSuccessListener(n -> call.resolve(new JSObject().put("deleted", n)))
+            .addOnFailureListener(e -> call.reject("ack failed: " + e.getMessage()));
+    }
+
+    @PluginMethod
+    public void replayPendingGrades(PluginCall call) {
+        // No authority: grade items from every connected node.
+        Uri prefix = new Uri.Builder().scheme(PutDataRequest.WEAR_URI_SCHEME).path(GRADE_PATH).build();
+        Wearable.getDataClient(getContext())
+            .getDataItems(prefix, DataClient.FILTER_PREFIX)
+            .addOnSuccessListener(buffer -> {
+                int count = 0;
+                try {
+                    for (DataItem item : buffer) {
+                        if (!isGradePath(item.getUri().getPath())) continue;
+                        emitGrade(gradeFrom(item));
+                        count++;
+                    }
+                } finally {
+                    buffer.release();
+                }
+                call.resolve(new JSObject().put("count", count));
+            })
+            .addOnFailureListener(e -> call.reject("replay failed: " + e.getMessage()));
     }
 
     @PluginMethod
