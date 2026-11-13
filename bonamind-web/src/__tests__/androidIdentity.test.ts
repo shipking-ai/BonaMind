@@ -68,3 +68,39 @@ describe('plugin classes', () => {
     }
   });
 });
+
+// The phone and watch apps only see each other over the Wearable Data Layer
+// when both use the same package name and are signed with the same key, and
+// Play only ships a watch build alongside a phone app under that same package
+// name. A separate "com.auramind.app.wear" id builds and installs fine, but
+// the watch never receives a deck and can't be uploaded to the phone's listing.
+describe('Wear app identity', () => {
+  const appId = (gradle: string) => gradle.match(/applicationId\s+"([^"]+)"/)?.[1];
+  const debugSuffix = (gradle: string) =>
+    gradle.match(/debug\s*\{[^}]*applicationIdSuffix\s+"([^"]+)"/)?.[1];
+
+  it('uses the phone app package name', () => {
+    const phone = read('app/build.gradle');
+    const wear = read('wear/build.gradle');
+    expect(appId(phone)).toBe('com.auramind.app');
+    expect(appId(wear)).toBe(appId(phone));
+  });
+
+  it('adds the same debug suffix as the phone app', () => {
+    const phone = debugSuffix(read('app/build.gradle'));
+    expect(phone).toBe('.debug');
+    expect(debugSuffix(read('wear/build.gradle'))).toBe(phone);
+  });
+
+  it('takes its version code from CI, never a fixed number', () => {
+    const wear = read('wear/build.gradle');
+    expect(wear).not.toMatch(/versionCode\s+\d+/);
+    expect(wear).toContain('WEAR_VERSION_CODE');
+  });
+
+  it('declares that it needs the phone app', () => {
+    expect(read('wear/src/main/AndroidManifest.xml')).toMatch(
+      /android:name="com\.google\.android\.wearable\.standalone"\s+android:value="false"/,
+    );
+  });
+});

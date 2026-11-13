@@ -40,6 +40,20 @@ on:
         options:
           - draft
           - completed
+      wear_track:
+        # The watch bundle (android/wear) shares the phone app's package name
+        # and Play listing, but goes to its own Wear OS track. Leave blank to
+        # upload the phone bundle only -- that is the default until Wear OS is
+        # added under Play Console -> Advanced settings -> Form factors, which
+        # is what creates these tracks. Names as the Publishing API expects:
+        #   wear:qa          - Wear OS internal testing
+        #   wear:beta        - Wear OS open testing
+        #   wear:production  - Wear OS production
+        #   wear:<name>      - a Wear OS closed testing track you created
+        description: 'Also upload the watch bundle to this Wear OS track (blank = skip; e.g. wear:qa)'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   android:
@@ -190,6 +204,28 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
+      # bundleRelease above builds every module, so the watch bundle is here
+      # too, with a version code of 1,000,000,000 + the phone's (see
+      # android/wear/build.gradle: the two share one listing and one
+      # versionCode space).
+      - name: Upload watch AAB artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: wear-release-aab
+          path: bonamind-web/android/wear/build/outputs/bundle/release/wear-release.aab
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Check the Wear OS track name
+        if: github.event_name == 'workflow_dispatch' && inputs.wear_track != ''
+        env:
+          WEAR_TRACK: ${{ inputs.wear_track }}
+        run: |
+          case "$WEAR_TRACK" in
+            wear:?*) echo "Watch bundle goes to $WEAR_TRACK" ;;
+            *) echo "::error::wear_track must start with wear: (e.g. wear:qa), got '$WEAR_TRACK'"; exit 1 ;;
+          esac
+
       - name: Upload to Google Play
         if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/v')
         uses: r0adkll/upload-google-play@v1
@@ -204,6 +240,18 @@ jobs:
           # always holds exactly the single value chosen in the input above.
           tracks: ${{ inputs.track || 'internal' }}
           mappingFile: bonamind-web/android/app/build/outputs/mapping/release/mapping.txt
+          whatsNewDirectory: store/android/changelogs
+          status: ${{ github.event.inputs.status || 'draft' }}
+
+      - name: Upload watch bundle to Google Play
+        if: github.event_name == 'workflow_dispatch' && inputs.wear_track != ''
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          packageName: com.auramind.app
+          releaseFiles: bonamind-web/android/wear/build/outputs/bundle/release/wear-release.aab
+          tracks: ${{ inputs.wear_track }}
+          mappingFile: bonamind-web/android/wear/build/outputs/mapping/release/mapping.txt
           whatsNewDirectory: store/android/changelogs
           status: ${{ github.event.inputs.status || 'draft' }}
 

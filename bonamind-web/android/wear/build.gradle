@@ -2,15 +2,30 @@ apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 
+// Play burns a versionCode on upload, and a watch build's code must differ
+// from every phone build's: the phone and watch bundles share one listing
+// (same package name), so they share one versionCode space. CI passes
+// WEAR_VERSION_CODE; otherwise it is the phone's code (ANDROID_VERSION_CODE)
+// moved past any phone code by a fixed 1,000,000,000. Local builds get 1.
+def phoneVersionCode = System.getenv("ANDROID_VERSION_CODE")
+def wearVersionCode = Integer.parseInt(
+    System.getenv("WEAR_VERSION_CODE")
+        ?: (phoneVersionCode ? String.valueOf(1_000_000_000 + Integer.parseInt(phoneVersionCode)) : "1")
+)
+
 android {
     namespace = "com.auramind.app.wear"
     compileSdk = rootProject.ext.compileSdkVersion
 
     defaultConfig {
-        applicationId "com.auramind.app.wear"
+        // Same package name as the phone app (android/app). The Wearable Data
+        // Layer only connects apps whose package name and signing key match,
+        // and Play only ships a watch build in the phone app's listing under
+        // that name. The Kotlin namespace stays com.auramind.app.wear.
+        applicationId "com.auramind.app"
         minSdkVersion 30
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
+        versionCode wearVersionCode
         versionName "2.3.7"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -49,6 +64,12 @@ android {
     }
 
     buildTypes {
+        // Matches the phone app's debug suffix, so a debug watch build pairs
+        // with a debug phone build (com.auramind.app.debug on both).
+        debug {
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-DEBUG"
+        }
         release {
             minifyEnabled true
             shrinkResources true
