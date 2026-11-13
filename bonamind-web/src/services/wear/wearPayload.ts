@@ -23,6 +23,12 @@ export interface GradeResult {
   cardId: string;
   rating: 0 | 1 | 2 | 3;
   timestamp: number;
+  /**
+   * The grade's data item on the watch link. The phone keeps the item until
+   * the app acknowledges the grade (WearSync.ackGrade), so a grade that
+   * arrives while the app is closed is not lost.
+   */
+  uri?: string;
 }
 
 const truncate = (s: string, max: number): string =>
