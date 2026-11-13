@@ -81,7 +81,10 @@ appId: ${APP_ID}
           direction: RIGHT
           duration: 300
 - takeScreenshot: celebration
-- assertVisible: "day streak"
+# Maestro matches the whole text as a regex. The streak row is one
+# accessible element labelled "<n> day streak" (Celebration.tsx), which is
+# all iOS exposes, so a bare "day streak" never matches there.
+- assertVisible: ".*day streak"
 - runFlow:
     when:
       platform: Android
