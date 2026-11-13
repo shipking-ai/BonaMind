@@ -78,7 +78,10 @@ jobs:
   e2e-ios:
     if: inputs.job == 'e2e' || inputs.job == 'all'
     runs-on: macos-latest
-    timeout-minutes: 75
+    # The simulator build alone has taken 17 to 57 minutes on macos-latest,
+    # and the flows add up to 15 more. At 75 a run whose every step passed
+    # was cut off in cleanup and reported as cancelled.
+    timeout-minutes: 100
     env:
       EXPO_PUBLIC_E2E: 'true'
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
