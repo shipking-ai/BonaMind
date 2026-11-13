@@ -4,11 +4,10 @@
  * Turnstile gates the password grant, and fighting the widget in tests is a
  * losing game (see HANDOFF.md). The reliable path is GoTrue's admin API:
  *
- *   1. `generate_link` (service role) — creates/returns a magic-link URL with
- *      a token the server will happily verify.
- *   2. GET the verification URL — exactly what clicking a magic link does, so
- *      GoTrue establishes a real session and the client exchanges it for a
- *      full session (the code path real users exercise through CallbackPage).
+ *   1. `generate_link` (service role) — creates a magic link for the user.
+ *   2. `verifyOtp` with its token — what clicking the link does, so GoTrue
+ *      returns a real session, which is stored where the app's supabase
+ *      client keeps it.
  *
  * The Playwright storage state is written to
  * `e2e/.auth/<name>.json` for `{ storageState: ... }` reuse.
@@ -16,7 +15,8 @@
  * Usage:
  *   node scripts/e2e-seed-session.mjs --email e2e-onboarding@example.com --name onboarding
  *
- * Requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (repo-root .env).
+ * Requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (shell or repo-root .env).
+ * CI points them at a local `supabase start` stack (scripts/e2e-local-db.mjs).
  */
 import { createClient } from '@supabase/supabase-js';
 import { chromium } from 'playwright';
@@ -156,32 +156,32 @@ async function main() {
     console.log(`spark deck seeded (${deck.id})`);
   }
 
-  // 3. Magic link → real browser session (never fights Turnstile).
+  // 3. Magic link → real session (never fights Turnstile).
+  //
+  // The website signs in with the code flow (PKCE), whose callback only
+  // accepts `?code=` from a flow the browser itself started; it ignores the
+  // `#access_token` fragment an admin-generated link redirects with. So the
+  // link's token is verified here in Node, which returns the same session a
+  // user gets from clicking it, and that session is stored where the app's
+  // supabase client keeps it.
   const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
     type: 'magiclink',
     email,
   });
   if (linkErr) throw linkErr;
 
-  // The verify URL 302s to the project's configured SITE_URL;
-  // `redirect_to` cannot override it because localhost is not on the
-  // project's redirect allowlist, and routing the browser's verify hop hits
-  // the same TLS interception as direct navigation. So the verify hop runs
-  // in NODE (redirect: manual), and only the token fragment is handed to the
-  // browser: we navigate the LOCAL app's callback route with it. The SPA's
-  // supabase client (detectSessionInURL) exchanges the fragment there and
-  // stores the session on the localhost origin — exactly what a user clicking
-  // a magic link on their machine gets.
-  const verifyUrl = new URL(link.properties.action_link);
-  const verifyResp = await fetch(verifyUrl, { redirect: 'manual' });
-  const location = verifyResp.headers.get('location');
-  if (!location) {
-    throw new Error(`verify did not redirect (status ${verifyResp.status})`);
-  }
-  const tokenFragment = new URL(location).hash; // #access_token=...&refresh_token=...
-  if (!tokenFragment || tokenFragment === '#') {
-    throw new Error(`verify redirect carried no token fragment: ${location}`);
-  }
+  const verifier = createClient(SUPABASE_URL, SERVICE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data: verified, error: verifyErr } = await verifier.auth.verifyOtp({
+    type: 'magiclink',
+    token_hash: link.properties.hashed_token,
+  });
+  if (verifyErr) throw verifyErr;
+  if (!verified.session) throw new Error('magic link verified without a session');
+
+  // supabase-js's default storage key, which the app does not override.
+  const storageKey = `sb-${new URL(SUPABASE_URL).hostname.split('.')[0]}-auth-token`;
 
   // Sandboxed/intercepted networks and clock drift can trip Chromium's TLS
   // checks; only localhost is visited from here on, but keep the relaxed
@@ -190,15 +190,10 @@ async function main() {
   const context = await browser.newContext();
   const page = await context.newPage();
 
-  await page.goto(`${baseUrl}/auth/callback${tokenFragment}`, { waitUntil: 'domcontentloaded' });
-
-  // Wait until the client exchanged the token and a session exists.
-  await page.waitForFunction(
-    () => {
-      const keys = Object.keys(localStorage);
-      return keys.some((k) => k.startsWith('sb-') && k.endsWith('-auth-token'));
-    },
-    { timeout: 20_000 },
+  await page.goto(`${baseUrl}/`, { waitUntil: 'domcontentloaded' });
+  await page.evaluate(
+    ([key, value]) => localStorage.setItem(key, value),
+    [storageKey, JSON.stringify(verified.session)],
   );
 
   // `--name` may be a bare label ("onboarding") or a full path; resolve both.

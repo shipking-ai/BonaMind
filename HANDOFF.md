@@ -19,7 +19,7 @@ the traps that cost real time.
 | Migrations | all applied through `20260925_close_admin_oracle.sql` (verified live 2026-09-28); merged since: `20260929_cards_rls_owner_and_deck.sql` (#116) and `20260930_marketplace_fork_and_listing.sql` (#137) — **live application of those two not re-verified** |
 | iOS | builds and screenshots in CI (`mobile-ios.yml`); unsigned device IPA on demand; **never run on a real phone yet** |
 | Native app | `mobile/` (Expo SDK 57, RN 0.86) + `packages/core` (`@bonamind/core`). Part 1 merged (#156) and runs in Expo Go on a real iPhone; unsigned IPA built on `main` 2026-10-12. Part 2 (create a course on the phone) merged (#164). Part 3 (classes, server-graded quizzes) pushed 2026-10-21 with `b7b41d86` — see the 2026-10-19 section. Part 4 (billing card + Stripe checkout + daily review reminder) sits on `main` 2026-10-20 — see the 2026-10-20 section |
-| Tests | 137 files / 968 declared cases (734 unit, 155 API, 26 seeded Playwright, 53 in `packages/core`). The seeded e2e specs skip in CI — they mint real accounts with the service-role key, which CI does not have |
+| Tests | 137 files / 968 declared cases (734 unit, 155 API, 26 seeded Playwright, 53 in `packages/core`). The seeded e2e specs run in CI against a throwaway local Supabase built from `supabase/schema.sql` plus every migration |
 
 ---
 
@@ -662,8 +662,21 @@ the version `npx expo install --check` expects (29.5.14 for SDK 57).
 
 ## Running the seeded E2E specs locally
 
-`onboarding.spec.ts` and `spark.spec.ts` mint real accounts with the
-service-role key from the root `.env`; without it (CI) they skip. They need
+`onboarding.spec.ts`, `spark.spec.ts` and `aurora.spec.ts` mint real
+accounts with the service-role key; without one they skip. CI runs them
+against a local Supabase (`supabase start`, then
+`node bonamind-web/scripts/e2e-local-db.mjs` to apply `supabase/schema.sql`
+and every migration; see the e2e job in `ci.yml`), which is also the safe way
+to run them here: point `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` and
+`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` at the local stack
+(`npx supabase status -o env`) instead of the live project.
+
+`supabase/schema.sql` is a schema-only dump of the live `public` schema
+(13 Nov 2026), the baseline the migrations build on; refresh it with
+`npx supabase db dump --db-url '<session pooler URL>' --schema public -f supabase/schema.sql`.
+The seeder signs in by verifying a magic-link token in Node and storing the
+session; the website's code flow (PKCE) ignores the `#access_token` link the
+old seeder relied on. The specs need
 the Vite dev server on 3001 (the spark force hook is dev-only) and the API
 somewhere else — `bonamind-web/.env` points the `/api` proxy at 3001, i.e.
 at Vite itself, which hangs every API call. Run the API on 3002 and override
@@ -1623,7 +1636,7 @@ Everything lives in `NovaDashboardShell.tsx`.
 
 ### Verification
 
-`e2e/aurora.spec.ts` (seeded session, skips in CI like the other seeded
+`e2e/aurora.spec.ts` (seeded session, run in CI like the other seeded
 specs): scrolls `main#nova-main-content` by 700px, reads computed
 transform/filter of both background layers before/after, asserts ≥2 layers
 moved and `.nova-shell` did not. Measured, not eyeballed. Plus web

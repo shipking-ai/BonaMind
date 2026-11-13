@@ -4,9 +4,10 @@ import { fileURLToPath } from 'node:url';
 
 /**
  * Seeded specs mint real accounts with the service-role key, read by
- * scripts/e2e-seed-session.mjs from the shell or the repo-root .env. CI has
- * neither (and should not create accounts in the live project), so those
- * specs skip there instead of failing.
+ * scripts/e2e-seed-session.mjs from the shell or the repo-root .env. CI runs
+ * them against a throwaway local Supabase (see the e2e job in ci.yml) and
+ * sets E2E_REQUIRE_SEED, so a broken setup fails there instead of quietly
+ * skipping. Elsewhere, without a key, they skip.
  */
 function rootEnvHas(name: string): boolean {
   try {
@@ -22,6 +23,10 @@ const has = (name: string) => Boolean(process.env[name]) || rootEnvHas(name);
 
 export const canSeedSessions =
   has('SUPABASE_SERVICE_ROLE_KEY') && (has('SUPABASE_URL') || has('VITE_SUPABASE_URL'));
+
+if (process.env.E2E_REQUIRE_SEED && !canSeedSessions) {
+  throw new Error('E2E_REQUIRE_SEED is set but SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are missing');
+}
 
 export const SEED_SKIP_REASON =
   'needs SUPABASE_SERVICE_ROLE_KEY (shell or repo-root .env) to seed accounts';

@@ -87,12 +87,27 @@ interface EnvVarConfig {
   validate?: (value: string) => boolean;
 }
 
+/**
+ * A deployed Supabase project is always https. Plain http is accepted only
+ * for a Supabase stack on this machine (`supabase start`), which is what the
+ * seeded e2e specs run against.
+ */
+export function isAllowedSupabaseUrl(value: string): boolean {
+  if (value.startsWith('https://')) return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' && (url.hostname === 'localhost' || url.hostname === '127.0.0.1');
+  } catch {
+    return false;
+  }
+}
+
 const ENV_CONFIG: EnvVarConfig[] = [
   {
     name: 'VITE_SUPABASE_URL',
     required: true,
     description: 'Supabase project URL',
-    validate: (v) => v.startsWith('https://'),
+    validate: (v) => isAllowedSupabaseUrl(v),
   },
   {
     name: 'VITE_SUPABASE_ANON_KEY',
