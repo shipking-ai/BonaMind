@@ -14,8 +14,9 @@ name: Mobile iOS
 # lock-screen layout, which only a real device shows. See the live-boot step
 # for the gate.
 #
-# No Apple Developer account or signing is needed for this job. Device/TestFlight
-# builds are the separate, manually dispatched `ios-device-ipa` job below.
+# No Apple Developer account or signing is needed for this job. The unsigned
+# device build is the separate `ios-device-ipa` job below, which runs on the
+# same triggers.
 
 on:
   pull_request:
@@ -401,8 +402,11 @@ jobs:
   # `build` rather than `archive`: with signing off, archiving does not
   # reliably place App.app inside the .xcarchive on recent Xcode, so the IPA
   # is packaged by hand from the build products.
+  #
+  # It runs on every pull request and push to main, not only by hand, because
+  # the simulator job above can pass while this fails: a different SDK, arm64
+  # instead of the simulator slice, and Release-only settings.
   ios-device-ipa:
-    if: github.event_name == 'workflow_dispatch'
     runs-on: macos-latest
     timeout-minutes: 45
 
@@ -495,6 +499,27 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             build | tee build/xcodebuild-device.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
           test -d build/device/Build/Products/Release-iphoneos/App.app
+
+      - name: Check the binaries are built for iPhone (arm64)
+        run: |
+          set -euo pipefail
+          APP=build/device/Build/Products/Release-iphoneos/App.app
+          # A device build that "succeeds" for the wrong slice is no use on
+          # an iPhone. Read each bundle's executable name from its Info.plist
+          # and require an arm64 slice, for the app and every extension.
+          check() {
+            exe=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$1/Info.plist")
+            archs=$(lipo -archs "$1/$exe")
+            echo "$(basename "$1")/$exe: $archs"
+            case " $archs " in
+              *" arm64 "*) ;;
+              *) echo "::error::$1/$exe has no arm64 slice ($archs)"; exit 1 ;;
+            esac
+          }
+          check "$APP"
+          for ext in "$APP"/PlugIns/*.appex; do
+            if [ -d "$ext" ]; then check "$ext"; fi
+          done
 
       - name: Package the IPA
         run: |
