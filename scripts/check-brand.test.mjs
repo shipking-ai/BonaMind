@@ -49,9 +49,10 @@ test('passes the permanent names', () => {
   assert.deepEqual(hits, []);
 });
 
-test('passes applied migrations, lockfiles and pre-rename plans', () => {
+test('passes applied migrations, the schema dump, lockfiles and pre-rename plans', () => {
   const hits = scan({
     'supabase/migrations/2026_x.sql': '-- AuraMind\n', // legacy-name: ok
+    'supabase/schema.sql': "RAISE EXCEPTION 'urn:auramind:x';\n", // legacy-name: ok
     'supabase/migrations-extra/y.sql': '-- AuraMind\n', // legacy-name: ok
     'package-lock.json': '{ "name": "auramind" }\n', // legacy-name: ok
     'docs/superpowers/specs/2026-10-01-old.md': 'AuraMind\n', // legacy-name: ok
