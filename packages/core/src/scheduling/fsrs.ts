@@ -41,8 +41,9 @@ export const FSRS_PARAMETERS: readonly number[] = default_w;
  * The 20-number vector the personal-profile tuner (fsrsAdaptation) was built
  * on. It belongs to the old, incorrect model, so the scheduler no longer
  * applies it: scheduleFSRS only accepts a full FSRS-6 parameter vector.
- * Kept under its historical name so the profile/catalog code and its stored
- * rows keep working until the tuner is rebuilt on the FSRS-6 optimizer.
+ * Kept under its historical name for the profile catalog; personal schedules
+ * now come from FSRS-6 fits made with the official optimizer
+ * (api/_lib/fsrsTraining.ts).
  */
 export const DEFAULT_WEIGHTS: number[] = [
   0.4072, 1.1829, 3.1262, 15.4722, 7.2102, 0.5316, 1.0659,

@@ -159,15 +159,17 @@ value:
   - Push on iOS needs APNs (Apple Developer account) plus Firebase iOS
     config; until then `pushService` reports it unavailable.
   - Next: Apple Developer Program, then a signed TestFlight job.
-- **Personal FSRS tuning needs rebuilding.** The scheduler now uses the
-  official `ts-fsrs` (FSRS-6, long-term mode, whole-day intervals). The old
-  hand-written scheduler made intervals ~140x too long (Hard could schedule
-  36,500 days out); `20260922000000_fsrs_scheduler_repair.sql` reset the cards
-  it had written. `fsrsAdaptation.ts` still tunes a 20-number vector for the
-  old model, so `scheduleFSRS` ignores anything but a full 21-number FSRS-6
-  vector — profile chips and the starting-difficulty nudge still work, but
-  per-user weights do not affect intervals until the tuner is rebuilt on the
-  FSRS-6 optimizer (`fsrs-rs` / its WASM build).
+- **Personal FSRS-6 tuning runs on the server.** The scheduler uses the
+  official `ts-fsrs` (FSRS-6, long-term mode, whole-day intervals) and
+  applies a personal vector only when it is 21 FSRS-6 numbers.
+  `POST /api/fsrs/tune` (`api/_lib/fsrsTraining.ts`) fits one with the
+  official optimizer (`@open-spaced-repetition/binding`, fsrs-rs; native,
+  **needs Node 24**, which the Vercel project runs) from the caller's
+  `card_reviews`, and returns it only when its log loss beats the defaults.
+  The app asks once there are 400 usable reviews, at most once a day, saves
+  the fit to `user_fsrs_params` and refits after 30 days. Cards first
+  reviewed before `20260916000000_card_reviews_history` are left out (their
+  early history was not kept). Rows from the old 20-number tuner are ignored.
 
 - **Voice study listening on Android** (merged in #79).
   Android WebView has no `SpeechRecognition`, so spoken answers never worked
@@ -1727,9 +1729,9 @@ Applied to production by hand (2026-09-22 14:34Z) and checked after:
 ### Traps found here
 
 - **The personal FSRS tuner went with the old math.** `fsrsAdaptation`'s
-  weight vector was fitted to the broken scheduler, so it had to go; a
-  replacement should use the FSRS-6 optimizer against `card_reviews`. 38
-  reviewed cards is far too little to fit — leave it until there are hundreds.
+  weight vector was fitted to the broken scheduler, so it had to go. Its
+  replacement fits FSRS-6 with the official optimizer on the server (see
+  "Personal FSRS-6 tuning" above) and waits for 400 usable reviews.
 - **A migration only on `main` is not in your working copy.** Checking out a
   branch that predates it and running `npm run migrate` gives a confusing
   "file not found"; `git checkout origin/main -- supabase/migrations/<file>`
