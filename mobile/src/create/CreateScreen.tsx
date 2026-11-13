@@ -53,8 +53,12 @@ const PASTED_TITLE_CHARS = 60;
 
 function SourceTile({ label, symbol, tint, selected, onPress }: { label: string; symbol: SymbolViewProps['name']; tint: string; selected: boolean; onPress(): void }) {
   const { reduce, spring } = useMotion();
+  // Resolve the spring on the JS thread: spring() is a plain function, and
+  // calling it inside the worklet below throws on the UI thread, which
+  // aborts a release build the moment this screen opens.
+  const pop = spring('pop');
   const lift = useAnimatedStyle(() => ({
-    transform: [{ scale: reduce ? 1 : withSpring(selected ? 1.04 : 1, spring('pop')) }],
+    transform: [{ scale: reduce ? 1 : withSpring(selected ? 1.04 : 1, pop) }],
     borderColor: withTiming(selected ? tint : colors.hairline, { duration: 200 }),
   }));
   return (
