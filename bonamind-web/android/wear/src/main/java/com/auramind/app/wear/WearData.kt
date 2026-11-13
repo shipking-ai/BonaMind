@@ -1,6 +1,7 @@
 package com.auramind.app.wear
 
 import com.google.android.gms.wearable.DataMap
+import java.net.URLEncoder
 
 const val SYNC_PATH = "/auramind/sync"
 const val GRADE_PATH = "/auramind/grade"
@@ -28,6 +29,16 @@ data class GradeResult(
     val rating: Int,
     val timestamp: Long,
 )
+
+/**
+ * Where one grade is put on the data layer: its own item under GRADE_PATH.
+ * A data item is identified by its path, so a second put to the same path
+ * replaces the first; with one shared path, grades flushed while the phone
+ * was away collapsed into the last one. The card id is encoded so it can't
+ * add path segments.
+ */
+fun gradePath(grade: GradeResult): String =
+    "$GRADE_PATH/${grade.timestamp}/${URLEncoder.encode(grade.cardId, "UTF-8")}"
 
 fun ReviewPayload.toDataMap(): DataMap = DataMap().apply {
     putInt("version", version)

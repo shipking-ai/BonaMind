@@ -52,10 +52,12 @@ class WearSyncService : WearableListenerService() {
 
 /** Sends a grade result back to the phone app over the data layer. */
 fun sendGrade(context: Context, grade: GradeResult): Task<DataItem> {
-    val req = PutDataMapRequest.create(GRADE_PATH)
+    val req = PutDataMapRequest.create(gradePath(grade))
     req.dataMap.putString("sessionId", grade.sessionId)
     req.dataMap.putString("cardId", grade.cardId)
     req.dataMap.putInt("rating", grade.rating)
     req.dataMap.putLong("timestamp", grade.timestamp)
-    return Wearable.getDataClient(context).putDataItem(req.asPutDataRequest())
+    // Urgent: a grade should reach the phone now, not when the system next
+    // batches non-urgent items to save battery.
+    return Wearable.getDataClient(context).putDataItem(req.asPutDataRequest().setUrgent())
 }

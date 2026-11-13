@@ -27,6 +27,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode wearVersionCode
         versionName "2.3.7"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     // Env-driven release signing, mirroring the phone app module. The watch
@@ -105,6 +106,12 @@ dependencies {
     implementation "com.google.guava:guava:33.2.0-jre"
     implementation "androidx.wear.watchface:watchface-complications-data-source-ktx:1.2.1"
     testImplementation "junit:junit:4.13.2"
+    // End-to-end review test on a Wear OS emulator (src/androidTest). Same
+    // version as the androidx.compose.ui the wear-compose libraries resolve to.
+    androidTestImplementation "androidx.compose.ui:ui-test-junit4:1.8.2"
+    debugImplementation "androidx.compose.ui:ui-test-manifest:1.8.2"
+    androidTestImplementation "androidx.test.ext:junit:1.2.1"
+    androidTestImplementation "androidx.test:runner:1.6.2"
     // Real org.json for local unit tests (android.jar stubs throw "not mocked")
     testImplementation "org.json:json:20240303"
 }
