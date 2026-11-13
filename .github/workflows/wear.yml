@@ -59,7 +59,10 @@ jobs:
         working-directory: bonamind-web
         run: |
           npm ci
-          mkdir -p android/app/src/main/assets
+          # cap update needs a web build to copy, but the watch app ships
+          # none of it, so a placeholder page stands in for `vite build`.
+          mkdir -p dist android/app/src/main/assets
+          printf '<!doctype html><title>BonaMind</title>\n' > dist/index.html
           npx cap update android
 
       - name: Build the app and test APKs
