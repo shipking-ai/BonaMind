@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Personal review schedule** - once you have about 400 reviews, BonaMind
+  fits the FSRS-6 scheduler to how you actually remember, and uses the fit
+  only if it predicts your recall better than the defaults
+
 ### Fixed
 - **iPhone app** no longer crashes when you open "New course" to create a
   course

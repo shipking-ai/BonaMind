@@ -1,39 +1,29 @@
 /**
- * Personalized FSRS Adaptation
+ * Personalized FSRS
  *
- * Per-user tuning of FSRS v5 weights so the schedule respects that user's
- * actual recall curve rather than the population-wide defaults. The actual
- * algorithm in production Anki is L-BFGS-B on log-likelihood with several
- * thousand lines of optimizer plumbing; here we ship a tractable in-browser
- * alternative that adapts the same coefficients meaningfully enough to
- * measurably beat defaults once a user has enough data.
+ * The schedule uses a user's own FSRS-6 parameters once they have enough
+ * history: the server fits them with the official optimizer (fsrs-rs, see
+ * fsrs6Tuning.ts and api/_lib/fsrsTraining.ts) and keeps a fit only when it
+ * predicts that user's recall better than the published defaults. The fit
+ * is saved in user_fsrs_params and refreshed every FSRS_RE_TUNE_DAYS.
  *
- * Algorithm
- * ---------
- * - A *profile catalog* of six pre-tuned weight vectors covers the realistic
- *   spectrum (fast forgetters, slow forgetters, mixed-brain learners, etc).
- *   For users with fewer than the gate threshold of reviews, we just pick the
- *   profile closest to the user's current stats and use it. No optimizer;
- *   no risk of divergence.
- * - For users above the gate threshold we run a small *coordinate descent*
- *   on the seven weights that drive stability growth and lapse recovery
- *   (W[8..14]). Each step nudges one weight by ±5% and keeps the move if the
- *   Brier-style log-loss against the user's recent reviews improves.
- *   Hard-clamped to a safety envelope so it cannot produce nonsense
- *   (negative stability, forget-immediately intervals, etc).
- *
- * Safety Envelope
- * ---------------
- *   - All weights are clamped to the published FSRS v5 paper's plausible
- *     ranges (compiled from open-spaced-repetition/fsrs4anki defaults).
- *   - Interval is always clamped to [1, 36500] days.
- *   - Stability is always >= 0.1.
- *   - If the tuned weights produce a worse log-loss than the defaults, the
- *     tuner never writes them — defaults stay until the user improves.
+ * Below FSRS6_MIN_REVIEWS the scheduler runs on the defaults. The profile
+ * catalog below (fast forgetters, slow forgetters, ...) still names the
+ * user's learning profile for the difficulty chip and the personalization
+ * page; its 20-number vectors are the old FSRS v5 shape and never reach
+ * the scheduler.
  */
 import { supabase } from '../database/supabase';
 import { DEFAULT_WEIGHTS, PROFILE_DIFFICULTY_CENTER } from './fsrs';
 import { logger } from '../../lib/logger';
+import {
+  FSRS6_MIN_REVIEWS,
+  isFsrs6Weights,
+  mayAttemptFsrs6Tune,
+  noteFsrs6TuneAttempt,
+  requestFsrs6Tune,
+  type Fsrs6TuneResult,
+} from './fsrs6Tuning';
 
 /** Minimum reviews a user must have before adaptation is attempted. */
 export const FSRS_TUNING_GATE = 50;
@@ -191,7 +181,7 @@ export async function forceTuneUserFsrsParams(userId: string): Promise<boolean> 
   try {
     const stats = await fetchUserFsrsStats(userId);
     const reviews = await fetchRecentReviewSamples(userId);
-    const result = await loadPersonalizedFsrs(userId, stats, reviews);
+    const result = await loadPersonalizedFsrs(userId, stats, reviews, { force: true });
     return result.personalized;
   } catch (err) {
     logger.warn('fsrsAdaptation: forceTuneUserFsParams failed', err);
@@ -766,70 +756,73 @@ export interface LoadResult {
 }
 
 /**
- * Load the user's personalized FSRS weights. If the user has a recent
- * tuned row, return it. Otherwise, attempt a one-shot tune once they hit
- * the review-count gate.
+ * Load the user's personalized FSRS weights.
+ *
+ * The weights the scheduler applies are a 21-number FSRS-6 vector fitted on
+ * the server by the official optimizer (fsrs6Tuning.ts, POST /api/fsrs/tune).
+ * A saved fit is used while it is under FSRS_RE_TUNE_DAYS old; after that,
+ * or when there is none, a user with enough reviews is refitted (at most once
+ * a day per browser, or now with `force`). A stale fit beats the defaults, so
+ * it stays in use when a refit fails or does not improve on it.
+ *
+ * Rows holding the old 20-number vector (the retired in-browser tuner) are
+ * ignored: the scheduler never applied them.
+ *
+ * The profile label behind the difficulty chip and the starting-difficulty
+ * nudge still comes from the local catalog match, as before.
  */
 export async function loadPersonalizedFsrs(
   userId: string,
   stats: UserStats,
   reviews: ReviewSample[],
+  options: { force?: boolean; tune?: () => Promise<Fsrs6TuneResult | null>; now?: number } = {},
 ): Promise<LoadResult> {
+  const now = options.now ?? Date.now();
+  const profileLabel =
+    stats.reviewCount >= FSRS_TUNING_GATE ? computePersonalizedParams(stats, reviews).profileLabel : null;
   const fallback: LoadResult = {
     weights: DEFAULT_WEIGHTS.slice(),
     personalized: false,
-    profileLabel: null,
+    profileLabel,
     reviewedAt: 0,
   };
 
   if (!supabase) return fallback;
-  if (stats.reviewCount < FSRS_TUNING_GATE) return fallback;
 
-  // Check for an existing recent tuning result.
   const { data: existing } = await supabase
     .from('user_fsrs_params')
     .select('weights, last_tuned_at, review_count, profile_label')
     .eq('user_id', userId)
     .maybeSingle();
 
-  if (existing?.weights) {
-    const tunedAt = new Date(existing.last_tuned_at).getTime();
-    const fresh =
-      Date.now() - tunedAt < FSRS_RE_TUNE_DAYS * 24 * 60 * 60 * 1000 &&
-      existing.review_count >= FSRS_TUNING_GATE;
-    if (fresh) {
-      return {
-        weights: existing.weights as number[],
-        personalized: true,
-        profileLabel: (existing.profile_label as string | null) ?? null,
-        reviewedAt: tunedAt,
-      };
-    }
+  const saved = existing && isFsrs6Weights(existing.weights) ? existing : null;
+  const savedResult = (): LoadResult => ({
+    weights: (saved!.weights as number[]).slice(),
+    personalized: true,
+    profileLabel: (saved!.profile_label as string | null) ?? profileLabel,
+    reviewedAt: new Date(saved!.last_tuned_at).getTime(),
+  });
+
+  if (saved && !options.force) {
+    const age = now - new Date(saved.last_tuned_at).getTime();
+    if (age < FSRS_RE_TUNE_DAYS * 24 * 60 * 60 * 1000) return savedResult();
   }
 
-  // No fresh row. Tune once.
-  const params = computePersonalizedParams(stats, reviews);
-  if (params.personalized) {
-    // Persistence is best-effort: if the RPC rejects (RLS edge case, transient
-    // network), the in-memory params are still valid and ship for this session.
-    try {
-      await supabase.rpc('upsert_user_fsrs_params', {
-        p_user_id: userId,
-        p_weights: JSON.stringify(params.weights),
-        p_review_count: params.reviewCount,
-        p_accuracy_baseline: params.accuracyBaseline,
-        p_loss_value: params.lossValue,
-        p_profile_label: params.profileLabel,
+  if (stats.reviewCount >= FSRS6_MIN_REVIEWS && (options.force || mayAttemptFsrs6Tune(userId, now))) {
+    noteFsrs6TuneAttempt(userId, now);
+    const result = await (options.tune ?? requestFsrs6Tune)();
+    if (result?.status === 'tuned') {
+      // Best-effort save: the fit is valid for this session either way.
+      await safeUpsertUserFsrsParams(userId, {
+        weights: result.parameters,
+        reviewCountTotal: result.reviews,
+        accuracyBaseline: stats.retention,
+        lossValue: result.logLoss,
+        profileLabel,
       });
-    } catch (err) {
-      logger.warn('fsrsAdaptation: persistence failed, in-memory params still applied', err);
+      return { weights: result.parameters.slice(), personalized: true, profileLabel, reviewedAt: now };
     }
   }
 
-  return {
-    weights: params.weights,
-    personalized: params.personalized,
-    profileLabel: params.profileLabel,
-    reviewedAt: params.lastTunedAt,
-  };
+  return saved ? savedResult() : fallback;
 }

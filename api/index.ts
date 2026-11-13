@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { sendEmail as sendEmailViaResend, sendCustomEmail } from './_lib/emails.js';
 import { isEntitled, readSubscriptionStatus, isEntitledWithRoleAccess } from './_lib/entitlement.js';
 import { isPushConfigured, readPushConfig, sendPushToUsers } from './_lib/push.js';
+import { HISTORY_FALLBACK_START, HISTORY_MIGRATION, MAX_REVIEW_ROWS, tuneFsrs6, type ReviewRow } from './_lib/fsrsTraining.js';
 import { decodeBase64Limited, imageText, isPdf, MAX_DOCUMENT_BYTES, MAX_IMAGE_BYTES, MAX_IMAGES, pdfText, VisionError } from './_lib/extract.js';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || '';
@@ -93,6 +94,8 @@ const RATE_LIMIT_BUCKETS: Record<string, 'default' | 'ai' | 'auth'> = {
   'fetch-url': 'ai',
   'fetch-youtube-transcript': 'ai',
   extract: 'ai',
+  // Fitting runs the native optimizer for up to a few seconds.
+  fsrs: 'ai',
   stripe: 'auth',
 };
 
@@ -416,6 +419,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return await handleCron(req, res, action);
       case 'push':
         return await handlePush(req, res, action);
+      case 'fsrs':
+        return await handleFsrs(req, res, action);
       default:
         return json(res, 404, { error: 'Endpoint not found' });
     }
@@ -2151,6 +2156,68 @@ const PushSendSchema = z.object({
  * users' phones. Fails closed when FCM credentials are absent — the response
  * says `configured: false` so the admin UI can explain instead of error.
  */
+const FsrsTuneSchema = z.object({
+  timeZone: z.string().max(64).optional(),
+});
+
+/**
+ * POST /api/fsrs/tune — fits personal FSRS-6 parameters to the caller's own
+ * review history (card_reviews) and returns them; the app stores them in
+ * user_fsrs_params. Reads only, and only the authenticated user's rows.
+ * See _lib/fsrsTraining.ts.
+ */
+async function handleFsrs(req: VercelRequest, res: VercelResponse, action?: string) {
+  if (action !== 'tune') return json(res, 404, { error: 'Unknown fsrs action' });
+  if (req.method !== 'POST') return json(res, 405, { error: 'Method not allowed' });
+
+  const user = await authenticateUser(req, res);
+  if (!user) return;
+  const parsed = validateBody(res, FsrsTuneSchema, req.body ?? {});
+  if (!parsed.ok) return;
+
+  const { createClient } = await import('@supabase/supabase-js');
+  const supabase = createClient(
+    process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+  );
+
+  // When per-review history began; see HISTORY_MIGRATION.
+  const { data: ledger } = await supabase
+    .from('schema_migrations')
+    .select('applied_at')
+    .eq('version', HISTORY_MIGRATION)
+    .maybeSingle();
+  const historyStart = new Date(ledger?.applied_at ?? HISTORY_FALLBACK_START);
+
+  const rows: ReviewRow[] = [];
+  const PAGE = 1000;
+  while (rows.length < MAX_REVIEW_ROWS) {
+    const { data, error } = await supabase
+      .from('card_reviews')
+      .select('card_id, rating, reviewed_at')
+      .eq('user_id', user.id)
+      // All of them, older ones included: buildRevlog leaves out any card
+      // with a review from before historyStart (at most one row per card).
+      .order('reviewed_at', { ascending: true })
+      .range(rows.length, rows.length + PAGE - 1);
+    if (error) {
+      console.error('fsrs/tune: reading card_reviews failed:', error.message);
+      return json(res, 500, { error: 'Could not read review history' });
+    }
+    rows.push(...((data ?? []) as ReviewRow[]));
+    if (!data || data.length < PAGE) break;
+  }
+
+  let result;
+  try {
+    result = await tuneFsrs6(rows, { historyStart, timeZone: parsed.data.timeZone ?? 'UTC' });
+  } catch (err: any) {
+    console.error('fsrs/tune: optimizer failed:', err?.message ?? err);
+    return json(res, 503, { error: 'Optimizer unavailable' });
+  }
+  return json(res, 200, result);
+}
+
 async function handlePush(req: VercelRequest, res: VercelResponse, action?: string) {
   if (action !== 'send') return json(res, 404, { error: 'Unknown push action' });
   if (req.method !== 'POST') return json(res, 405, { error: 'Method not allowed' });
