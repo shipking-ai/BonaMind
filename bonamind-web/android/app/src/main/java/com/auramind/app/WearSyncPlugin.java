@@ -32,6 +32,16 @@ public class WearSyncPlugin extends Plugin {
     public static final String SYNC_PATH = "/auramind/sync";
     public static final String GRADE_PATH = "/auramind/grade";
 
+    /**
+     * True for a grade from the watch. Each grade has its own item under
+     * GRADE_PATH (/auramind/grade/<time>/<card>), because a data item at a
+     * reused path is replaced by the next put; the bare path is what earlier
+     * watch builds used.
+     */
+    static boolean isGradePath(String path) {
+        return path != null && (path.equals(GRADE_PATH) || path.startsWith(GRADE_PATH + "/"));
+    }
+
     @Override
     public void load() {
         super.load();
@@ -80,7 +90,9 @@ public class WearSyncPlugin extends Plugin {
         dm.putDataMapArrayList("cards", cards);
 
         DataClient client = Wearable.getDataClient(getActivity());
-        Task<DataItem> put = client.putDataItem(req.asPutDataRequest());
+        // Urgent: the watch should show the new deck now, not when the system
+        // next batches non-urgent items to save battery.
+        Task<DataItem> put = client.putDataItem(req.asPutDataRequest().setUrgent());
         put.addOnSuccessListener(item -> call.resolve(new JSObject().put("ok", true)))
            .addOnFailureListener(e -> call.reject("push failed: " + e.getMessage()));
     }
