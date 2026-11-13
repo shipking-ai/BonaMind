@@ -76,6 +76,10 @@ const ALLOW_FILES = [
     reason: 'Applied SQL is append-only history',
   },
   {
+    test: (file) => file === 'supabase/schema.sql',
+    reason: 'Dump of the live schema; mirrors applied migrations',
+  },
+  {
     test: (file) => basename(file) === 'package-lock.json',
     reason: 'Generated; follows package.json names',
   },
