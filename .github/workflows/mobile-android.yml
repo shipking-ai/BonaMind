@@ -151,6 +151,15 @@ jobs:
       - name: Generate Android launcher/splash assets
         run: node scripts/generate-android-assets.mjs
 
+      # Push needs google-services.json, which stays out of the public repo;
+      # without it app/build.gradle skips the Google services plugin and the
+      # release ships with push silently off. Unset secret = a warning (the
+      # release still builds); a file for the wrong package fails the run.
+      - name: Write google-services.json (from CI secret)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: node scripts/write-google-services.mjs
+
       - name: Decode release keystore (from CI secret)
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
