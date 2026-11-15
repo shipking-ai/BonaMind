@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   only if it predicts your recall better than the defaults
 
 ### Fixed
+- **Android app** release builds now include the Firebase config, so push
+  notifications can work once the Firebase project is set up
 - **iPhone app** no longer crashes when you open "New course" to create a
   course
 - **Android app** reading aloud no longer stops partway through a very long

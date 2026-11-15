@@ -1580,12 +1580,16 @@ the moment credentials arrive. Nothing else in the code changes when they do.
 
 ### Activation checklist (human, no code)
 
-1. Firebase console → project + Android app `com.bonamind.app` (debug build
-   uses `com.bonamind.app.debug` — register it too if pushes are wanted in
+1. Firebase console → project + Android app `com.auramind.app`, the
+   permanent applicationId (not `com.bonamind.app`; the debug build uses
+   `com.auramind.app.debug` — register it too if pushes are wanted in
    debug).
-2. `google-services.json` → `bonamind-web/android/app/` and rebuild. The
-   gradle plugin applies itself when the file exists (already wired in
-   `app/build.gradle`).
+2. `google-services.json`: for local builds, into
+   `bonamind-web/android/app/` (the gradle plugin applies itself when the
+   file exists). For Play builds, the repository secret
+   `GOOGLE_SERVICES_JSON` (the whole file); `mobile-android.yml` writes it
+   with `scripts/write-google-services.mjs`, warns when the secret is unset
+   and fails when the file has no client for the app's applicationId.
 3. Service account with `firebase-messaging(sender)` → key JSON → set
    `FCM_PROJECT_ID` + `FCM_SERVICE_ACCOUNT_KEY` (raw or base64) on the API.
 4. Test: enable push in app Settings on a device (token lands in
