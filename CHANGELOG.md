@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Windows app: Microsoft Store package** - BonaMind for Windows can now be
+  published in the Microsoft Store, which installs it without the "Windows
+  protected your PC" warning and keeps it up to date
 - **Personal review schedule** - once you have about 400 reviews, BonaMind
   fits the FSRS-6 scheduler to how you actually remember, and uses the fit
   only if it predicts your recall better than the defaults

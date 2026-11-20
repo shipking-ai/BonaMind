@@ -15,6 +15,7 @@ mod links;
 mod nudges;
 mod quick_review;
 mod state;
+mod store;
 mod tray;
 
 use guard::{opens_externally, stays_in_app};
@@ -42,7 +43,7 @@ fn deliver(app: &tauri::AppHandle, intents: &[LaunchIntent]) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         // Must be registered first: a second launch focuses the running
         // window (and forwards its link or file) instead of opening another copy.
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
@@ -59,8 +60,15 @@ pub fn run() {
                 .with_state_flags(chrome::window_state_flags())
                 .build(),
         )
-        .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_opener::init());
+    // The Store updates the Store build and forbids apps that update
+    // themselves, so only the installer build gets the updater.
+    let builder = if store::is_packaged() {
+        builder
+    } else {
+        builder.plugin(tauri_plugin_updater::Builder::new().build())
+    };
+    builder
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_autostart::init(
@@ -80,11 +88,14 @@ pub fn run() {
             commands::get_autostart,
             commands::set_autostart,
             commands::notifications_enabled,
+            commands::install_source,
             commands::set_title_bar_theme,
         ])
         .setup(|app| {
             let args: Vec<String> = std::env::args().collect();
-            let hidden = parse_args(&args).contains(&LaunchIntent::Hidden);
+            // --hidden: the installer build's Run key. The Store build is
+            // started by its startup task, which can't pass arguments.
+            let hidden = parse_args(&args).contains(&LaunchIntent::Hidden) || store::launched_at_startup();
             app.state::<AppState>().hidden_start.store(hidden, Ordering::SeqCst);
 
             #[cfg(debug_assertions)]

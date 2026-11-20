@@ -28,6 +28,7 @@
     "allow-get-autostart",
     "allow-set-autostart",
     "allow-notifications-enabled",
+    "allow-install-source",
     "allow-set-title-bar-theme"
   ]
 }

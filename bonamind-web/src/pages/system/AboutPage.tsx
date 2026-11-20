@@ -10,6 +10,7 @@ import { APP_VERSION } from '../../lib/env';
 import {
   checkForDesktopUpdate,
   desktopAppVersion,
+  desktopUpdatesFromStore,
   installDesktopUpdate,
   type DesktopUpdate,
 } from '../../lib/desktopUpdater';
@@ -41,7 +42,8 @@ type CheckState =
   | { status: 'uptodate'; currentVersion: string; latestVersion: string; releaseNotes?: string }
   | { status: 'available'; currentVersion: string; latestVersion: string; releaseNotes?: string }
   | { status: 'error'; message: string }
-  | { status: 'web' };
+  | { status: 'web' }
+  | { status: 'store' };
 
 const AboutPage: React.FC<AboutPageProps> = ({ versionOverride }) => {
   const version = versionOverride ?? APP_VERSION;
@@ -60,6 +62,10 @@ const AboutPage: React.FC<AboutPageProps> = ({ versionOverride }) => {
     }
     setCheckState({ status: 'checking' });
     try {
+      if (await desktopUpdatesFromStore()) {
+        setCheckState({ status: 'store' });
+        return;
+      }
       const [found, current] = await Promise.all([checkForDesktopUpdate(), desktopAppVersion()]);
       const currentVersion = current ?? version;
       setUpdate(found);
@@ -116,6 +122,11 @@ const AboutPage: React.FC<AboutPageProps> = ({ versionOverride }) => {
               {checkState.status === 'checking' && (
                 <p className="text-[13px] text-violet-300 mt-3 animate-pulse">
                   Checking for updates…
+                </p>
+              )}
+              {checkState.status === 'store' && (
+                <p className="text-[13px] text-emerald-300 mt-3">
+                  The Microsoft Store keeps this app up to date.
                 </p>
               )}
               {checkState.status === 'web' && (

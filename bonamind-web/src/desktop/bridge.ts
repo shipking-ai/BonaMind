@@ -47,6 +47,8 @@ export const desktop = {
     call<boolean | null>('shortcut_registered', { accelerator }, null),
   getAutostart: () => call<boolean>('get_autostart', undefined, false),
   setAutostart: (enabled: boolean) => call<boolean>('set_autostart', { enabled }, false),
+  /** 'store' = the Microsoft Store build, which the Store updates. null outside the Windows app. */
+  installSource: () => call<'store' | 'installer' | null>('install_source', undefined, null),
   /** null = can't tell (not the Windows app, or no installed shortcut yet). */
   notificationsEnabled: () => call<boolean | null>('notifications_enabled', undefined, null),
   /**
