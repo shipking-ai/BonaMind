@@ -50,11 +50,13 @@ pub fn next_local_midnight_ms(now: chrono::DateTime<chrono::Local>) -> i64 {
 use tauri::{AppHandle, Manager};
 
 /// Windows needs the AppUserModelID from the installer's Start-menu shortcut
-/// to show toasts with buttons. `tauri dev` has no shortcut, so debug builds
-/// borrow PowerShell's id.
+/// to show toasts with buttons. In the Store build that is the package's id.
+/// `tauri dev` has no shortcut, so debug builds borrow PowerShell's id.
 #[cfg(windows)]
-fn app_id(app: &AppHandle) -> String {
-    if cfg!(debug_assertions) {
+pub fn app_id(app: &AppHandle) -> String {
+    if let Some(id) = crate::store::app_user_model_id() {
+        id
+    } else if cfg!(debug_assertions) {
         tauri_winrt_notification::Toast::POWERSHELL_APP_ID.to_string()
     } else {
         app.config().identifier.clone()

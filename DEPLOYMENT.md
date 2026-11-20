@@ -129,6 +129,64 @@ Without a code-signing certificate Windows SmartScreen warns on first
 install ("Windows protected your PC" → More info → Run anyway). An EV/OV
 certificate, or the Microsoft Store, removes that.
 
+### Microsoft Store (MSIX)
+
+The Store build is the same exe packaged as an MSIX by
+`bonamind-web/scripts/package-msix.mjs`. The Store signs the packages it
+publishes, so this needs **no code-signing certificate**, and Store installs
+get no SmartScreen warning.
+
+Inside a package Windows ignores what the NSIS installer writes to the
+registry, so the package manifest declares those things instead, from the
+same sources: `bonamind://` links (the deep-link schemes in
+`tauri.conf.json`), the Explorer verb "Make a course with BonaMind"
+(`DOC_EXTS` / `AUDIO_EXTS` in `src/handoff.rs`) and Start with Windows (a
+startup task, `STARTUP_TASK_ID` in `src/store.rs`). At runtime the app
+detects the package (`store.rs`) and:
+
+- leaves the updater out. The Store updates it, and Store policy forbids
+  apps that update themselves. Settings and About say so instead.
+- turns Start with Windows on and off through the startup task. If the user
+  turned it off in Windows Settings → Apps → Startup, only they can turn it
+  back on there.
+- sends notifications under the package's AppUserModelID.
+
+**One-time setup**
+
+1. In Partner Center (https://partner.microsoft.com/dashboard), go to Apps and
+   games → New product → MSIX or PWA app, and reserve the name **BonaMind**.
+2. Open the app → Product management → Product identity. Save its three
+   values as repository **variables**, not secrets: they appear in every
+   Store package.
+
+   ```powershell
+   gh variable set MSIX_IDENTITY_NAME --repo shipking-ai/BonaMind --body "<Package/Identity/Name>"
+   gh variable set MSIX_PUBLISHER --repo shipking-ai/BonaMind --body "<Package/Identity/Publisher>"
+   gh variable set MSIX_PUBLISHER_DISPLAY_NAME --repo shipking-ai/BonaMind --body "<Package/Properties/PublisherDisplayName>"
+   ```
+
+**Each release**
+
+After the `desktop-v*` tag build, download the `bonamind-windows-store-msix`
+artifact from that `Desktop Windows` run. Upload the `.msix` in Partner Center
+under the submission's Packages page. The version is the `package.json`
+version with `.0` added (`2.3.7` → `2.3.7.0`). Every Store upload needs a
+higher version than the last one.
+
+In the submission, the restricted capability `runFullTrust` needs a sentence
+of justification, for example: "BonaMind is a desktop app (Tauri/WebView2)
+that runs as a full-trust Win32 process for its tray icon, reminders and
+global shortcut." The microphone is used to record lectures.
+
+**Testing a package.** Every pull request builds the test package and
+installs, launches and removes it in CI (`scripts/smoke-windows-msix.ps1`).
+Windows installs a package that starts a full-trust exe only when a trusted
+certificate signs it, even with `-AllowUnsigned`, so CI signs the test
+package with a throwaway certificate trusted only on the runner. Don't run
+`-TrustTestCertificate` on your own PC: it adds a certificate to the PC's
+trusted list. To try the Store build on a PC, install it from the Store
+once a submission is live. A private "hidden" listing works for that.
+
 ## iOS Preview Deploy
 
 A public build of the sample-data iPhone screens (`/__preview/ios?tour=1`)

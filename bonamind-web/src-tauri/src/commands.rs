@@ -5,8 +5,7 @@ use crate::chrome::{brand_title_bar, show_main_window};
 use crate::nudges::Nudge;
 use crate::quick_review;
 use crate::state::{emit_to_main, AppState, DueState};
-use crate::tray;
-use tauri_plugin_autostart::ManagerExt;
+use crate::{store, tray};
 use serde::Serialize;
 use std::sync::atomic::Ordering;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -60,17 +59,24 @@ pub fn schedule_nudges(state: State<AppState>, nudges: Vec<Nudge>) {
 }
 
 #[tauri::command]
-pub fn get_autostart(app: AppHandle) -> bool {
-    app.autolaunch().is_enabled().unwrap_or(false)
+pub async fn get_autostart(app: AppHandle) -> bool {
+    // async: the Store build's startup task waits on Windows, so this runs
+    // off the main thread.
+    store::autostart_enabled(&app)
 }
 
 #[tauri::command]
-pub fn set_autostart(app: AppHandle, enabled: bool) -> bool {
-    let launcher = app.autolaunch();
-    let _ = if enabled { launcher.enable() } else { launcher.disable() };
-    let on = launcher.is_enabled().unwrap_or(false);
+pub async fn set_autostart(app: AppHandle, enabled: bool) -> bool {
+    let on = store::set_autostart(&app, enabled);
     tray::set_autostart_checked(&app, on);
     on
+}
+
+/// "store" in the Microsoft Store build (the Store updates it), else
+/// "installer" (it updates itself from GitHub Releases).
+#[tauri::command]
+pub fn install_source() -> &'static str {
+    store::install_source(store::is_packaged())
 }
 
 /// Whether Windows allows BonaMind's notifications. None when it can't tell
@@ -81,7 +87,7 @@ pub fn notifications_enabled(app: AppHandle) -> Option<bool> {
     {
         use windows::core::HSTRING;
         use windows::UI::Notifications::{NotificationSetting, ToastNotificationManager};
-        let id = HSTRING::from(app.config().identifier.as_str());
+        let id = HSTRING::from(crate::nudges::app_id(&app).as_str());
         let notifier = ToastNotificationManager::CreateToastNotifierWithId(&id).ok()?;
         notifier.Setting().ok().map(|s| s == NotificationSetting::Enabled)
     }

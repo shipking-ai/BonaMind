@@ -16,6 +16,7 @@ fn main() {
                 "get_autostart",
                 "set_autostart",
                 "notifications_enabled",
+                "install_source",
                 "set_title_bar_theme",
             ])),
     )

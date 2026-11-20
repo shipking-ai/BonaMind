@@ -19,6 +19,7 @@ const updater = vi.hoisted(() => ({
   checkForDesktopUpdate: vi.fn(async () => null as null | { version: string; body?: string }),
   installDesktopUpdate: vi.fn(async () => undefined),
   desktopAppVersion: vi.fn(async () => '2.3.5' as string | null),
+  desktopUpdatesFromStore: vi.fn(async () => false),
 }));
 vi.mock('../lib/desktopUpdater', () => updater);
 vi.mock('../services/database/modules/sessionService', () => ({

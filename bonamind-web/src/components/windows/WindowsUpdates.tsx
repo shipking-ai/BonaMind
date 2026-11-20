@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import {
   checkForDesktopUpdate,
   desktopAppVersion,
+  desktopUpdatesFromStore,
   installDesktopUpdate,
   type DesktopUpdate,
 } from '../../lib/desktopUpdater';
@@ -22,10 +23,12 @@ type Check =
 export function WindowsUpdates() {
   const [version, setVersion] = useState<string | null>(null);
   const [check, setCheck] = useState<Check>({ status: 'idle' });
+  const [fromStore, setFromStore] = useState<boolean | null>(null);
 
   useEffect(() => {
     let live = true;
     void desktopAppVersion().then((v) => { if (live) setVersion(v); });
+    void desktopUpdatesFromStore().then((s) => { if (live) setFromStore(s); });
     return () => { live = false; };
   }, []);
 
@@ -47,6 +50,17 @@ export function WindowsUpdates() {
       setCheck({ status: 'error', message: "The update didn't install. Try again in a moment." });
     }
   };
+
+  if (fromStore) {
+    return (
+      <div className="win-group">
+        <div className="win-field">
+          <span className="win-field-label">{version ? `Version ${version}` : 'Version'}</span>
+          <span className="win-muted">The Microsoft Store keeps BonaMind up to date.</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="win-group">

@@ -5,15 +5,25 @@
  * (endpoint and public key in src-tauri/tauri.conf.json) and only accepts an
  * installer signed with the matching private key. The Tauri packages are
  * imported lazily so none of this reaches the website's bundle.
+ *
+ * The Microsoft Store build has no updater: the Store updates it, and Store
+ * policy forbids apps that update themselves.
  */
 import type { Update } from '@tauri-apps/plugin-updater';
+import { desktop } from '../desktop/bridge';
 import { isDesktopApp } from './platform';
 
 export type { Update as DesktopUpdate };
 
-/** The newer release, or null when up to date or not in the Windows app. */
+/** True in the Microsoft Store build, where the Store handles updates. */
+export async function desktopUpdatesFromStore(): Promise<boolean> {
+  return (await desktop.installSource()) === 'store';
+}
+
+/** The newer release, or null when up to date, in the Store build, or not in the Windows app. */
 export async function checkForDesktopUpdate(): Promise<Update | null> {
   if (!isDesktopApp()) return null;
+  if (await desktopUpdatesFromStore()) return null;
   const { check } = await import('@tauri-apps/plugin-updater');
   return check();
 }

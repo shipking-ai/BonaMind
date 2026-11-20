@@ -1,12 +1,11 @@
 //! The tray: due count at a glance and the approved menu.
 
 use crate::state::{emit_to_main, AppState, DueState};
-use crate::{badge, chrome, handoff, nudges, quick_review};
+use crate::{badge, chrome, handoff, nudges, quick_review, store};
 use tauri::image::Image;
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Manager, Wry};
-use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_dialog::DialogExt;
 
 const TRAY_ID: &str = "main";
@@ -32,8 +31,9 @@ pub fn header(due: u32, streak: u32) -> String {
 
 pub fn build(app: &AppHandle) -> tauri::Result<()> {
     let header_item = MenuItem::with_id(app, "header", header(0, 0), false, None::<&str>)?;
-    let autostart_on = app.autolaunch().is_enabled().unwrap_or(false);
-    let autostart = CheckMenuItem::with_id(app, "autostart", "Start with Windows", true, autostart_on, None::<&str>)?;
+    // Reading the Store build's startup task waits on Windows, so the tick
+    // is filled in off the main thread once the menu exists.
+    let autostart = CheckMenuItem::with_id(app, "autostart", "Start with Windows", true, false, None::<&str>)?;
     let quick_review_item =
         MenuItem::with_id(app, "quick-review", "Quick review", true, Some(quick_review::DEFAULT_SHORTCUT))?;
     let menu = Menu::with_items(
@@ -75,6 +75,8 @@ pub fn build(app: &AppHandle) -> tauri::Result<()> {
         })
         .build(app)?;
     app.manage(TrayHandles { header: header_item, autostart, quick_review: quick_review_item });
+    let handle = app.clone();
+    std::thread::spawn(move || set_autostart_checked(&handle, store::autostart_enabled(&handle)));
     Ok(())
 }
 
@@ -109,10 +111,11 @@ pub fn set_autostart_checked(app: &AppHandle, on: bool) {
 }
 
 fn toggle_autostart(app: &AppHandle) {
-    let launcher = app.autolaunch();
-    let on = launcher.is_enabled().unwrap_or(false);
-    let _ = if on { launcher.disable() } else { launcher.enable() };
-    set_autostart_checked(app, launcher.is_enabled().unwrap_or(false));
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        let on = store::autostart_enabled(&handle);
+        set_autostart_checked(&handle, store::set_autostart(&handle, !on));
+    });
 }
 
 /// Tray → "New course from file…": native picker, then the same handoff as

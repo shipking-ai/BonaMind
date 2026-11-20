@@ -40,7 +40,15 @@ tauri-plugin-window-state = "2"
 url = "2"
 
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.61", features = ["Win32_Foundation", "Win32_Graphics_Dwm", "UI_Notifications", "Foundation"] }
+windows = { version = "0.61", features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Dwm",
+  "Win32_Storage_Packaging_Appx",
+  "UI_Notifications",
+  "Foundation",
+  "ApplicationModel",
+  "ApplicationModel_Activation",
+] }
 tauri-winrt-notification = "0.7"
 
 [profile.release]

@@ -6,6 +6,13 @@ name: Desktop Windows
 #     the run as an artifact. Updater signing is switched off so the build
 #     needs no secret beyond the Supabase ones the web build already uses.
 #
+#   Every build also packages the app as an MSIX for the Microsoft Store
+#     (scripts/package-msix.mjs). The Store signs what it publishes, so this
+#     needs no certificate of ours. A test package is installed and launched
+#     on pull requests; the Store upload is built when the repository
+#     variables MSIX_IDENTITY_NAME, MSIX_PUBLISHER and
+#     MSIX_PUBLISHER_DISPLAY_NAME (Partner Center -> Product identity) are set.
+#
 #   push tag desktop-vX.Y.Z -> signed release. Creates a DRAFT GitHub release
 #     with the NSIS installer, its .sig, and latest.json (the file installed
 #     apps poll through releases/latest/download/latest.json). Publish the
@@ -23,6 +30,8 @@ on:
       - 'bonamind-web/package.json'
       - 'bonamind-web/package-lock.json'
       - 'bonamind-web/scripts/smoke-windows-installer.ps1'
+      - 'bonamind-web/scripts/package-msix.mjs'
+      - 'bonamind-web/scripts/smoke-windows-msix.ps1'
       - '.github/workflows/desktop-windows.yml'
   push:
     tags:
@@ -126,6 +135,16 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      # The same exe, packaged with a test identity, signed with a throwaway
+      # certificate trusted only on this runner, installed, launched, removed.
+      - name: Package and smoke-test the test MSIX
+        if: ${{ !startsWith(github.ref, 'refs/tags/desktop-v') }}
+        shell: pwsh
+        run: |
+          node scripts/package-msix.mjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./scripts/smoke-windows-msix.ps1 -TrustTestCertificate
+
       - name: Require the updater signing key
         if: startsWith(github.ref, 'refs/tags/desktop-v')
         env:
@@ -156,3 +175,27 @@ jobs:
           releaseDraft: true
           prerelease: false
           includeUpdaterJson: true
+
+      # The upload for Partner Center. Skipped (with a note) until the
+      # Partner Center identity is saved as repository variables.
+      - name: Package the Store MSIX
+        id: store_msix
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PUBLISHER_DISPLAY_NAME }}
+        run: |
+          if [ -z "${MSIX_IDENTITY_NAME:-}" ]; then
+            echo "::notice::No Store package: set MSIX_IDENTITY_NAME, MSIX_PUBLISHER and MSIX_PUBLISHER_DISPLAY_NAME (Partner Center -> Product identity) as repository variables."
+            exit 0
+          fi
+          node scripts/package-msix.mjs
+
+      - name: Upload the Store MSIX
+        if: steps.store_msix.outputs.msix != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: bonamind-windows-store-msix
+          path: ${{ steps.store_msix.outputs.msix }}
+          if-no-files-found: error
+          retention-days: 30
