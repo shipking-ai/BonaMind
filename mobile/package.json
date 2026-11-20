@@ -69,7 +69,7 @@
   },
   "private": true,
   "description": "BonaMind native app (Expo).",
-  "author": "CogniVect, Inc.",
+  "author": "CastleRock Investors Group, LLC",
   "license": "UNLICENSED",
   "engines": {
     "node": ">=22.22.2"

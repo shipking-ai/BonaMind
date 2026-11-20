@@ -1,9 +1,8 @@
 # BonaMind — Google Play Store Listing
 
 > **v1 copy approved for upload directly into the Play Console.** Brand: BonaMind.
-> No parent-company name appears in the listing — CogniVect, Inc. is being
-> dissolved (see the FROZEN block in `src/lib/branding.ts`), so there is nothing
-> to attribute the listing to and nothing to declare as developer.
+> No parent-company name appears in the listing. The developer name is set in
+> Play Console, not here (see the note in `src/lib/branding.ts`).
 >
 > The store's **"Developer/Vendor Name" and contact fields still need updating**
 > in the Play Console — those are console settings, not files, and they must match
