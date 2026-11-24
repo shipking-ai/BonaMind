@@ -13,11 +13,13 @@ import { WindowsDialog } from './WindowsDialog';
 
 /**
  * Which session screens StudyModePage draws. The Windows app always gets its
- * own; previews (the iOS sample-data harness) otherwise keep the iOS design.
+ * own; previews (the iOS sample-data harness) otherwise keep the iOS design;
+ * the Android app gets its own (components/native/AndroidStudySession).
  */
-export function studyDesign({ platform, preview }: { platform: AppPlatform; preview: boolean }): 'windows' | 'ios' | 'web' {
+export function studyDesign({ platform, preview }: { platform: AppPlatform; preview: boolean }): 'windows' | 'ios' | 'android' | 'web' {
   if (isDesktopApp()) return 'windows';
   if (platform === 'ios' || preview) return 'ios';
+  if (platform === 'android') return 'android';
   return 'web';
 }
 

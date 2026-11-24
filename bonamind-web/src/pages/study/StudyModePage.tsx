@@ -46,6 +46,7 @@ import { VoiceStudyControls } from '../../components/study/VoiceStudyControls';
 import { OfflineBanner } from '../../components/shared/OfflineBanner';
 import { StudyPreviewContext } from './studyPreview';
 import { IOSStudyComplete, IOSStudySession } from '../../components/ios/IOSStudySession';
+import { AndroidStudyComplete, AndroidStudySession } from '../../components/native/AndroidStudySession';
 import {
   WindowsStudyComplete,
   WindowsStudyEmpty,
@@ -138,6 +139,7 @@ export default function StudyModePage() {
   const design = studyDesign({ platform: Capacitor.getPlatform() as AppPlatform, preview: preview !== null });
   const iosDesign = design === 'ios';
   const windowsDesign = design === 'windows';
+  const androidDesign = design === 'android';
   const [dailyGoal] = useAppPreference('bonamind_dailyGoal', '20');
   const [newCards] = useAppPreference('bonamind_newCards', '10');
   const [maxReviews] = useAppPreference('bonamind_maxReviews', '100');
@@ -650,6 +652,19 @@ export default function StudyModePage() {
     );
   }
 
+  if (completed && androidDesign) {
+    return (
+      <AndroidStudyComplete
+        deckTitle={deck?.title || ''}
+        reviewed={sessionStats.total}
+        correct={sessionStats.correct}
+        elapsedMs={elapsedMs}
+        onRestart={handleRestart}
+        onDone={() => navigate('/dashboard')}
+      />
+    );
+  }
+
   if (completed && windowsDesign) {
     return (
       <WindowsStudyComplete
@@ -721,6 +736,38 @@ export default function StudyModePage() {
     );
   }
 
+  if (androidDesign && currentCard) {
+    return (
+      <AndroidStudySession
+        deckTitle={deck?.title || 'Study'}
+        deckId={deck?.id || ''}
+        card={currentCard}
+        index={index}
+        total={studyCards.length}
+        flipped={flipped}
+        onFlip={toggleFlip}
+        onRate={(r) => void handleRate(r)}
+        onExit={() => navigate('/dashboard')}
+        intervals={gradeIntervals ?? {}}
+        voiceMode={voiceMode}
+        onToggleVoice={() => setVoiceMode((v) => !v)}
+        voicePanel={
+          voiceMode ? (
+            <VoiceStudyControls
+              question={currentCard.front || currentCard.question || ''}
+              answer={currentCard.back || currentCard.answer || ''}
+              onAnswerEvaluated={() => setFlipped(true)}
+              onRequestNextCard={() => {
+                setFlipped(false);
+                if (index < studyCards.length - 1) setIndex((i) => i + 1);
+              }}
+            />
+          ) : null
+        }
+      />
+    );
+  }
+
   if (iosDesign && currentCard) {
     return (
       <IOSStudySession
@@ -754,7 +801,7 @@ export default function StudyModePage() {
   }
 
   return (
-    <div className={`min-h-screen bg-[#0A0A0F] flex flex-col relative ${isAndroidApp ? 'android-study-page' : ''}`}>
+    <div className="min-h-screen bg-[#0A0A0F] flex flex-col relative">
       <VideoBackground name="study-session" opacity={0.3} />
 
       {/* Multiplayer Study banner — opt-in party mode. Mounts at top of study
@@ -779,7 +826,7 @@ export default function StudyModePage() {
       )}
 
       {/* Top bar */}
-      <div className="android-study-header flex items-center justify-between px-6 py-3 border-b border-[#2A2A3A]/50">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-[#2A2A3A]/50">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/dashboard/study')}
             className="w-8 h-8 rounded-lg bg-[#111118] border border-[#2A2A3A] flex items-center justify-center text-[#7A7A96] hover:text-[#F0EFFE] transition-colors text-sm"
@@ -891,7 +938,7 @@ export default function StudyModePage() {
       </div>
 
       {/* Card area */}
-      <div className="android-study-card-area flex-1 flex items-center justify-center p-6" onMouseMove={handleTilt} onMouseLeave={resetTilt}>
+      <div className="flex-1 flex items-center justify-center p-6" onMouseMove={handleTilt} onMouseLeave={resetTilt}>
         {/* Radial violet spotlight behind card */}
         <div className="absolute w-[600px] h-[600px] rounded-full bg-gradient-radial from-violet-500/8 via-violet-500/3 to-transparent pointer-events-none" style={{ filter: 'blur(60px)' }} />
 
@@ -934,7 +981,7 @@ export default function StudyModePage() {
             >
             <div
               ref={cardRef}
-              className="android-study-card flashcard-paper relative w-[500px] max-w-[90vw] min-h-[340px] rounded-[8px] cursor-pointer select-none overflow-hidden transition-transform duration-75 ease-out"
+              className="flashcard-paper relative w-[500px] max-w-[90vw] min-h-[340px] rounded-[8px] cursor-pointer select-none overflow-hidden transition-transform duration-75 ease-out"
               style={{
                 transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) rotate(-1.5deg)`,
                 boxShadow: '0 1px 0 0 #E8E4CC, 0 2px 0 0 #F5F0D8, 0 3px 0 0 #EDE8C8, 0 4px 6px rgba(0,0,0,0.2), 0 10px 30px rgba(0,0,0,0.35), 0 0 50px rgba(124,58,237,0.08)',
@@ -1032,7 +1079,7 @@ export default function StudyModePage() {
 
       {/* Voice study controls (hands-free) */}
       {voiceMode && currentCard && (
-        <div className="android-study-voice-panel px-6 pb-2">
+        <div className="px-6 pb-2">
           <div className="max-w-lg mx-auto">
             <VoiceStudyControls
               question={currentCard.front || currentCard.question || ''}
@@ -1059,7 +1106,7 @@ export default function StudyModePage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.25 }}
-            className="android-study-rating px-6 pb-6"
+            className="px-6 pb-6"
           >
             <div className="max-w-lg mx-auto">
               {/* Chrome's on-device model: a shorter answer or a translation,
