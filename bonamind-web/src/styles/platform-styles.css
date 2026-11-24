@@ -2365,6 +2365,19 @@ html.android-app #root {
   padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
+/* Before the card is flipped the voice panel is the last thing on the page,
+   so it clears the gesture bar itself; once the rating bar shows, that bar
+   does. */
+.android-study-page .android-study-voice-panel:last-child {
+  padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+/* The orb is drawn 220px for desktop; on a phone that covers the card. */
+.android-study-page .android-study-voice-panel .am-voice-orb {
+  width: 112px;
+  height: 112px;
+}
+
 .android-study-page .android-study-rating button {
   min-height: 58px;
   border-radius: 15px !important;

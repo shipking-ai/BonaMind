@@ -154,7 +154,9 @@ export function VoiceStudyControls({
         }
       />
 
-      <div className="flex items-center gap-2">
+      {/* select-none: on a touch screen a tap that lands on a label must
+          press the button, not start a text selection. */}
+      <div className="flex items-center gap-2 select-none">
         {/* Hands-Free Mode */}
         <button
           onClick={toggleHandsFree}

@@ -753,13 +753,8 @@ export default function StudyModePage() {
     );
   }
 
-  return (
-    <div className={`min-h-screen bg-[#0A0A0F] flex flex-col relative ${isAndroidApp ? 'android-study-page' : ''}`}>
-      <VideoBackground name="study-session" opacity={0.3} />
-
-      {/* Multiplayer Study banner — opt-in party mode. Mounts at top of study
-          surface so users can launch or join a presence room without leaving
-          the session. */}
+  const sessionBanners = (
+    <>
       {/* Sits above the session so a mid-study disconnect is visible without
           the user having to notice something is wrong. Renders nothing while
           online. */}
@@ -767,6 +762,8 @@ export default function StudyModePage() {
         <OfflineBanner />
       </div>
 
+      {/* Multiplayer Study banner — opt-in party mode, so users can launch or
+          join a presence room without leaving the session. */}
       {deck?.id && (
         <div className="px-6 pt-3">
           <MultiplayerStudyBanner
@@ -777,6 +774,16 @@ export default function StudyModePage() {
           />
         </div>
       )}
+    </>
+  );
+
+  return (
+    <div className={`min-h-screen bg-[#0A0A0F] flex flex-col relative ${isAndroidApp ? 'android-study-page' : ''}`}>
+      {/* The phone layout keeps its own dark backdrop: the video is
+          absolutely positioned, so it paints over the header and banners. */}
+      {!isAndroidApp && <VideoBackground name="study-session" opacity={0.3} />}
+
+      {!isAndroidApp && sessionBanners}
 
       {/* Top bar */}
       <div className="android-study-header flex items-center justify-between px-6 py-3 border-b border-[#2A2A3A]/50">
@@ -843,6 +850,10 @@ export default function StudyModePage() {
           </button>
         </div>
       </div>
+
+      {/* On the phone the header carries the status-bar inset, so the
+          banners go under it instead of under the clock. */}
+      {isAndroidApp && sessionBanners}
 
       {/* Floating particles + MotionPath XP burst */}
       <div className="fixed inset-0 pointer-events-none z-50">
