@@ -4,6 +4,8 @@
  * reports taps and swipes. These pin what it reports.
  */
 import React from 'react';
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { Rating, type Card } from '../types';
@@ -134,5 +136,58 @@ describe('AndroidStudyComplete', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Study again' }));
     expect(onDone).toHaveBeenCalledTimes(1);
     expect(onRestart).toHaveBeenCalledTimes(1);
+  });
+});
+
+// Two things only a real phone showed (Pixel emulator, debug build):
+//  - The card and its answer are scroll containers, which stops the wrapper's
+//    touch-action: none from reaching them, so the WebView took every swipe
+//    as a scroll and the card never graded.
+//  - On a touch screen a tapped button stays :hover, and the app-wide Android
+//    state layer (button::after, inset: 0) then sits on the nearest
+//    positioned ancestor: after tapping the mic, the whole session was
+//    washed 10% white.
+describe('Android session stylesheet', () => {
+  const read = (f: string) =>
+    fs
+      .readFileSync(path.resolve(__dirname, '../styles', f), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+  const androidCss = read('android-native.css');
+  const platformCss = read('platform-styles.css');
+
+  /** Declarations of every rule whose selector list includes `selector`. */
+  const rulesFor = (css: string, selector: string) => {
+    const out: string[] = [];
+    const re = /([^{}]+)\{([^{}]*)\}/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(css))) {
+      if (m[1].split(',').some((x) => x.trim() === selector)) out.push(m[2]);
+    }
+    return out.join('\n');
+  };
+
+  it('hands every touch on the shown answer to the swipe, except vertical scrolling of a long answer', () => {
+    expect(rulesFor(androidCss, '.android-session-card-wrap.is-flipped *')).toMatch(/touch-action:\s*none/);
+    expect(rulesFor(androidCss, '.android-session-card-wrap.is-flipped .android-session-card-answer')).toMatch(
+      /touch-action:\s*pan-y/,
+    );
+  });
+
+  it('keeps the pressed layer of each button inside that button', () => {
+    for (const sel of [
+      '.android-session-round',
+      '.android-session-grade',
+      '.android-session-card',
+      '.android-session-primary',
+      '.android-session-secondary',
+    ]) {
+      expect(rulesFor(androidCss, sel), sel).toMatch(/position:\s*relative/);
+    }
+  });
+
+  it('shows the hover layer only where there is real hover, so a tap does not leave it on', () => {
+    expect(platformCss).toMatch(
+      /@media\s*\(hover:\s*hover\)\s*\{\s*\.platform-android button:hover::after,\s*\.platform-android \[role="button"\]:hover::after\s*\{\s*opacity:\s*1;?\s*\}\s*\}/,
+    );
   });
 });

@@ -567,6 +567,7 @@ html[data-theme="light"] .android-goal-ring-text {
 }
 
 .android-session-round {
+  position: relative;
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -582,6 +583,10 @@ html[data-theme="light"] .android-goal-ring-text {
 .android-session-round svg {
   width: 20px;
   height: 20px;
+}
+
+.android-session-round:active {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .android-session-round.is-on {
@@ -647,12 +652,25 @@ html[data-theme="light"] .android-goal-ring-text {
   touch-action: none;
 }
 
+/* The card and its parts are scroll containers, and touch-action stops at
+   a scroll container, so the wrapper's value alone never reached them:
+   the WebView read every swipe as a scroll. A long answer still scrolls
+   vertically; sideways swipes grade from anywhere on the card. */
+.android-session-card-wrap.is-flipped * {
+  touch-action: none;
+}
+
+.android-session-card-wrap.is-flipped .android-session-card-answer {
+  touch-action: pan-y;
+}
+
 .android-session-card-turn {
   width: 100%;
   height: 100%;
 }
 
 .android-session-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -781,6 +799,7 @@ html[data-theme="light"] .android-goal-ring-text {
 
 .android-session-grade {
   --tone: var(--tone-good);
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -901,6 +920,7 @@ html[data-theme="light"] .android-goal-ring-text {
 
 .android-session-primary,
 .android-session-secondary {
+  position: relative;
   min-height: 54px;
   border-radius: 18px;
   font-size: 16px;

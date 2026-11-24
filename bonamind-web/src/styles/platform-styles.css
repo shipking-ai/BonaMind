@@ -137,9 +137,15 @@
   pointer-events: none;
 }
 
-.platform-android button:hover::after,
-.platform-android [role="button"]:hover::after {
-  opacity: 1;
+/* Only where there is real hover (a mouse, a Chromebook trackpad). On a
+   touch screen a tapped button stays :hover until something else is
+   touched, which left this layer on, and on any button that is not
+   positioned it covers the nearest positioned ancestor instead. */
+@media (hover: hover) {
+  .platform-android button:hover::after,
+  .platform-android [role="button"]:hover::after {
+    opacity: 1;
+  }
 }
 
 /* Windows — subtle lift on hover */
