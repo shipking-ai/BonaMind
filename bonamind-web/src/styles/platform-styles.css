@@ -2283,93 +2283,6 @@ html.android-app #root {
   border-color: rgba(169, 184, 232, 0.2) !important;
 }
 
-/* Immersive study runtime deliberately gets its own dark Prism card rather
-   than the web's cream paper card. */
-.android-study-page {
-  min-height: 100dvh !important;
-  background:
-    radial-gradient(90% 55% at 50% 32%, rgba(88, 77, 190, 0.2), transparent 68%),
-    #080d1b !important;
-  color: #eef1ff;
-}
-
-.android-study-page .android-study-header {
-  min-height: 64px;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: calc(env(safe-area-inset-top, 0px) + 9px) 14px 9px !important;
-  border-bottom-color: rgba(169, 184, 232, 0.13) !important;
-  background: rgba(8, 13, 27, 0.92);
-}
-
-.android-study-page .android-study-header > div:last-child {
-  max-width: 66%;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 5px !important;
-}
-
-.android-study-page .android-study-header > div:last-child > :nth-child(n+8) {
-  display: none;
-}
-
-.android-study-page .android-study-card-area {
-  min-height: 0;
-  padding: 16px 12px 20px !important;
-}
-
-.android-study-page .android-study-card-area .flashcard-paper {
-  border-color: rgba(169, 184, 232, 0.2) !important;
-  background:
-    radial-gradient(120% 70% at 100% 0%, rgba(119, 103, 235, 0.22), transparent 62%),
-    linear-gradient(150deg, #16223b, #0e172a 75%) !important;
-  color: #eef1ff !important;
-  box-shadow: 0 18px 42px rgba(2, 6, 23, 0.42), inset 0 1px rgba(255, 255, 255, 0.08) !important;
-}
-
-.android-study-page .android-study-card {
-  width: min(100%, 430px) !important;
-  max-width: 100% !important;
-  min-height: 360px !important;
-  border-radius: 24px !important;
-  transform: none !important;
-}
-
-.android-study-page .android-study-card [style*="repeating-linear-gradient"] {
-  background-image: linear-gradient(rgba(169, 184, 232, 0.08) 1px, transparent 1px) !important;
-  background-size: 100% 32px !important;
-}
-
-.android-study-page .android-study-card [class*="text-[#1A1828]"],
-.android-study-page .android-study-card [class*="text-[#6B6550]"],
-.android-study-page .android-study-card [class*="text-[#8A8570]"],
-.android-study-page .android-study-card [class*="text-[#B8B09A]"] {
-  color: #dbe3ff !important;
-}
-
-.android-study-page .android-study-card [class*="border-[#D4CFA8]"] {
-  border-color: rgba(169, 184, 232, 0.25) !important;
-}
-
-.android-study-page .android-study-card [class*="bg-[#FFF8E7]"] {
-  background: rgba(114, 230, 244, 0.1) !important;
-}
-
-.android-study-page .android-study-voice-panel,
-.android-study-page .android-study-rating {
-  padding-right: 12px !important;
-  padding-left: 12px !important;
-}
-
-.android-study-page .android-study-rating {
-  padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)) !important;
-}
-
-.android-study-page .android-study-rating button {
-  min-height: 58px;
-  border-radius: 15px !important;
-}
-
 /* Native authentication is a focused app gate, not a web marketing card. */
 .android-auth-page {
   min-height: 100dvh !important;
@@ -2428,14 +2341,6 @@ html.android-app #root {
 
   .android-chat-header [class*="w-8"][class*="h-8"] {
     display: none;
-  }
-
-  .android-study-page .android-study-header > div:last-child {
-    max-width: 58%;
-  }
-
-  .android-study-page .android-study-card {
-    min-height: 330px !important;
   }
 }
 

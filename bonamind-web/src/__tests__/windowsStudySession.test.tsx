@@ -51,9 +51,12 @@ describe('studyDesign', () => {
     (window as W).__TAURI_INTERNALS__ = {};
     expect(studyDesign({ platform: 'web', preview: true })).toBe('windows');
   });
-  it('leaves the website and Android alone', () => {
+  it('leaves the website alone', () => {
     expect(studyDesign({ platform: 'web', preview: false })).toBe('web');
-    expect(studyDesign({ platform: 'android', preview: false })).toBe('web');
+  });
+  it('gives the Android app its own screen, but not a preview session', () => {
+    expect(studyDesign({ platform: 'android', preview: false })).toBe('android');
+    expect(studyDesign({ platform: 'android', preview: true })).toBe('ios');
   });
 });
 
