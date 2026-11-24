@@ -148,16 +148,25 @@ async function upsertToken(userId: string, token: string): Promise<void> {
  * namespaced per call and removed by the cleanup.
  */
 /**
- * The link a tapped notification should open, or null. Either scheme, but
- * only destinations the deep-link allowlist accepts (same rule as launcher
+ * The in-app route a tapped notification should open, or null. Either scheme,
+ * but only destinations the deep-link allowlist accepts (same rule as launcher
  * shortcuts): `bonamind://` from the rename on, `auramind://` from before it. // legacy-name: ok
  */
 export function pushTapTarget(data: { link?: unknown } | undefined): string | null {
   const link = data?.link;
-  return typeof link === 'string' && parseDeepLink(link) ? link : null;
+  return typeof link === 'string' ? parseDeepLink(link) : null;
 }
 
-export function initPushListeners(userId: string | null): () => void {
+/**
+ * `openRoute` must navigate inside the app's router. Assigning the link to
+ * window.location instead hands it to Android as a new VIEW intent, which
+ * brings up an "Open with" chooser whenever another installed app (the debug
+ * build, say) also handles the scheme.
+ */
+export function initPushListeners(
+  userId: string | null,
+  openRoute: (path: string) => void,
+): () => void {
   if (!Capacitor.isNativePlatform()) return () => undefined;
   const cleanups: Array<() => void> = [];
   const track = (promise: Promise<{ remove: () => void | Promise<void> }>) => {
@@ -186,7 +195,7 @@ export function initPushListeners(userId: string | null): () => void {
   track(
     PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
       const target = pushTapTarget(action?.notification?.data as { link?: unknown } | undefined);
-      if (target) window.location.href = target;
+      if (target) openRoute(target);
     }),
   );
 

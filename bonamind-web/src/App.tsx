@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState, Suspense } from "react";
-import { Routes, Route, Navigate, useLocation, Outlet } from "react-router-dom";
+import React, { useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
+import { Routes, Route, Navigate, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Deck, Card, UserProfile, UserRole } from "./types";
 import { getInitialCardState } from "./services/study/srs";
@@ -791,9 +791,17 @@ const AppContent = ({ onUserRoleChange }: { onUserRoleChange: (role: UserRole) =
   // nothing and upserts nothing when registration cannot succeed. Keyed on
   // the user id so a sign-out/sign-in swap never attributes a token to the
   // wrong account.
+  // Taps route through the router. useNavigate() changes identity every
+  // render here (see NativeRuntime), so it is read through a ref rather than
+  // re-binding every listener on each commit.
+  const navigate = useNavigate();
+  const navigateRef = useRef(navigate);
+  useEffect(() => {
+    navigateRef.current = navigate;
+  });
   useEffect(() => {
     if (!authChecked || !user?.id) return;
-    return initPushListeners(user.id);
+    return initPushListeners(user.id, (path) => navigateRef.current(path));
   }, [authChecked, user?.id]);
 
   /**
