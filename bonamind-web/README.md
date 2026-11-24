@@ -51,4 +51,4 @@ src/
 - **FSRS v5 scheduling** — `services/study/fsrs.ts` (free-spaced-repetition-scheduler port).
 - **Offline study** — PWA service worker + IndexedDB offline review queueing.
 
-© CogniVect, Inc. All rights reserved.
+© CastleRock Investors Group, LLC. All rights reserved.
